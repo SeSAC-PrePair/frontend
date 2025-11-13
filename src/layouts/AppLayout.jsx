@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion as Motion } from 'framer-motion'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAppState } from '../context/AppStateContext'
+import '../styles/layouts/AppLayout.css'
 
 const navItems = [
   { to: '/coach', label: 'AI 코칭' },
@@ -92,7 +93,7 @@ export default function AppLayout() {
 
       <main className="shell__main">
         <AnimatePresence mode="wait">
-          <motion.div
+          <Motion.div
             key={location.pathname}
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -101,7 +102,7 @@ export default function AppLayout() {
             className="shell__page"
           >
             <Outlet />
-          </motion.div>
+          </Motion.div>
         </AnimatePresence>
       </main>
 

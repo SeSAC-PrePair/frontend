@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAppState } from '../context/AppStateContext'
+import '../styles/pages/Auth.css'
 
 const desiredFields = ['프론트엔드', '백엔드', 'PM', '데이터', '디자인', '마케팅']
 

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppState } from '../../context/AppStateContext'
+import '../../styles/pages/RewardShop.css'
 
 const catalog = [
   {

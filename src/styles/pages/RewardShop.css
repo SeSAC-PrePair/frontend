@@ -1,0 +1,142 @@
+.reward-shop {
+  display: grid;
+  gap: 2.4rem;
+  padding: 2rem 0 4rem;
+}
+
+.reward-shop__header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2rem;
+}
+
+.reward-shop__header h1 {
+  margin: 1rem 0 0.6rem;
+  font-size: clamp(2rem, 3vw, 2.6rem);
+}
+
+.reward-shop__header p {
+  margin: 0;
+  color: var(--text-secondary);
+  max-width: 34rem;
+}
+
+.reward-shop__balance {
+  padding: 1.4rem;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: grid;
+  gap: 0.4rem;
+  text-align: right;
+}
+
+.reward-shop__error {
+  margin: 0;
+  padding: 0.85rem 1.2rem;
+  border-radius: var(--radius-md);
+  background: rgba(255, 131, 158, 0.16);
+  border: 1px solid rgba(255, 131, 158, 0.3);
+  color: #d94f6a;
+}
+
+.reward-shop__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.4rem;
+}
+
+.reward-item {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  display: grid;
+  grid-template-rows: 160px 1fr;
+  box-shadow: var(--shadow-soft);
+}
+
+.reward-item__badge {
+  position: absolute;
+  top: 0.9rem;
+  left: 0.9rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid var(--border-soft);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.reward-item__visual {
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+}
+
+.reward-item__body {
+  padding: 1.4rem;
+  display: grid;
+  gap: 0.8rem;
+}
+
+.reward-item__body p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+}
+
+.reward-item__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.reward-item__footer span {
+  font-weight: 600;
+}
+
+.reward-item__footer button {
+  padding: 0.6rem 1rem;
+  border-radius: 999px;
+  background: rgba(63, 123, 255, 0.16);
+  border: 1px solid var(--border);
+  color: var(--accent-blue);
+}
+
+.reward-item.is-disabled {
+  opacity: 0.6;
+}
+
+.reward-item.is-disabled button {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .reward-shop {
+    padding: 1.8rem 0 3.4rem;
+    gap: 2.2rem;
+  }
+
+  .reward-shop__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .reward-shop__balance {
+    padding: 1.4rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .reward-shop__header {
+    gap: 1.2rem;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

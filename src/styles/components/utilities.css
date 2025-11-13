@@ -1,0 +1,55 @@
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(63, 123, 255, 0.12);
+  border: 1px solid var(--border);
+  font-size: 0.74rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent-blue);
+}
+
+.pill {
+  padding: 0.5rem 1.1rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(63, 123, 255, 0.08);
+  color: var(--text-secondary);
+}
+
+.pill.is-active {
+  color: var(--accent-cyan);
+  border-color: rgba(31, 182, 166, 0.6);
+  background: rgba(31, 182, 166, 0.14);
+}
+
+.badges {
+  display: inline-flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.badges span {
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(31, 182, 166, 0.16);
+  font-size: 0.75rem;
+  color: var(--accent-cyan);
+}
+
+.badge-row {
+  display: inline-flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.badge-row span {
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  border: 1px solid var(--border);
+  background: rgba(63, 123, 255, 0.12);
+}

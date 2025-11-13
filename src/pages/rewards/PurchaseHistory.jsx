@@ -1,5 +1,6 @@
 import { useAppState } from '../../context/AppStateContext'
 import { Link } from 'react-router-dom'
+import '../../styles/pages/PurchaseHistory.css'
 
 export default function PurchaseHistory() {
   const { purchases } = useAppState()

@@ -1,0 +1,115 @@
+.rewards {
+  display: grid;
+  gap: 2.6rem;
+  padding: 2rem 0 4rem;
+}
+
+.rewards__header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2rem;
+  align-items: center;
+}
+
+.rewards__header h1 {
+  margin: 1rem 0 0.6rem;
+  font-size: clamp(2rem, 3vw, 2.6rem);
+}
+
+.rewards__header p {
+  margin: 0;
+  color: var(--text-secondary);
+  max-width: 32rem;
+}
+
+.rewards__cta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+}
+
+.rewards__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.2rem;
+}
+
+.reward-card {
+  padding: 1.4rem;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: grid;
+  gap: 0.4rem;
+}
+
+.reward-card--points {
+  background: linear-gradient(150deg, rgba(111, 178, 255, 0.32), rgba(255, 206, 206, 0.4));
+  border-color: rgba(111, 178, 255, 0.4);
+}
+
+.rewards__heatmap header h2,
+.rewards__purchases header h2 {
+  margin: 0;
+}
+
+.rewards__heatmap header p,
+.rewards__purchases header p {
+  margin: 0.2rem 0 0;
+  color: var(--text-secondary);
+}
+
+.rewards__purchases {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.purchase-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.2rem;
+}
+
+.purchase-card {
+  padding: 1.2rem;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: grid;
+  gap: 0.6rem;
+}
+
+.purchase-card__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 768px) {
+  .rewards {
+    padding: 1.8rem 0 3.4rem;
+    gap: 2.2rem;
+  }
+
+  .rewards__grid,
+  .purchase-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .reward-card,
+  .purchase-card {
+    padding: 1.4rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .rewards__header {
+    gap: 1.2rem;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

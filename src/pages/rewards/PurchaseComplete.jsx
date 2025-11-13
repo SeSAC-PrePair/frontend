@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
+import '../../styles/pages/PurchaseComplete.css'
 
 export default function PurchaseComplete() {
   const location = useLocation()

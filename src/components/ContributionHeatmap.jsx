@@ -1,3 +1,5 @@
+import './ContributionHeatmap.css'
+
 export default function ContributionHeatmap({ data }) {
   if (!data || data.length === 0) {
     return null

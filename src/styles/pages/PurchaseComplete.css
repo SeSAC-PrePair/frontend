@@ -1,0 +1,55 @@
+.purchase-complete {
+  display: grid;
+  gap: 1.8rem;
+  padding: 2rem 0 4rem;
+}
+
+.purchase-complete header h1 {
+  margin: 1rem 0 0.6rem;
+  font-size: clamp(2rem, 3vw, 2.5rem);
+}
+
+.purchase-complete header p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.purchase-complete__card {
+  padding: 1.8rem;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: grid;
+  gap: 0.8rem;
+}
+
+.purchase-complete__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  color: var(--text-muted);
+  font-size: 0.86rem;
+}
+
+.purchase-complete__actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .purchase-complete {
+    padding: 1.8rem 0 3.4rem;
+    gap: 2.2rem;
+  }
+
+  .purchase-complete__card {
+    padding: 1.4rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .purchase-complete__actions {
+    gap: 1.2rem;
+  }
+}

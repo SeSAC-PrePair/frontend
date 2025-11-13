@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { useAppState } from '../context/AppStateContext'
+import '../styles/pages/Settings.css'
 
 const questionCadenceOptions = [
   { id: 'daily', label: '매일 (주 5회)', detail: '매일 아침 1문제', suggestion: '꾸준한 루틴이 필요할 때 추천' },

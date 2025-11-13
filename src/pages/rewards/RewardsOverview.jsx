@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion'
+import { Link } from 'react-router-dom'
 import ContributionHeatmap from '../../components/ContributionHeatmap'
 import { useAppState } from '../../context/AppStateContext'
-import { Link } from 'react-router-dom'
+import '../../styles/pages/Rewards.css'
 
 export default function RewardsOverview() {
   const { user, activity, scoreHistory, purchases } = useAppState()

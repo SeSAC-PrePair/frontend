@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useMemo, useState } from 'react'
 import { useAppState } from '../context/AppStateContext'
+import '../styles/pages/Coach.css'
 
 const highlightsPool = [
   '문제를 구조적으로 분해한 점',
