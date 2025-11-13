@@ -9,7 +9,7 @@ const catalog = [
     cost: 180,
     description: '드립백 5종 + 스낵, 새벽 러닝 전 워밍업에 최적화',
     badge: '인기',
-    gradient: 'linear-gradient(135deg, rgba(73, 93, 255, 0.7), rgba(138, 199, 255, 0.7))',
+    gradient: 'linear-gradient(135deg, rgba(93, 157, 255, 0.65), rgba(187, 221, 255, 0.65))',
   },
   {
     id: 'deep-work-notes',
@@ -17,7 +17,7 @@ const catalog = [
     cost: 240,
     description: '인터뷰 인사이트를 기록하는 프리미엄 노트',
     badge: '신상',
-    gradient: 'linear-gradient(135deg, rgba(255, 175, 204, 0.7), rgba(255, 215, 186, 0.7))',
+    gradient: 'linear-gradient(135deg, rgba(255, 186, 222, 0.65), rgba(255, 228, 205, 0.65))',
   },
   {
     id: 'learning-credit',
@@ -25,7 +25,7 @@ const catalog = [
     cost: 320,
     description: '원하는 강의를 선택해서 학습하세요.',
     badge: '추천',
-    gradient: 'linear-gradient(135deg, rgba(160, 255, 215, 0.7), rgba(93, 215, 247, 0.7))',
+    gradient: 'linear-gradient(135deg, rgba(175, 255, 230, 0.65), rgba(122, 226, 247, 0.65))',
   },
   {
     id: 'focus-music',
@@ -33,7 +33,7 @@ const catalog = [
     cost: 150,
     description: '집중을 돕는 음악 구독 서비스',
     badge: null,
-    gradient: 'linear-gradient(135deg, rgba(255, 235, 163, 0.7), rgba(255, 196, 184, 0.7))',
+    gradient: 'linear-gradient(135deg, rgba(255, 236, 185, 0.65), rgba(255, 205, 190, 0.65))',
   },
 ]
 
