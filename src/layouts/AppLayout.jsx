@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAppState } from '../context/AppStateContext'
@@ -14,9 +15,14 @@ const activeLinkClass = ({ isActive }) => (isActive ? 'nav__link nav__link--acti
 export default function AppLayout() {
   const location = useLocation()
   const { user } = useAppState()
+  const [isNavOpen, setIsNavOpen] = useState(false)
 
   const isLanding = location.pathname === '/'
   const isAuth = location.pathname.startsWith('/auth')
+
+  useEffect(() => {
+    setIsNavOpen(false)
+  }, [location.pathname])
 
   return (
     <div className="shell">
@@ -33,7 +39,11 @@ export default function AppLayout() {
         </div>
 
         {!isAuth && (
-          <nav className="shell__nav">
+          <nav
+            id="primary-navigation"
+            className={`shell__nav ${isNavOpen ? 'is-open' : ''}`}
+            aria-label="주요 메뉴"
+          >
             {navItems.map((item) => (
               <NavLink key={item.to} to={item.to} className={activeLinkClass}>
                 {item.label}
@@ -43,6 +53,23 @@ export default function AppLayout() {
         )}
 
         <div className="shell__actions">
+          {!isAuth && (
+            <button
+              type="button"
+              className="menu-toggle"
+              aria-controls="primary-navigation"
+              aria-expanded={isNavOpen}
+              onClick={() => setIsNavOpen((prev) => !prev)}
+            >
+              <span className="menu-toggle__icon" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </span>
+              <span className="sr-only">{isNavOpen ? '메뉴 닫기' : '메뉴 열기'}</span>
+            </button>
+          )}
+
           {user ? (
             <Link to="/settings" className="user-chip">
               <span className="user-chip__avatar" aria-hidden="true">

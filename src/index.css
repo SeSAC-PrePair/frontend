@@ -117,6 +117,63 @@ a {
   transform: translateY(-2px);
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.menu-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: rgba(21, 28, 54, 0.78);
+  border: 1px solid rgba(132, 153, 255, 0.28);
+  transition: transform 0.25s ease, border 0.25s ease, background 0.25s ease;
+}
+
+.menu-toggle:focus-visible,
+.menu-toggle:hover {
+  transform: translateY(-2px);
+  border-color: rgba(132, 153, 255, 0.45);
+  background: rgba(30, 38, 74, 0.92);
+}
+
+.menu-toggle__icon {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.menu-toggle__icon span {
+  width: 22px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--text-primary);
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.menu-toggle[aria-expanded='true'] .menu-toggle__icon span:nth-child(1) {
+  transform: translateY(8px) rotate(45deg);
+}
+
+.menu-toggle[aria-expanded='true'] .menu-toggle__icon span:nth-child(2) {
+  opacity: 0;
+}
+
+.menu-toggle[aria-expanded='true'] .menu-toggle__icon span:nth-child(3) {
+  transform: translateY(-8px) rotate(-45deg);
+}
+
 .shell {
   position: relative;
   min-height: 100vh;
@@ -1479,11 +1536,142 @@ a {
 
 @media (max-width: 768px) {
   .shell {
-    padding: 0 1.2rem;
+    padding: 0 1rem;
   }
 
   .shell__header {
-    margin-top: 1rem;
+    margin: 1rem auto 1.2rem;
+    grid-template-columns: 1fr auto;
+    padding: 0.85rem 1rem;
+    gap: 0.9rem;
+  }
+
+  .shell__brand {
+    justify-self: flex-start;
+  }
+
+  .brand__symbol {
+    width: 36px;
+    height: 36px;
+  }
+
+  .brand__meta strong {
+    font-size: 0.98rem;
+  }
+
+  .brand__meta span {
+    font-size: 0.72rem;
+  }
+
+  .menu-toggle {
+    display: inline-flex;
+  }
+
+  .shell__nav {
+    display: none;
+    position: absolute;
+    top: calc(100% + 0.75rem);
+    left: 1.2rem;
+    right: 1.2rem;
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    background: rgba(8, 10, 24, 0.92);
+    border: 1px solid var(--border-strong);
+    box-shadow: 0 24px 56px rgba(5, 8, 22, 0.5);
+    backdrop-filter: blur(18px);
+    display: grid;
+    gap: 0.6rem;
+    z-index: 20;
+  }
+
+  .shell__nav:not(.is-open) {
+    display: none;
+  }
+
+  .shell__nav.is-open {
+    display: grid;
+  }
+
+  .shell__nav .nav__link {
+    width: 100%;
+    justify-content: flex-start;
+    text-align: left;
+    padding: 0.75rem 0.9rem;
+    border-radius: var(--radius-sm);
+  }
+
+  .shell__actions {
+    gap: 0.6rem;
+  }
+
+  .user-chip {
+    padding: 0.5rem 0.8rem;
+  }
+
+  .user-chip__avatar {
+    width: 34px;
+    height: 34px;
+    font-size: 1.05rem;
+  }
+
+  .user-chip__meta strong {
+    font-size: 0.88rem;
+  }
+
+  .user-chip__meta span {
+    font-size: 0.72rem;
+  }
+
+  .shell__footer {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.45rem;
+  }
+
+  .landing {
+    gap: 3rem;
+    padding: 1.8rem 0 3.2rem;
+  }
+
+  .landing__hero {
+    gap: 2.2rem;
+  }
+
+  .landing__headline h1 {
+    font-size: clamp(2rem, 6vw, 2.4rem);
+  }
+
+  .landing__headline p {
+    max-width: 100%;
+  }
+
+  .landing__cta {
+    width: 100%;
+  }
+
+  .landing__cta .cta-button {
+    flex: 1 1 100%;
+  }
+
+  .preview-card {
+    padding: 1.3rem;
+    gap: 0.9rem;
+  }
+
+  .preview-stats {
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  }
+
+  .feature-card {
+    padding: 1.3rem;
+  }
+
+  .steps-grid {
+    gap: 1rem;
+  }
+
+  .step-card {
+    padding: 1.2rem;
   }
 
   .landing__hero,
@@ -1496,6 +1684,56 @@ a {
     grid-template-columns: 1fr;
   }
 
+  .auth {
+    padding: 2rem 0 3.4rem;
+    gap: 2.4rem;
+  }
+
+  .auth__form-card {
+    padding: 1.6rem;
+  }
+
+  .form__field input,
+  .form__field textarea,
+  .form__field select {
+    min-height: 52px;
+  }
+
+  .coach {
+    gap: 2rem;
+    padding: 1.6rem 0 3.4rem;
+  }
+
+  .coach__card,
+  .coach__analysis,
+  .reward-card,
+  .purchase-card,
+  .history-card,
+  .settings__form,
+  .settings__card,
+  .reward-shop__balance,
+  .purchase-complete__card,
+  .purchase-history__empty {
+    padding: 1.4rem;
+  }
+
+  .coach__card--composer textarea {
+    min-height: 180px;
+  }
+
+  .analysis__details {
+    grid-template-columns: 1fr;
+  }
+
+  .rewards,
+  .reward-shop,
+  .purchase-complete,
+  .purchase-history,
+  .settings {
+    padding: 1.8rem 0 3.4rem;
+    gap: 2.2rem;
+  }
+
   .purchase-history__item {
     flex-direction: column;
     align-items: flex-start;
@@ -1503,6 +1741,111 @@ a {
 
   .cta-button {
     width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .shell {
+    padding: 0 0.75rem;
+  }
+
+  .shell__header {
+    top: 12px;
+    margin: 0.8rem auto 1rem;
+    padding: 0.75rem 0.85rem;
+    border-radius: var(--radius-md);
+  }
+
+  .shell__nav {
+    left: 0.85rem;
+    right: 0.85rem;
+    padding: 0.85rem;
+    gap: 0.5rem;
+  }
+
+  .shell__nav .nav__link {
+    padding: 0.7rem 0.85rem;
+  }
+
+  .user-chip {
+    gap: 0.6rem;
+  }
+
+  .user-chip__meta strong {
+    font-size: 0.85rem;
+  }
+
+  .landing {
+    gap: 2.6rem;
+    padding: 1.5rem 0 3rem;
+  }
+
+  .landing__headline h1 {
+    font-size: clamp(1.85rem, 8vw, 2.2rem);
+  }
+
+  .landing__headline p {
+    font-size: 0.95rem;
+  }
+
+  .preview-card,
+  .feature-card,
+  .step-card,
+  .auth__form-card,
+  .coach__card,
+  .coach__analysis,
+  .reward-card,
+  .purchase-card,
+  .history-card,
+  .settings__form,
+  .settings__card,
+  .reward-shop__balance,
+  .purchase-complete__card,
+  .purchase-history__empty {
+    padding: 1.2rem;
+  }
+
+  .coach__header,
+  .settings__header,
+  .rewards__header,
+  .reward-shop__header,
+  .purchase-complete__actions,
+  .purchase-history__item {
+    gap: 1.2rem;
+  }
+
+  .coach__header,
+  .settings__header,
+  .rewards__header,
+  .reward-shop__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .form__field--split {
+    grid-template-columns: 1fr;
+  }
+
+  .heatmap-widget {
+    padding: 1rem;
+  }
+
+  .heatmap-widget__grid {
+    gap: 4px;
+    grid-auto-columns: 10px;
+  }
+
+  .heatmap-widget__column {
+    gap: 4px;
+  }
+
+  .heatmap-widget__cell {
+    width: 10px;
+    height: 10px;
+  }
+
+  .shell__footer {
+    font-size: 0.78rem;
   }
 }
 
