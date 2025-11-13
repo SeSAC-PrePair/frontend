@@ -351,12 +351,20 @@
 @media (max-width: 640px) {
   .shell__header {
     gap: 0.6rem;
+    position: sticky;
+    top: 0.75rem;
+    margin-top: 0.6rem;
+    box-shadow: 0 12px 28px rgba(64, 81, 115, 0.16);
   }
 
   .shell__actions {
     flex: 1 1 120px;
     min-width: 0;
     justify-content: flex-end;
+  }
+
+  .shell__main {
+    padding-top: 0.6rem;
   }
 
   .user-chip {
@@ -382,6 +390,11 @@
   .shell__brand {
     flex: 1 1 160px;
   }
+
+  .shell__glow {
+    opacity: 0.6;
+    filter: blur(4px);
+  }
 }
 
 @media (max-width: 480px) {
@@ -393,6 +406,7 @@
     margin: 0.8rem auto 1rem;
     padding: 0.75rem 0.85rem;
     border-radius: var(--radius-md);
+    top: 0.5rem;
   }
 
   .shell__nav {
@@ -416,5 +430,6 @@
 
   .shell__footer {
     font-size: 0.78rem;
+    border-top: none;
   }
 }

@@ -1,6 +1,8 @@
 import { AnimatePresence, motion as Motion } from 'framer-motion'
 import { useMemo, useState } from 'react'
 import { useAppState } from '../context/AppStateContext'
+import Modal from '../components/Modal'
+import useMediaQuery from '../hooks/useMediaQuery'
 import '../styles/pages/Coach.css'
 
 const highlightsPool = [
@@ -41,6 +43,7 @@ export default function CoachPage() {
   const [error, setError] = useState('')
   const [activePanel, setActivePanel] = useState('practice')
   const [showRubric, setShowRubric] = useState(false)
+  const isMobile = useMediaQuery('(max-width: 720px)')
 
   const minLength = 80
 
@@ -295,34 +298,36 @@ export default function CoachPage() {
                       </article>
                     </div>
 
-                    <div className="coach__insight-actions">
-                      <button type="button" onClick={() => setShowRubric((prev) => !prev)}>
-                        {showRubric ? '점수화 룰 닫기' : '점수화 룰 보기'}
-                      </button>
-                    </div>
+                      <div className="coach__insight-actions">
+                        <button type="button" onClick={() => setShowRubric((prev) => !prev)}>
+                          {showRubric ? '점수화 룰 닫기' : '점수화 룰 보기'}
+                        </button>
+                      </div>
 
-                    <AnimatePresence>
-                      {showRubric && (
-                        <Motion.div
-                          key="rubric-panel"
-                          className="coach__rubric"
-                          initial={{ opacity: 0, y: 16 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          transition={{ duration: 0.3, ease: 'easeOut' }}
-                        >
-                          <ul>
-                            {scoringRubric.map((rule) => (
-                              <li key={rule.id}>
-                                <strong>{rule.label}</strong>
-                                <span>{Math.round(rule.weight * 100)}%</span>
-                                <p>{rule.rule}</p>
-                              </li>
-                            ))}
-                          </ul>
-                        </Motion.div>
+                      {!isMobile && (
+                        <AnimatePresence>
+                          {showRubric && (
+                            <Motion.div
+                              key="rubric-panel"
+                              className="coach__rubric"
+                              initial={{ opacity: 0, y: 16 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10 }}
+                              transition={{ duration: 0.3, ease: 'easeOut' }}
+                            >
+                              <ul>
+                                {scoringRubric.map((rule) => (
+                                  <li key={rule.id}>
+                                    <strong>{rule.label}</strong>
+                                    <span>{Math.round(rule.weight * 100)}%</span>
+                                    <p>{rule.rule}</p>
+                                  </li>
+                                ))}
+                              </ul>
+                            </Motion.div>
+                          )}
+                        </AnimatePresence>
                       )}
-                    </AnimatePresence>
                   </div>
                 ) : (
                   <div className="coach__empty">
@@ -381,6 +386,30 @@ export default function CoachPage() {
             )}
           </AnimatePresence>
         </div>
+
+        {isMobile && (
+          <Modal
+            open={showRubric}
+            onClose={() => setShowRubric(false)}
+            title="점수화 룰 상세"
+            size="md"
+            footer={
+              <button type="button" className="cta-button cta-button--ghost" onClick={() => setShowRubric(false)}>
+                닫기
+              </button>
+            }
+          >
+            <ul className="coach__rubric-list">
+              {scoringRubric.map((rule) => (
+                <li key={rule.id}>
+                  <strong>{rule.label}</strong>
+                  <span>{Math.round(rule.weight * 100)}%</span>
+                  <p>{rule.rule}</p>
+                </li>
+              ))}
+            </ul>
+          </Modal>
+        )}
       </div>
     )
 }
