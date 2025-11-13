@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion as Motion } from 'framer-motion'
 import { useMemo, useState } from 'react'
 import { useAppState } from '../context/AppStateContext'
 import '../styles/pages/Coach.css'
@@ -14,6 +14,12 @@ const highlightsPool = [
 
 const focusTagPool = ['Storytelling', 'Leadership', 'Metrics', 'Collaboration', 'Product Sense', 'Delivery']
 
+const panelItems = [
+  { id: 'practice', label: '연습' },
+  { id: 'insights', label: '피드백' },
+  { id: 'history', label: '기록' },
+]
+
 function pickRandom(arr, count = 2) {
   const shuffled = [...arr].sort(() => 0.5 - Math.random())
   return shuffled.slice(0, count)
@@ -25,12 +31,21 @@ export default function CoachPage() {
   const [isEvaluating, setIsEvaluating] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
+  const [activePanel, setActivePanel] = useState('practice')
+  const [showRubric, setShowRubric] = useState(false)
 
   const minLength = 80
 
+  const safeScoreHistory = Array.isArray(scoreHistory) ? scoreHistory : []
+  const latestHistory = safeScoreHistory.slice(0, 3)
+  const formattedPoints = user?.points != null ? user.points.toLocaleString() : '0'
+
+  const activeInsight = result ?? lastFeedback ?? null
+
   const breakdownSummary = useMemo(() => {
-    if (!result) return null
-    const entries = Object.entries(result.breakdown)
+    if (!activeInsight?.breakdown) return null
+    const entries = Object.entries(activeInsight.breakdown)
+
     const top = entries.reduce(
       (acc, [id, value]) => {
         if (value > acc.value) return { id, value }
@@ -38,6 +53,7 @@ export default function CoachPage() {
       },
       { id: '', value: 0 },
     )
+
     const low = entries.reduce(
       (acc, [id, value]) => {
         if (acc.value === 0 || value < acc.value) return { id, value }
@@ -45,8 +61,9 @@ export default function CoachPage() {
       },
       { id: '', value: 0 },
     )
+
     return { top, low }
-  }, [result])
+  }, [activeInsight])
 
   const handleEvaluate = () => {
     const trimmed = answer.trim()
@@ -92,198 +109,258 @@ export default function CoachPage() {
       })
       setIsEvaluating(false)
       setAnswer('')
+      setActivePanel('insights')
+      setShowRubric(false)
     }, 900)
   }
 
-  const latestHistory = scoreHistory.slice(0, 3)
-
   return (
     <div className="coach">
-      <header className="coach__header">
-        <div>
-          <span className="tag">AI Interview Coach</span>
-          <h1>
-            {user?.name}님의 오늘의 인터뷰 질문
-            <br />
-            {currentQuestion?.role || user?.desiredField} 맞춤 큐레이션
-          </h1>
-        </div>
-        <div className="coach__status">
-          <article>
-            <span>현재 목표</span>
-            <strong>{user?.goal}</strong>
-          </article>
-          <article>
-            <span>스코어</span>
-            <strong>{scoreHistory[0]?.score ?? '--'}점</strong>
-          </article>
-          <article>
-            <span>누적 포인트</span>
-            <strong>{user?.points.toLocaleString()} pts</strong>
-          </article>
-        </div>
+      <header className="coach__intro">
+        <span className="tag">AI Interview Coach</span>
+        <h1>{user?.name}님의 인터뷰 연습 공간</h1>
+        <p>{currentQuestion?.role || user?.desiredField} 포지션을 위한 오늘의 질문을 차분히 해결해 보세요.</p>
       </header>
 
-      <section className="coach__grid">
-        <motion.article className="coach__card coach__card--question" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-          <div className="card-heading">
-            <span>오늘의 질문</span>
-            <div className="badges">
-              {currentQuestion?.tags?.map((tag) => (
-                <span key={tag}>{tag}</span>
-              ))}
-            </div>
-          </div>
-          <h2>{currentQuestion?.prompt}</h2>
-          <p>{currentQuestion?.subPrompt}</p>
-          <ul className="coach__tips">
-            <li>도입-전개-결론 구조로 이야기해 보세요.</li>
-            <li>숫자, 팀 이야기, 배운 점을 포함하면 가산점이 있어요.</li>
-            <li>실패나 위기 상황이 있었다면 어떻게 회복했는지 적어보세요.</li>
-          </ul>
-        </motion.article>
-
-        <motion.article className="coach__card coach__card--composer" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.08 }}>
-          <header>
-            <span>답변 작성</span>
-            <small>{answer.trim().length}자 · 최소 {minLength}자</small>
-          </header>
-          <textarea
-            value={answer}
-            onChange={(event) => setAnswer(event.target.value)}
-            placeholder="상황(S) → 과제(T) → 행동(A) → 결과(R) 순서로 이야기해 주세요."
-            rows={10}
-          />
-          {error && <p className="coach__error">{error}</p>}
-          <button type="button" className="cta-button cta-button--primary" onClick={handleEvaluate} disabled={isEvaluating}>
-            {isEvaluating ? 'AI가 분석 중...' : 'AI 피드백 받기'}
-          </button>
-        </motion.article>
-      </section>
-
-      <AnimatePresence>
-        {result && (
-          <motion.section
-            className="coach__analysis"
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 24 }}
-            transition={{ duration: 0.5 }}
+      <nav className="coach__tabs" role="tablist" aria-label="코칭 패널 전환">
+        {panelItems.map((panel) => (
+          <button
+            key={panel.id}
+            type="button"
+            role="tab"
+            aria-selected={activePanel === panel.id}
+            className={`coach__tab ${activePanel === panel.id ? 'is-active' : ''}`}
+            onClick={() => setActivePanel(panel.id)}
           >
-            <div className="analysis__score">
-              <span>AI 평가</span>
-              <strong>{result.score}</strong>
-              <small>획득 포인트 +{result.earnedPoints}</small>
-            </div>
-            <div className="analysis__details">
-              <div>
-                <strong>피드백 요약</strong>
-                <p>{result.summary}</p>
-              </div>
-              <div>
-                <strong>하이라이트</strong>
+            {panel.label}
+          </button>
+        ))}
+      </nav>
+
+      <div className="coach__panels">
+        <AnimatePresence mode="wait">
+          {activePanel === 'practice' && (
+            <Motion.section
+              key="practice-panel"
+              className="coach__panel"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -14 }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
+            >
+              <Motion.article
+                className="coach__card coach__card--question"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05, duration: 0.4, ease: 'easeOut' }}
+              >
+                <header>
+                  <span>오늘의 질문</span>
+                  <div className="badge-row">
+                    {currentQuestion?.tags?.map((tag) => (
+                      <span key={tag}>{tag}</span>
+                    ))}
+                  </div>
+                </header>
+                <h2>{currentQuestion?.prompt}</h2>
+                <p>{currentQuestion?.subPrompt}</p>
                 <ul>
-                  {result.highlights.map((highlight) => (
-                    <li key={highlight}>{highlight}</li>
-                  ))}
+                  <li>STAR 구조로 답변을 설계하면 맥락이 분명해집니다.</li>
+                  <li>숫자, 팀워크, 배운 점을 꼭 포함해 주세요.</li>
                 </ul>
-              </div>
-              <div>
-                <strong>포커스 태그</strong>
-                <div className="badge-row">
-                  {result.focusTags.map((tag) => (
-                    <span key={tag}>{tag}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="analysis__chart">
-              <strong>룰 기반 점수</strong>
-              <ul>
-                {Object.entries(result.breakdown).map(([id, value]) => {
-                  const rubric = scoringRubric.find((rule) => rule.id === id)
-                  return (
-                    <li key={id}>
-                      <span>{rubric?.label}</span>
-                      <div className="bar">
-                        <span style={{ width: `${value}%` }}>{value}</span>
+              </Motion.article>
+
+              <Motion.article
+                className="coach__card coach__card--composer"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.08, duration: 0.4, ease: 'easeOut' }}
+              >
+                <header>
+                  <span>답변 작성</span>
+                  <small>{answer.trim().length}자 · 최소 {minLength}자</small>
+                </header>
+                <textarea
+                  value={answer}
+                  onChange={(event) => setAnswer(event.target.value)}
+                  placeholder="상황(S) → 과제(T) → 행동(A) → 결과(R) 순서로 이야기해 주세요."
+                  rows={10}
+                />
+                {error && <p className="coach__error">{error}</p>}
+                <button type="button" className="cta-button cta-button--primary" onClick={handleEvaluate} disabled={isEvaluating}>
+                  {isEvaluating ? 'AI가 분석 중...' : 'AI 피드백 받기'}
+                </button>
+              </Motion.article>
+            </Motion.section>
+          )}
+
+          {activePanel === 'insights' && (
+            <Motion.section
+              key="insights-panel"
+              className="coach__panel"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -14 }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
+            >
+              {activeInsight ? (
+                <div className="coach__insight">
+                  <div className="coach__insight-score">
+                    <span>AI 평가</span>
+                    <strong>{activeInsight.score}</strong>
+                    {result ? <small>획득 포인트 +{result.earnedPoints}</small> : <small>최근 기록 요약</small>}
+                  </div>
+
+                  <div className="coach__insight-body">
+                    <div>
+                      <strong>요약</strong>
+                      <p>{activeInsight.summary}</p>
+                    </div>
+                    {activeInsight.highlights?.length > 0 && (
+                      <div>
+                        <strong>하이라이트</strong>
+                        <ul>
+                          {activeInsight.highlights.map((highlight) => (
+                            <li key={highlight}>{highlight}</li>
+                          ))}
+                        </ul>
                       </div>
-                    </li>
-                  )
-                })}
-              </ul>
-              {breakdownSummary && (
-                <p className="analysis__insight">
-                  가장 강한 영역은 <strong>{scoringRubric.find((rule) => rule.id === breakdownSummary.top.id)?.label}</strong>,
-                  개선하면 좋은 영역은{' '}
-                  <strong>{scoringRubric.find((rule) => rule.id === breakdownSummary.low.id)?.label}</strong> 입니다.
-                </p>
+                    )}
+                    {activeInsight.focusTags?.length > 0 && (
+                      <div>
+                        <strong>포커스 태그</strong>
+                        <div className="badge-row">
+                          {activeInsight.focusTags.map((tag) => (
+                            <span key={tag}>{tag}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {activeInsight.breakdown && (
+                    <div className="coach__insight-breakdown">
+                      <strong>룰 기반 점수</strong>
+                      <ul>
+                        {Object.entries(activeInsight.breakdown).map(([id, value]) => {
+                          const rubric = scoringRubric.find((rule) => rule.id === id)
+                          return (
+                            <li key={id}>
+                              <span>{rubric?.label}</span>
+                              <div className="bar">
+                                <span style={{ width: `${value}%` }}>{value}</span>
+                              </div>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                      {breakdownSummary && (
+                        <p className="coach__insight-note">
+                          가장 강한 영역은 <strong>{scoringRubric.find((rule) => rule.id === breakdownSummary.top.id)?.label}</strong>,
+                          {' '}개선하면 좋은 영역은{' '}
+                          <strong>{scoringRubric.find((rule) => rule.id === breakdownSummary.low.id)?.label}</strong> 입니다.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="coach__insight-meta">
+                    <article>
+                      <span>현재 목표</span>
+                      <strong>{user?.goal ?? '목표 계획 세팅'}</strong>
+                    </article>
+                    <article>
+                      <span>누적 포인트</span>
+                      <strong>{formattedPoints} pts</strong>
+                    </article>
+                  </div>
+
+                  <div className="coach__insight-actions">
+                    <button type="button" onClick={() => setShowRubric((prev) => !prev)}>
+                      {showRubric ? '점수화 룰 닫기' : '점수화 룰 보기'}
+                    </button>
+                  </div>
+
+                  <AnimatePresence>
+                    {showRubric && (
+                      <Motion.div
+                        key="rubric-panel"
+                        className="coach__rubric"
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.3, ease: 'easeOut' }}
+                      >
+                        <ul>
+                          {scoringRubric.map((rule) => (
+                            <li key={rule.id}>
+                              <strong>{rule.label}</strong>
+                              <span>{Math.round(rule.weight * 100)}%</span>
+                              <p>{rule.rule}</p>
+                            </li>
+                          ))}
+                        </ul>
+                      </Motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                <div className="coach__empty">
+                  <strong>아직 확인할 피드백이 없어요.</strong>
+                  <p>연습 탭에서 답변을 제출하면 AI가 즉시 분석해 드립니다.</p>
+                  <button type="button" className="cta-button" onClick={() => setActivePanel('practice')}>
+                    연습 탭으로 이동
+                  </button>
+                </div>
               )}
-            </div>
-          </motion.section>
-        )}
-      </AnimatePresence>
+            </Motion.section>
+          )}
 
-      <section className="coach__rubric">
-        <article>
-          <h3>점수화 룰</h3>
-          <p>AI가 생성한 피드백은, 우리가 정해둔 규칙으로 재평가되어 점수가 산출됩니다.</p>
-          <ul>
-            {scoringRubric.map((rule) => (
-              <li key={rule.id}>
-                <strong>
-                  {rule.label} · <span>{Math.round(rule.weight * 100)}%</span>
-                </strong>
-                <p>{rule.rule}</p>
-              </li>
-            ))}
-          </ul>
-        </article>
-
-        {lastFeedback && (
-          <article className="coach__last">
-            <h3>최근 분석 기록</h3>
-            <div className="last-card">
-              <span>점수</span>
-              <strong>{lastFeedback.score}</strong>
-              <p>{lastFeedback.summary}</p>
-              <div className="badge-row">
-                {lastFeedback.focusTags.map((tag) => (
-                  <span key={tag}>{tag}</span>
-                ))}
-              </div>
-            </div>
-          </article>
-        )}
-      </section>
-
-      <section className="coach__history">
-        <header>
-          <h3>최근 답변 아카이브</h3>
-          <p>AI 코치가 기록한 상위 3개의 세션</p>
-        </header>
-        <div className="history-grid">
-          {latestHistory.map((entry) => (
-            <article key={entry.id} className="history-card">
-              <span>{new Date(entry.submittedAt).toLocaleDateString('ko-KR')}</span>
-              <strong>{entry.question}</strong>
-              <div className="history-card__meta">
-                <span>{entry.score}점</span>
-                <div className="badge-row">
-                  {entry.focusTags.map((tag) => (
-                    <span key={tag}>{tag}</span>
+          {activePanel === 'history' && (
+            <Motion.section
+              key="history-panel"
+              className="coach__panel"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -14 }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
+            >
+              {latestHistory.length > 0 ? (
+                <div className="coach__history">
+                  {latestHistory.map((entry) => (
+                    <article key={entry.id} className="history-card">
+                      <header>
+                        <span>{new Date(entry.submittedAt).toLocaleDateString('ko-KR')}</span>
+                        <strong>{entry.score}점</strong>
+                      </header>
+                      <p>{entry.question}</p>
+                      {entry.focusTags?.length > 0 && (
+                        <div className="badge-row">
+                          {entry.focusTags.map((tag) => (
+                            <span key={tag}>{tag}</span>
+                          ))}
+                        </div>
+                      )}
+                      {entry.highlights?.length > 0 && (
+                        <ul>
+                          {entry.highlights.slice(0, 2).map((highlight) => (
+                            <li key={highlight}>{highlight}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </article>
                   ))}
                 </div>
-              </div>
-              <ul>
-                {entry.highlights.slice(0, 2).map((highlight) => (
-                  <li key={highlight}>{highlight}</li>
-                ))}
-              </ul>
-            </article>
-          ))}
-        </div>
-      </section>
+              ) : (
+                <div className="coach__empty">
+                  <strong>기록된 세션이 없어요.</strong>
+                  <p>첫 연습을 완료하면 여기서 최근 3개의 답변을 확인할 수 있어요.</p>
+                </div>
+              )}
+            </Motion.section>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   )
 }
