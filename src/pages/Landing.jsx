@@ -1,358 +1,311 @@
 import { motion as Motion } from 'framer-motion'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Modal from '../components/Modal'
-import useMediaQuery from '../hooks/useMediaQuery'
 import '../styles/pages/Landing.css'
 
-const featureHighlights = [
-  { title: '맞춤 AI 질문', description: '선택한 직업군과 목표에 꼭 맞는 질문과 스크립트를 선별해요.' },
-  { title: '즉시 발송', description: '회원가입과 동시에 첫 질문을 메일로 보내고, 루틴을 자동으로 시작합니다.' },
-  { title: '보상 루프', description: 'AI 피드백 점수를 모아 편의점 · 카페 · 도서 쿠폰으로 교환하세요.' },
+const heroHighlights = ['직무별 인터뷰 질문 1,200+개', 'AI 피드백 요약과 포인트 적립', '메일 · 카카오톡 동시 발송']
+
+const heroStats = [
+  { label: '답변한 질문', value: '12개', caption: '최근 2주간 기록' },
+  { label: '평균 점수', value: '78점', caption: 'AI 피드백 기준' },
+  { label: '연속 일수', value: '5일', caption: '오늘도 루틴 성공' },
 ]
 
-const processSteps = [
+const activityWeeks = [
+  [0, 1, 1, 0, 0, 2, 1],
+  [0, 2, 3, 1, 0, 2, 0],
+  [1, 2, 2, 1, 1, 1, 0],
+  [0, 1, 0, 0, 0, 1, 0],
+  [0, 2, 2, 2, 1, 2, 1],
+  [0, 2, 3, 2, 2, 1, 0],
+  [0, 0, 1, 0, 0, 1, 0],
+  [0, 2, 2, 1, 1, 2, 1],
+  [0, 3, 3, 2, 1, 2, 1],
+  [0, 1, 1, 0, 0, 1, 0],
+  [0, 2, 2, 1, 1, 0, 0],
+  [0, 1, 1, 0, 0, 1, 0],
+]
+
+const featureTiles = [
   {
-    label: '01. 계정 만들기',
-    detail: '이메일과 비밀번호, 이름만으로 1분 내 가입 완료',
+    badge: 'Routine',
+    title: '월~금 오전 11시 정기 발송',
+    description: '팀의 아침 스탠드업처럼 매일 같은 시간에 질문이 도착합니다.',
   },
   {
-    label: '02. 직업·관심 선택',
-    detail: '4개 직업군 + 자유 입력 칸으로 세부 목표를 기록',
+    badge: 'Coach',
+    title: '답변 스크립트 & 코칭',
+    description: 'AI가 포인트를 짚어주고, 다시 쓰기를 위한 샘플을 제안해요.',
   },
   {
-    label: '03. 질문 주기 설정',
-    detail: '주 5회(월~금 11시) 또는 주 1회(월 11시) 메일 발송',
+    badge: 'Rewards',
+    title: '포인트 → 실물 리워드',
+    description: '답변으로 얻게 된 점수는 편의점 · 카페 쿠폰으로 전환됩니다.',
   },
   {
-    label: '04. 첫 질문 도착',
-    detail: 'AI가 바로 질문을 보내고, 답변하러 가기 버튼 제공',
+    badge: 'Insights',
+    title: '활동 잔디와 연속 알림',
+    description: '12주간 루틴을 잔디로 시각화해 꾸준함을 바로 확인할 수 있어요.',
   },
 ]
 
-const jobClusters = [
-  {
-    title: '🎤 사람을 직접 상대하는 직업군',
-    caption: '소통력·태도·인상을 보는 면접을 대비하세요.',
-    items: ['서비스직 · 항공승무원', '호텔리어 · 리셉션', 'CS 상담원', '공무원 민원직'],
-  },
-  {
-    title: '💼 협업과 리더십 직업군',
-    caption: '조직 적합성과 리더십 사고방식을 준비해요.',
-    items: ['프로젝트 매니저', '팀·파트 리더', 'HR · 경영기획', '스타트업 개발 리더'],
-  },
-  {
-    title: '🧠 창의/논리 표현 직업군',
-    caption: '사고력과 스토리텔링을 강조하는 면접 루틴.',
-    items: ['마케팅 · 광고', '디자인 · 브랜딩', '기획 · 컨설팅', '언론 · 방송'],
-  },
-  {
-    title: '⚙️ 기술/연구 직업군',
-    caption: '문제 접근과 협업 커뮤니케이션도 함께 준비.',
-    items: ['소프트웨어 개발', '연구개발(R&D)', 'IT 스타트업 직군', '엔지니어링 포지션'],
-  },
+const subscribeTracks = [
+  { id: 'frontend', label: '프론트엔드' },
+  { id: 'backend', label: '백엔드' },
+  { id: 'product', label: '기획 · PM' },
 ]
 
 const cadenceOptions = [
-  {
-    title: '매일 1회 루틴',
-    schedule: '월~금 오전 11시',
-    detail: '아침 루틴처럼 짧고 꾸준히 연습하고 싶을 때 적합해요.',
-  },
-  {
-    title: '주 1회 루틴',
-    schedule: '매주 월요일 오전 11시',
-    detail: '깊이 있는 답변을 한 주에 한 번 정리하고 싶다면 추천드려요.',
-  },
-]
-
-const boardPosts = [
-  { company: 'NAVYON', role: '프론트엔드 엔지니어', tag: '주니어 · 하이브리드' },
-  { company: 'CLOUDAIR', role: '항공사 客실승무원', tag: '서비스 · 글로벌' },
-  { company: 'BRIGHT HR', role: 'HR 비즈니스 파트너', tag: '리더십 · 풀타임' },
-]
-
-const infoCards = [
-  {
-    key: 'features',
-    badge: 'Flow',
-    title: '맞춤 질문 루틴',
-    description: 'AI 질문 · 피드백 · 리워드가 한 흐름으로 이어지는 방식을 살펴보세요.',
-    icon: '✨',
-  },
-  {
-    key: 'onboarding',
-    badge: 'Journey',
-    title: '가입 여정 4단계',
-    description: '계정 생성부터 첫 질문 도착까지 필요한 단계만 추려서 정리했어요.',
-    icon: '🧭',
-  },
-  {
-    key: 'jobs',
-    badge: 'Career',
-    title: '직업군 / 직무 추천',
-    description: '관심 직무를 묶어서 보여주고, 세부 목표 입력 팁도 함께 안내합니다.',
-    icon: '👥',
-  },
-  {
-    key: 'cadence',
-    badge: 'Schedule',
-    title: '알림 루틴 & 채널',
-    description: '발송 빈도, 채널, 오늘의 채용 공고까지 한 번에 확인하세요.',
-    icon: '⏰',
-  },
+  { id: 'daily', label: '주 5회', description: '월-금 오전 11시' },
+  { id: 'weekly', label: '주 1회', description: '월요일 오전 11시' },
 ]
 
 export default function LandingPage() {
-  const isMobile = useMediaQuery('(max-width: 720px)')
-  const [activeModal, setActiveModal] = useState(null)
+  const [isSubscribeOpen, setSubscribeOpen] = useState(false)
+  const [selectedTracks, setSelectedTracks] = useState(['frontend'])
+  const [selectedCadence, setSelectedCadence] = useState('daily')
+  const [email, setEmail] = useState('')
+  const [formState, setFormState] = useState('idle')
 
-  const modalMeta = useMemo(
-    () => ({
-      features: {
-        title: 'PrePair 핵심 기능',
-        size: 'md',
-        render: () => (
-          <div className="landing__modal-grid">
-            {featureHighlights.map((item) => (
-              <article key={item.title}>
-                <strong>{item.title}</strong>
-                <p>{item.description}</p>
-              </article>
-            ))}
-          </div>
-        ),
-      },
-      onboarding: {
-        title: '가입 여정 4단계',
-        size: 'md',
-        render: () => (
-          <ol className="landing__modal-steps">
-            {processSteps.map((step) => (
-              <li key={step.label}>
-                <span>{step.label}</span>
-                <p>{step.detail}</p>
-              </li>
-            ))}
-          </ol>
-        ),
-      },
-      jobs: {
-        title: '직업군 & 추천 직무',
-        size: 'lg',
-        render: () => (
-          <div className="landing__modal-grid landing__modal-grid--jobs">
-            {jobClusters.map((cluster) => (
-              <article key={cluster.title}>
-                <strong>{cluster.title}</strong>
-                <span>{cluster.caption}</span>
-                <ul>
-                  {cluster.items.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </article>
-            ))}
-          </div>
-        ),
-      },
-      cadence: {
-        title: '알림 루틴 & 채널',
-        size: 'md',
-        render: () => (
-          <div className="landing__modal-grid landing__modal-grid--cadence">
-            <section>
-              <h3>발송 루틴</h3>
-              <ul>
-                {cadenceOptions.map((item) => (
-                  <li key={item.title}>
-                    <strong>{item.title}</strong>
-                    <span>{item.schedule}</span>
-                    <p>{item.detail}</p>
-                  </li>
-                ))}
-              </ul>
-            </section>
-            <section>
-              <h3>알림 채널</h3>
-              <ul>
-                <li>
-                  <strong>메일 (기본)</strong>
-                  <p>가입 즉시 첫 질문이 메일로 도착하고, 루틴과 함께 자동 발송됩니다.</p>
-                </li>
-                <li>
-                  <strong>카카오톡 알림 (선택)</strong>
-                  <p>같은 시간에 카카오톡으로 질문 알림을 받아 빠르게 확인하세요.</p>
-                </li>
-              </ul>
-            </section>
-            <section>
-              <h3>오늘의 채용 공고</h3>
-              <ul className="landing__modal-board">
-                {boardPosts.map((post) => (
-                  <li key={post.company}>
-                    <strong>{post.company}</strong>
-                    <span>{post.role}</span>
-                    <small>{post.tag}</small>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          </div>
-        ),
-      },
-    }),
-    [],
-  )
-
-  const activeModalMeta = activeModal ? modalMeta[activeModal] : null
-
-  const closeModal = () => setActiveModal(null)
-  const openModal = (type) => setActiveModal(type)
-
-  return (
-    <div className="landing">
-      <Motion.section
-        className="landing__hero"
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: 'easeOut' }}
-      >
-        <div className="landing__hero-copy">
-          <span className="landing__pre"># PrePair · 프리페어</span>
-          <h1>
-            완벽한 면접 준비를 위한
-            <br />
-            AI 파트너, <span>PrePair</span>
-          </h1>
-          <p>
-            Prepare + Pair. AI와 짝을 이루어 내 면접 루틴을 설계하세요. 회원가입만 하면 직업 맞춤 질문이 메일로 도착하고,
-            답변·피드백·리워드가 하나의 흐름으로 이어집니다.
-          </p>
-
-            <ul className="landing__hero-points">
-              {featureHighlights.map((item) => (
-                <li key={item.title}>
-                  <strong>{item.title}</strong>
-                  <span>{item.description}</span>
-                </li>
-              ))}
-            </ul>
-
-            <div className="landing__cta">
-              <Link to="/auth?mode=signup" className="cta-button cta-button--primary">
-                지금 프리페어 시작하기
-              </Link>
-              <Link to="/auth?mode=login" className="cta-button cta-button--ghost">
-                이미 계정이 있어요
-              </Link>
-            </div>
-
-            {isMobile && (
-              <button type="button" className="landing__hero-inline" onClick={() => openModal('features')}>
-                핵심 기능 한 눈에 보기
-              </button>
-            )}
-          </div>
-
-          {!isMobile && (
-            <Motion.aside
-              className="landing__hero-card"
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, ease: 'easeOut', delay: 0.1 }}
-            >
-              <div className="hero-card__header">
-                <span>오늘의 채용 공고</span>
-                <Link to="/auth?mode=signup">더 보기</Link>
-              </div>
-              <ul className="hero-card__board">
-                {boardPosts.map((post) => (
-                  <li key={post.company}>
-                    <strong>{post.company}</strong>
-                    <span>{post.role}</span>
-                    <small>{post.tag}</small>
-                  </li>
-                ))}
-              </ul>
-
-              <div className="hero-card__deliver">
-                <header>
-                  <span>다음 발송 루틴</span>
-                  <strong>월~금 오전 11시 메일 발송</strong>
-                  <p>가입 즉시 첫 질문을 보내드리고, 알림은 기본적으로 메일로 나가요.</p>
-                </header>
-                <div className="hero-card__channels">
-                  <span className="pill is-active">메일 (기본)</span>
-                  <span className="pill">카카오톡 알림 (선택)</span>
-                </div>
-                <footer>
-                  <p>AI가 직업군에 맞는 질문 JSON을 생성해 사용자별 DB로 저장합니다.</p>
-                  <span>답변하러 가기 → PrePair 웹으로 콜백</span>
-                </footer>
-              </div>
-            </Motion.aside>
-          )}
-        </Motion.section>
-
-        <section className="landing__summary" aria-label="주요 기능 요약">
-          <header>
-            <span className="tag">Control Center</span>
-            <h2>긴 스크롤 대신, 기능별 카드를 눌러 필요한 정보만 열람하세요.</h2>
-            <p>가입 여정, 직업군, 질문 루틴 등 같은 기능끼리 묶어 두어 모달에서 즉시 확인할 수 있습니다.</p>
-          </header>
-          <div className="landing__info-grid">
-            {infoCards.map((card) => (
-              <button
-                key={card.key}
-                type="button"
-                className="landing__info-card"
-                onClick={() => openModal(card.key)}
-              >
-                <span className="landing__info-chip">
-                  <span aria-hidden="true">{card.icon}</span>
-                  {card.badge}
-                </span>
-                <strong>{card.title}</strong>
-                <p>{card.description}</p>
-                <span className="landing__info-link">전체 보기</span>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <section className="landing__closing">
-          <div>
-            <h2>AI 피드백과 리워드로 연결되는 면접 루틴을 지금 시작하세요.</h2>
-            <p>
-              가입 후 나의 리워드 페이지에서 질문 주기를 언제든 수정하고, 받은 질문과 점수를 모두 다시 열람할 수 있습니다.
-            </p>
-          </div>
-          <div className="landing__cta landing__cta--closing">
-            <Link to="/auth?mode=signup" className="cta-button cta-button--primary">
-              PrePair 무료 체험
-            </Link>
-            <Link to="/auth?mode=login" className="cta-button cta-button--ghost">
-              로그인하고 리워드 확인
-            </Link>
-          </div>
-        </section>
-
-        {activeModalMeta && (
-          <Modal
-            open
-            title={activeModalMeta.title}
-            onClose={closeModal}
-            size={activeModalMeta.size}
-            footer={
-              <Link to="/auth?mode=signup" className="cta-button cta-button--primary">
-                지금 PrePair 시작하기
-              </Link>
-            }
-          >
-            {activeModalMeta.render()}
-          </Modal>
-        )}
-      </div>
+  const toggleTrack = (trackId) => {
+    setSelectedTracks((prev) =>
+      prev.includes(trackId) ? prev.filter((item) => item !== trackId) : [...prev, trackId],
     )
   }
+
+  const isFormValid = email.includes('@') && selectedTracks.length > 0
+
+  const handleSubmit = (event) => {
+    event.preventDefault()
+    if (!isFormValid) return
+
+    setFormState('success')
+  }
+
+  const closeModal = () => {
+    setSubscribeOpen(false)
+    setFormState('idle')
+  }
+
+  return (
+    <div className="landing landing--refresh">
+      <section className="landing-hero">
+        <div className="landing-hero__copy">
+          <span className="hero-label">Maeil Mail for Tech</span>
+          <h1>
+            매일 11시, 기술 면접 감각을 깨우는
+            <br />
+            한 통의 질문
+          </h1>
+          <p>
+            긴 스크롤 없이 핵심만 정리된 대시보드로 질문·답변·리워드를 한눈에 확인하세요. 가입 전이라도 무료 구독을 신청하면
+            샘플 질문이 바로 이메일로 도착합니다.
+          </p>
+          <div className="hero-actions">
+            <button type="button" className="cta-button cta-button--primary" onClick={() => setSubscribeOpen(true)}>
+              무료 구독 신청
+            </button>
+            <Link to="/auth?mode=signup" className="cta-button cta-button--ghost">
+              서비스 가입하고 시작
+            </Link>
+          </div>
+          <ul className="hero-highlights">
+            {heroHighlights.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </div>
+
+        <Motion.div
+          className="landing-hero__card"
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: 'easeOut' }}
+        >
+          <div className="reward-panel">
+            <header>
+              <div>
+                <span>나의 리워드</span>
+                <p>열심히 노력한 당신, 축하해요! 🎉</p>
+              </div>
+              <span className="reward-panel__badge">5일 연속</span>
+            </header>
+            <div className="reward-panel__points">
+              <div>
+                <small>누적 포인트</small>
+                <strong>234</strong>
+              </div>
+              <div className="reward-panel__progress">
+                <span style={{ width: '72%' }} />
+              </div>
+              <p>다음 리워드까지 66점 남음</p>
+            </div>
+            <div className="reward-panel__meta">
+              <span>마지막 답변 · 어제 오후 8:12</span>
+              <span>다음 발송 · 내일 오전 11:00</span>
+            </div>
+          </div>
+        </Motion.div>
+      </section>
+
+      <section className="landing-metrics">
+        {heroStats.map((stat) => (
+          <article key={stat.label}>
+            <span>{stat.label}</span>
+            <strong>{stat.value}</strong>
+            <p>{stat.caption}</p>
+          </article>
+        ))}
+      </section>
+
+      <section className="landing-activity">
+        <article className="activity-card">
+          <header>
+            <div>
+              <span className="tag">활동 잔디</span>
+              <h2>최근 12주간 답변 기록</h2>
+            </div>
+            <Link to="/rewards" className="activity-link">
+              리워드 페이지 보기
+            </Link>
+          </header>
+          <div className="activity-heatmap" role="img" aria-label="최근 12주간 활동 잔디">
+            {activityWeeks.map((week, weekIndex) => (
+              <div key={`week-${weekIndex}`} className="activity-week">
+                {week.map((level, dayIndex) => (
+                  <span key={`day-${weekIndex}-${dayIndex}`} className={`activity-dot activity-dot--${level}`} />
+                ))}
+              </div>
+            ))}
+          </div>
+          <footer>
+            <div className="activity-legend">
+              <span>적음</span>
+              <div>
+                {[0, 1, 2, 3].map((level) => (
+                  <span key={level} className={`activity-dot activity-dot--${level}`} />
+                ))}
+              </div>
+              <span>많음</span>
+            </div>
+            <p>🔥 지금 5일 연속 답변 중 · 최장 연속 7일</p>
+          </footer>
+        </article>
+
+        <div className="activity-side">
+          <div className="streak-card">
+            <span>다음 질문까지 남은 시간</span>
+            <strong>11시간 12분</strong>
+            <p>메일과 카카오톡으로 동시에 도착합니다.</p>
+          </div>
+          <div className="streak-card streak-card--muted">
+            <span>추천 루틴</span>
+            <strong>주 5회 · 오전 11시</strong>
+            <p>시간을 바꾸고 싶다면 언제든 설정에서 수정할 수 있어요.</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="landing-features">
+        <header>
+          <p className="tag">One glance dashboard</p>
+          <h2>클라이언트가 원하는 초기 페이지 톤앤매너를 그대로 옮겼어요.</h2>
+          <p>질문 확인, 답변 예약, 리워드 현황까지 상단 카드만으로 파악할 수 있게 구성했습니다.</p>
+        </header>
+        <div className="landing-feature-grid">
+          {featureTiles.map((tile) => (
+            <article key={tile.title}>
+              <span>{tile.badge}</span>
+              <strong>{tile.title}</strong>
+              <p>{tile.description}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="landing-cta">
+        <div>
+          <h2>바쁜 팀을 위해 만든 인터뷰 루틴 메일링</h2>
+          <p>무료 구독으로 시작한 뒤, 마음에 든다면 계정을 만들어 리워드와 코칭 기능을 활성화하세요.</p>
+        </div>
+        <div className="landing-cta__actions">
+          <button type="button" className="cta-button cta-button--primary" onClick={() => setSubscribeOpen(true)}>
+            구독 신청
+          </button>
+          <Link to="/auth?mode=login" className="cta-button cta-button--ghost">
+            로그인하고 계속하기
+          </Link>
+        </div>
+      </section>
+
+      {isSubscribeOpen && (
+        <Modal open title="매일메일 구독" size="sm" onClose={closeModal}>
+          <form className="landing__subscribe-form" onSubmit={handleSubmit}>
+            <fieldset>
+              <legend>
+                분야 <span>*중복 선택 가능</span>
+              </legend>
+              <div className="subscribe-options">
+                {subscribeTracks.map((track) => {
+                  const checked = selectedTracks.includes(track.id)
+                  return (
+                    <label key={track.id} className={`subscribe-check ${checked ? 'is-checked' : ''}`}>
+                      <input
+                        type="checkbox"
+                        value={track.id}
+                        checked={checked}
+                        onChange={() => toggleTrack(track.id)}
+                      />
+                      <span>{track.label}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend>수신 빈도</legend>
+              <div className="subscribe-options subscribe-options--inline">
+                {cadenceOptions.map((option) => {
+                  const selected = selectedCadence === option.id
+                  return (
+                    <label key={option.id} className={`subscribe-radio ${selected ? 'is-selected' : ''}`}>
+                      <input
+                        type="radio"
+                        name="cadence"
+                        value={option.id}
+                        checked={selected}
+                        onChange={() => setSelectedCadence(option.id)}
+                      />
+                      <div>
+                        <strong>{option.label}</strong>
+                        <span>{option.description}</span>
+                      </div>
+                    </label>
+                  )
+                })}
+              </div>
+            </fieldset>
+
+            <label className="subscribe-field">
+              이메일
+              <input
+                type="email"
+                placeholder="johndoe@gmail.com"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                required
+              />
+            </label>
+
+            <button type="submit" className="cta-button cta-button--primary" disabled={!isFormValid}>
+              확인
+            </button>
+            {formState === 'success' && <p className="subscribe-success">웰컴 메일이 곧 도착합니다.</p>}
+          </form>
+        </Modal>
+      )}
+    </div>
+  )
+}
