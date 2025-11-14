@@ -72,6 +72,37 @@ const boardPosts = [
   { company: 'BRIGHT HR', role: 'HR 비즈니스 파트너', tag: '리더십 · 풀타임' },
 ]
 
+const infoCards = [
+  {
+    key: 'features',
+    badge: 'Flow',
+    title: '맞춤 질문 루틴',
+    description: 'AI 질문 · 피드백 · 리워드가 한 흐름으로 이어지는 방식을 살펴보세요.',
+    icon: '✨',
+  },
+  {
+    key: 'onboarding',
+    badge: 'Journey',
+    title: '가입 여정 4단계',
+    description: '계정 생성부터 첫 질문 도착까지 필요한 단계만 추려서 정리했어요.',
+    icon: '🧭',
+  },
+  {
+    key: 'jobs',
+    badge: 'Career',
+    title: '직업군 / 직무 추천',
+    description: '관심 직무를 묶어서 보여주고, 세부 목표 입력 팁도 함께 안내합니다.',
+    icon: '👥',
+  },
+  {
+    key: 'cadence',
+    badge: 'Schedule',
+    title: '알림 루틴 & 채널',
+    description: '발송 빈도, 채널, 오늘의 채용 공고까지 한 번에 확인하세요.',
+    icon: '⏰',
+  },
+]
+
 export default function LandingPage() {
   const isMobile = useMediaQuery('(max-width: 720px)')
   const [activeModal, setActiveModal] = useState(null)
@@ -199,14 +230,14 @@ export default function LandingPage() {
             답변·피드백·리워드가 하나의 흐름으로 이어집니다.
           </p>
 
-          <ul className="landing__hero-points">
-            {featureHighlights.map((item) => (
-              <li key={item.title}>
-                <strong>{item.title}</strong>
-                <span>{item.description}</span>
-              </li>
-            ))}
-          </ul>
+            <ul className="landing__hero-points">
+              {featureHighlights.map((item) => (
+                <li key={item.title}>
+                  <strong>{item.title}</strong>
+                  <span>{item.description}</span>
+                </li>
+              ))}
+            </ul>
 
             <div className="landing__cta">
               <Link to="/auth?mode=signup" className="cta-button cta-button--primary">
@@ -218,11 +249,11 @@ export default function LandingPage() {
             </div>
 
             {isMobile && (
-              <button type="button" className="landing__hero-inline" onClick={() => openModal('cadence')}>
-                알림 루틴 전체 보기
+              <button type="button" className="landing__hero-inline" onClick={() => openModal('features')}>
+                핵심 기능 한 눈에 보기
               </button>
             )}
-        </div>
+          </div>
 
           {!isMobile && (
             <Motion.aside
@@ -262,106 +293,50 @@ export default function LandingPage() {
               </div>
             </Motion.aside>
           )}
-      </Motion.section>
+        </Motion.section>
 
-        {isMobile && (
-          <section className="landing__mobile-panels" aria-label="핵심 안내 빠른 보기">
-            <button type="button" className="landing__mobile-card" onClick={() => openModal('features')}>
-              <strong>핵심 기능</strong>
-              <span>맞춤 질문과 리워드 흐름 요약</span>
-            </button>
-            <button type="button" className="landing__mobile-card" onClick={() => openModal('onboarding')}>
-              <strong>가입 여정</strong>
-              <span>가입부터 첫 질문 도착까지 4단계</span>
-            </button>
-            <button type="button" className="landing__mobile-card" onClick={() => openModal('jobs')}>
-              <strong>직업군 추천</strong>
-              <span>직무 클러스터와 추천 직업 묶음</span>
-            </button>
-            <button type="button" className="landing__mobile-card" onClick={() => openModal('cadence')}>
-              <strong>알림 루틴</strong>
-              <span>발송 시간 · 채널 · 채용 공고를 한 번에</span>
-            </button>
-          </section>
-        )}
-
-        <section className="landing__process landing__desktop-section">
-        <header>
-          <span className="tag">Onboarding Journey</span>
-          <h2>회원가입부터 첫 질문 발송까지, 4단계</h2>
-        </header>
-        <div className="landing__process-grid">
-          {processSteps.map((step) => (
-            <article key={step.label}>
-              <strong>{step.label}</strong>
-              <p>{step.detail}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-        <section className="landing__jobs landing__desktop-section">
-        <header>
-          <span className="tag">Career Tracks</span>
-          <h2>직업군 버튼을 선택하면, 세부 직무까지 안내합니다.</h2>
-          <p>가입 후 직업 버튼을 눌러 분야를 선택하고, 필요하면 기타 칸에 원하는 목표를 직접 입력하세요.</p>
-        </header>
-        <div className="landing__job-grid">
-          {jobClusters.map((cluster) => (
-            <article key={cluster.title}>
-              <strong>{cluster.title}</strong>
-              <span>{cluster.caption}</span>
-              <ul>
-                {cluster.items.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </article>
-          ))}
-        </div>
-      </section>
-
-        <section className="landing__cadence landing__desktop-section">
-        <div className="landing__cadence-copy">
-          <span className="tag">Question Cadence</span>
-          <h2>빈도를 고르면, 정해진 시간에 알림이 도착합니다.</h2>
-          <p>
-            메일 발송은 기본 옵션이에요. 카카오톡 알림을 켜면 메일과 동시에 톡으로도 질문을 받아볼 수 있어요.
-            <br />
-            시간은 고정되어 있어 루틴을 쉽게 만들 수 있습니다.
-          </p>
-        </div>
-
-        <div className="landing__cadence-cards">
-          <div className="cadence-card">
-            <strong>매일 1회 받기</strong>
-            <span>월~금 매일 오전 11시, 메일 발송</span>
-            <p>웨이크업 루틴처럼 꾸준한 연습이 필요할 때 추천해요.</p>
+        <section className="landing__summary" aria-label="주요 기능 요약">
+          <header>
+            <span className="tag">Control Center</span>
+            <h2>긴 스크롤 대신, 기능별 카드를 눌러 필요한 정보만 열람하세요.</h2>
+            <p>가입 여정, 직업군, 질문 루틴 등 같은 기능끼리 묶어 두어 모달에서 즉시 확인할 수 있습니다.</p>
+          </header>
+          <div className="landing__info-grid">
+            {infoCards.map((card) => (
+              <button
+                key={card.key}
+                type="button"
+                className="landing__info-card"
+                onClick={() => openModal(card.key)}
+              >
+                <span className="landing__info-chip">
+                  <span aria-hidden="true">{card.icon}</span>
+                  {card.badge}
+                </span>
+                <strong>{card.title}</strong>
+                <p>{card.description}</p>
+                <span className="landing__info-link">전체 보기</span>
+              </button>
+            ))}
           </div>
-          <div className="cadence-card">
-            <strong>일주일에 1회 받기</strong>
-            <span>매주 월요일 오전 11시, 메일 발송</span>
-            <p>길게 작성하고 깊이 돌아보고 싶은 분에게 적합해요.</p>
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <section className="landing__closing">
-        <div>
-          <h2>AI 피드백과 리워드로 연결되는 면접 루틴을 지금 시작하세요.</h2>
-          <p>
-            가입 후 나의 리워드 페이지에서 질문 주기를 언제든 수정하고, 받은 질문과 점수를 모두 다시 열람할 수 있습니다.
-          </p>
-        </div>
-        <div className="landing__cta landing__cta--closing">
-          <Link to="/auth?mode=signup" className="cta-button cta-button--primary">
-            PrePair 무료 체험
-          </Link>
-          <Link to="/auth?mode=login" className="cta-button cta-button--ghost">
-            로그인하고 리워드 확인
-          </Link>
-        </div>
-      </section>
+        <section className="landing__closing">
+          <div>
+            <h2>AI 피드백과 리워드로 연결되는 면접 루틴을 지금 시작하세요.</h2>
+            <p>
+              가입 후 나의 리워드 페이지에서 질문 주기를 언제든 수정하고, 받은 질문과 점수를 모두 다시 열람할 수 있습니다.
+            </p>
+          </div>
+          <div className="landing__cta landing__cta--closing">
+            <Link to="/auth?mode=signup" className="cta-button cta-button--primary">
+              PrePair 무료 체험
+            </Link>
+            <Link to="/auth?mode=login" className="cta-button cta-button--ghost">
+              로그인하고 리워드 확인
+            </Link>
+          </div>
+        </section>
 
         {activeModalMeta && (
           <Modal
@@ -378,6 +353,6 @@ export default function LandingPage() {
             {activeModalMeta.render()}
           </Modal>
         )}
-    </div>
-  )
-}
+      </div>
+    )
+  }

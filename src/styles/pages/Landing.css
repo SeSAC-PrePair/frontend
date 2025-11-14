@@ -1,16 +1,12 @@
 .landing {
   display: grid;
-  gap: 4rem;
-  padding: 3.5rem 0 4.5rem;
-}
-
-.landing__desktop-section {
-  display: block;
+  gap: 3rem;
+  padding: 2.8rem 0 3.6rem;
 }
 
 .landing__hero {
   display: grid;
-  gap: 2.6rem;
+  gap: 2.2rem;
   align-items: start;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
 }
@@ -84,7 +80,7 @@
 }
 
 .landing__hero-inline {
-  margin-top: 0.4rem;
+  margin-top: 0.2rem;
   align-self: flex-start;
   border-radius: var(--radius-sm);
   padding: 0.65rem 1.1rem;
@@ -202,145 +198,90 @@
   font-size: 0.9rem;
 }
 
-.landing__process {
-  display: grid;
-  gap: 1.8rem;
-}
-
-.landing__process header {
-  display: grid;
-  gap: 0.6rem;
-}
-
-.landing__process h2,
-.landing__jobs h2,
-.landing__cadence h2 {
-  margin: 0;
-  font-size: clamp(1.6rem, 3vw, 2.1rem);
-}
-
-.landing__process-grid {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-}
-
-.landing__process-grid article {
-  border-radius: var(--radius-md);
-  padding: 1.2rem 1.3rem;
+.landing__summary {
+  border-radius: var(--radius-lg);
+  padding: 1.8rem 2rem 2rem;
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(64, 81, 115, 0.14);
   display: grid;
+  gap: 1.4rem;
+}
+
+.landing__summary header {
+  display: grid;
   gap: 0.5rem;
+  max-width: 720px;
 }
 
-.landing__process-grid article strong {
-  color: var(--accent-primary);
+.landing__summary header h2 {
+  margin: 0;
+  font-size: clamp(1.5rem, 3vw, 2rem);
 }
 
-.landing__process-grid article p {
+.landing__summary header p {
   margin: 0;
   color: rgba(20, 31, 64, 0.68);
-  font-size: 0.94rem;
+  font-size: 0.95rem;
 }
 
-.landing__jobs {
-  display: grid;
-  gap: 1.6rem;
-}
-
-.landing__jobs header {
-  display: grid;
-  gap: 0.6rem;
-}
-
-.landing__jobs header p {
-  margin: 0;
-  color: rgba(20, 31, 64, 0.65);
-}
-
-.landing__job-grid {
-  display: grid;
-  gap: 1.2rem;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-}
-
-.landing__job-grid article {
-  padding: 1.3rem 1.4rem;
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(64, 81, 115, 0.16);
-  display: grid;
-  gap: 0.6rem;
-}
-
-.landing__job-grid article strong {
-  font-size: 1.02rem;
-}
-
-.landing__job-grid article span {
-  color: rgba(20, 31, 64, 0.68);
-  font-size: 0.92rem;
-}
-
-.landing__job-grid article ul {
-  margin: 0;
-  padding-left: 1.1rem;
-  display: grid;
-  gap: 0.4rem;
-  color: rgba(20, 31, 64, 0.78);
-  font-size: 0.9rem;
-}
-
-.landing__cadence {
-  border-radius: var(--radius-lg);
-  padding: 2.4rem;
-  background: linear-gradient(160deg, rgba(242, 228, 236, 0.95), rgba(169, 187, 222, 0.95));
-  border: 1px solid rgba(64, 81, 115, 0.15);
-  display: grid;
-  gap: 2rem;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  align-items: center;
-}
-
-.landing__cadence-copy {
+.landing__info-grid {
   display: grid;
   gap: 0.9rem;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
 }
 
-.landing__cadence-copy p {
-  margin: 0;
-  color: rgba(20, 31, 64, 0.75);
-}
-
-.landing__cadence-cards {
-  display: grid;
-  gap: 1rem;
-}
-
-.cadence-card {
+.landing__info-card {
+  border: 1px solid rgba(64, 81, 115, 0.16);
   border-radius: var(--radius-md);
-  padding: 1.2rem 1.4rem;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(64, 81, 115, 0.18);
+  padding: 1.1rem 1.2rem;
+  background: rgba(247, 249, 255, 0.9);
   display: grid;
-  gap: 0.5rem;
+  gap: 0.45rem;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.cadence-card strong {
+.landing__info-card:hover {
+  border-color: rgba(64, 81, 115, 0.35);
+  box-shadow: 0 14px 30px rgba(64, 81, 115, 0.16);
+  transform: translateY(-2px);
+}
+
+.landing__info-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(20, 31, 64, 0.6);
+}
+
+.landing__info-chip span:first-child {
+  font-size: 1rem;
+}
+
+.landing__info-card strong {
   font-size: 1.05rem;
   color: var(--accent-primary);
 }
 
-.cadence-card span {
-  font-weight: 600;
-  color: rgba(20, 31, 64, 0.72);
+.landing__info-card p {
+  margin: 0;
+  color: rgba(20, 31, 64, 0.7);
+  font-size: 0.92rem;
+  min-height: 2.6rem;
 }
 
-.cadence-card p {
-  margin: 0;
-  color: rgba(20, 31, 64, 0.68);
-  font-size: 0.92rem;
+.landing__info-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.88rem;
+  color: rgba(20, 31, 64, 0.7);
+  font-weight: 600;
 }
 
 .landing__closing {
@@ -367,31 +308,6 @@
 
 .landing__cta--closing {
   justify-content: flex-start;
-}
-
-.landing__mobile-panels {
-  display: none;
-}
-
-.landing__mobile-card {
-  border-radius: var(--radius-md);
-  padding: 1rem 1.2rem;
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(64, 81, 115, 0.16);
-  display: grid;
-  gap: 0.4rem;
-  text-align: left;
-  box-shadow: 0 16px 32px rgba(64, 81, 115, 0.14);
-}
-
-.landing__mobile-card strong {
-  font-size: 1.02rem;
-  color: var(--accent-primary);
-}
-
-.landing__mobile-card span {
-  color: rgba(20, 31, 64, 0.68);
-  font-size: 0.9rem;
 }
 
 .landing__modal-grid {
@@ -488,12 +404,16 @@
 
 @media (max-width: 960px) {
   .landing {
-    gap: 3.2rem;
-    padding: 3rem 0 4rem;
+    gap: 2.6rem;
+    padding: 2.6rem 0 3.4rem;
   }
 
   .landing__hero-copy {
     gap: 1.4rem;
+  }
+
+  .landing__summary {
+    padding: 1.6rem;
   }
 }
 
@@ -506,6 +426,11 @@
     font-size: 0.98rem;
   }
 
+  .landing {
+    gap: 2.2rem;
+    padding: 2.4rem 0 3rem;
+  }
+
   .landing__hero-inline {
     width: 100%;
     text-align: center;
@@ -513,27 +438,12 @@
     padding: 0.7rem 1rem;
   }
 
-  .landing__mobile-panels {
-    display: grid;
-    gap: 1rem;
+  .landing__summary header {
+    text-align: left;
   }
 
-  .landing__mobile-card {
-    grid-template-columns: minmax(0, 1fr);
-    box-shadow: 0 12px 28px rgba(64, 81, 115, 0.12);
-  }
-
-  .landing__desktop-section {
-    display: none;
-  }
-
-  .landing {
-    gap: 2.6rem;
-    padding: 2.6rem 0 3.2rem;
-  }
-
-  .landing__cadence {
-    padding: 2rem;
+  .landing__info-card {
+    padding: 1rem 1.05rem;
   }
 
   .landing__closing {
@@ -550,20 +460,15 @@
     gap: 1.6rem;
   }
 
+  .landing__summary {
+    padding: 1.3rem 1rem;
+  }
+
   .landing__hero-copy h1 {
     font-size: clamp(2.1rem, 8vw, 2.5rem);
   }
 
   .landing__hero-card {
     padding: 1.3rem;
-  }
-
-  .landing__cadence {
-    padding: 1.8rem 1.4rem;
-  }
-
-  .landing__mobile-card {
-    padding: 0.9rem 1rem;
-    border-radius: var(--radius-sm);
   }
 }
