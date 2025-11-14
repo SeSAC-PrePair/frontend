@@ -1,28 +1,8 @@
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-// import { useAppState } from '../context/AppStateContext' // 데모를 위해 주석 처리
-// import '../styles/pages/Auth.css' // CSS 파일 경로 오류로 인해 주석 처리
-
-// --- 데모를 위한 Mock 데이터 ---
-// 실제 앱에서는 AppStateContext에서 가져옵니다.
-const useAppState = () => ({
-    user: null,
-    login: (email, pw) => console.log('Login:', email, pw),
-    signup: (form) => console.log('Signup:', form),
-    jobTracks: jobData, // jobData는 파일 하단에 정의되어 있습니다.
-    cadencePresets: [
-        { id: 'daily', label: '매일 (주 5일)' },
-        { id: 'biweekly', label: '주 2회 (화, 목)' },
-        { id: 'weekly', label: '주 1회 (월)' },
-    ],
-    notificationChannelPresets: [
-        { id: 'email', label: '이메일 (필수)' },
-        { id: 'kakao', label: '카카오톡 (선택)' },
-    ]
-});
-// --- 데모 Mock 끝 ---
-
+import { useAppState } from '../context/AppStateContext'
+import '../styles/pages/Auth.css' // CSS 파일도 함께 수정될 수 있습니다.
 
 const cardVariants = {
     hidden: { opacity: 0, y: 28 },
@@ -36,92 +16,46 @@ const steps = [
 ]
 
 const jobData = [
-    {
-        id: 'it',
-        label: 'IT / 개발',
-        roles: [
-            { id: 'frontend', label: '프론트엔드' },
-            { id: 'backend', label: '백엔드' },
-            { id: 'ai_data', label: 'AI / 데이터' },
-            { id: 'devops', label: 'DevOps / 인프라' },
-            { id: 'pm', label: 'PM / PO' },
-        ]
-    },
-    {
-        id: 'design_marketing',
-        label: '디자인 / 마케팅',
-        roles: [
-            { id: 'ux_ui', label: 'UX/UI 디자인' },
-            { id: 'marketing_planning', label: '마케팅 / 기획' },
-            { id: 'graphic_video', label: '그래픽 / 영상' },
-        ]
-    },
-    {
-        id: 'service',
-        label: '서비스',
-        roles: [
-            { id: 'cs', label: 'CS / 고객응대' },
-            { id: 'airline', label: '승무원' },
-            { id: 'food', label: '요식업 / F&B' },
-        ]
-    },
-    {
-        id: 'public',
-        label: '공무원 / 공공기관',
-        roles: [
-            { id: 'gov_admin', label: '일반행정' },
-            { id: 'police_fire', label: '경찰 / 소방' },
-            { id: 'public_corp', label: '공기업' },
-        ]
-    },
-    {
-        id: 'education',
-        label: '교육',
-        roles: [
-            { id: 'teacher', label: '강사 / 교사' },
-            { id: 'academy', label: '학원 / 교육운영' },
-        ]
-    },
-    {
-        id: 'other',
-        label: '기타 (직접 입력)',
-        roles: []
-    }
+    { id: 'service', label: '서비스직', roles: ['CS', '승무원', '요식업', '기타'] },
+    { id: 'public', label: '공무원 / 공공기관', roles: ['공무원', '공공기관', '기타'] },
+    { id: 'development', label: '개발', roles: ['프론트엔드', '백엔드', 'AI', 'DevOps', '기타'] },
+    { id: 'design', label: '디자인', roles: ['UX/UI', '그래픽', '영상', '기타'] },
+    { id: 'marketing', label: '마케팅 / 기획', roles: ['마케팅', '기획', '광고', '기타'] },
+    { id: 'finance', label: '금융 / 회계', roles: ['금융', '회계', '재무', '기타'] },
+    { id: 'education', label: '교육 / 강사', roles: ['교육', '강사', '기타'] },
+    { id: 'medical', label: '의료 / 간호 / 헬스케어', roles: ['의료', '간호', '헬스케어', '기타'] },
+    { id: 'other', label: '기타 (직접 입력)', roles: [] }
 ];
 
-// === 1. 비밀번호 규칙: 특수문자를 *찾는* 정규식 ===
-// (주의: 기존과 정규식은 같지만, 사용하는 논리가 반대가 됨)
-const passwordRule = /[^A-Za-z0-9]/
 
 export default function AuthPage() {
     const navigate = useNavigate()
     const location = useLocation()
     const [searchParams] = useSearchParams()
-    const { user, login, signup, jobTracks, cadencePresets, notificationChannelPresets } = useAppState()
+
+    const { user, login, signup, jobTracks, cadencePresets } = useAppState()
+
     const redirectFrom = location.state?.from
+    const redirectState = redirectFrom ? { from: redirectFrom } : undefined
 
     const defaultCadence = cadencePresets[0]
+    const defaultJobCategory = jobData[0];
 
     const [mode, setMode] = useState('signup')
     const [activeStep, setActiveStep] = useState(0)
     const [loginForm, setLoginForm] = useState({ email: '', password: '' })
 
-    // === 2. signupForm 상태 변경 (notificationChannel -> notificationChannels) ===
     const [signupForm, setSignupForm] = useState({
         name: '',
         email: '',
         password: '',
         passwordConfirm: '',
-        jobMainCategory: jobData[0].id,
-        jobSubCategory: jobData[0].roles[0].id,
-        jobOtherText: '',
+        jobCategory: defaultJobCategory.id,
+        jobRole: defaultJobCategory.roles[0] || '',
+        jobCategoryOther: '',
         cadence: defaultCadence,
-        notificationChannels: { email: true, kakao: false }, // '이메일(필수)' + '카카오(선택)'
+        notificationKakao: false,
     })
-
-    const availableSubCategories = jobData.find(
-        (cat) => cat.id === signupForm.jobMainCategory
-    )?.roles || []
 
     useEffect(() => {
         const paramMode = searchParams.get('mode')
@@ -134,68 +68,45 @@ export default function AuthPage() {
 
     const loginDisabled = !loginForm.email || !loginForm.password
 
-    // === 3. 비밀번호 유효성 검사 수정 (길이 6자 이상 추가) ===
-    const isPasswordLengthValid = signupForm.password.length >= 6;
-    const isPasswordSpecialCharValid = passwordRule.test(signupForm.password);
+    const passwordLengthValid = signupForm.password.length >= 6;
+    const passwordSpecialCharValid = /[^A-Za-z0-9]/.test(signupForm.password);
+    const passwordMatchValid = signupForm.password === signupForm.passwordConfirm;
 
     const signupStep1Disabled =
         !signupForm.name ||
         !signupForm.email ||
         !signupForm.password ||
         !signupForm.passwordConfirm ||
-        signupForm.password !== signupForm.passwordConfirm ||
-        !isPasswordLengthValid || // 6자 미만이면 비활성화
-        !isPasswordSpecialCharValid // 특수문자가 *없으면* (false) 비활성화
+        !passwordLengthValid ||
+        !passwordSpecialCharValid ||
+        !passwordMatchValid;
 
     const handleLogin = (event) => {
         event.preventDefault()
         if (loginDisabled) return
+
         login(loginForm.email, loginForm.password)
-        // navigate(redirectFrom || '/rewards', { replace: true }) // 데모에서는 주석 처리
-        console.log("로그인 성공, 리디렉션...");
+        navigate(redirectFrom || '/rewards', { replace: true })
     }
 
     const handleSignup = (event) => {
         event.preventDefault()
 
-        if (signupForm.jobMainCategory === 'other' && !signupForm.jobOtherText) {
+        if (signupForm.jobCategory === 'other' && !signupForm.jobCategoryOther) {
             alert('기타 직군을 입력해주세요.');
-            setActiveStep(1);
             return;
         }
 
         signup(signupForm)
-        // navigate(redirectFrom || '/rewards', { replace: true }) // 데모에서는 주석 처리
-        console.log("회원가입 성공, 리디렉션...");
+        navigate('/signup-success', { replace: true })
     }
 
-    const handleStep1Next = () => {
-        if (signupForm.jobMainCategory === 'other' && !signupForm.jobOtherText) {
-            alert('기타 직군을 입력해주세요.');
-            return;
-        }
-        setActiveStep(2);
-    }
+    const selectedJobCategory = jobData.find(j => j.id === signupForm.jobCategory);
+    const selectedJobRoles = selectedJobCategory ? selectedJobCategory.roles : [];
 
-    const getJobLabel = () => {
-        if (signupForm.jobMainCategory === 'other') {
-            return signupForm.jobOtherText;
-        }
-        const subCat = availableSubCategories.find(r => r.id === signupForm.jobSubCategory);
-        return subCat ? subCat.label : '선택된 직무';
-    };
-
-    // === 4. 알림 채널 라벨 생성 헬퍼 함수 ===
-    const getNotificationLabel = () => {
-        const labels = [];
-        if (signupForm.notificationChannels.email) {
-            labels.push('이메일');
-        }
-        if (signupForm.notificationChannels.kakao) {
-            labels.push('카카오톡');
-        }
-        return labels.join(' 및 '); // "이메일" 또는 "이메일 및 카카오톡"
-    };
+    const notificationSummary = signupForm.notificationKakao
+        ? '이메일 및 카카오톡'
+        : '이메일';
 
     return (
         <div className="auth">
@@ -252,7 +163,7 @@ export default function AuthPage() {
                                         <span>비밀번호</span>
                                         <input
                                             type="password"
-                                            placeholder="비밀번호 (6자 이상, 특수문자 1개 필수)"
+                                            placeholder="비밀번호 (6자 이상, 특수문자 1개 포함)"
                                             value={signupForm.password}
                                             onChange={(event) => setSignupForm((prev) => ({ ...prev, password: event.target.value }))}
                                             required
@@ -270,18 +181,21 @@ export default function AuthPage() {
                                     </label>
                                 </div>
 
-                                {/* === 5. 비밀번호 힌트 로직/텍스트 수정 (길이 힌트 추가) === */}
-                                {signupForm.password.length > 0 && !isPasswordLengthValid && (
+                                {(signupForm.password.length > 0 && !passwordLengthValid) && (
                                     <p className="auth__hint">
                                         비밀번호는 6자 이상이어야 합니다.
                                     </p>
                                 )}
-                                {signupForm.password.length > 0 && !isPasswordSpecialCharValid && (
+                                {(signupForm.password.length > 0 && !passwordSpecialCharValid) && (
                                     <p className="auth__hint">
-                                        비밀번호에는 특수문자가 1개 이상 포함되어야 합니다.
+                                        비밀번호는 특수문자를 1개 이상 포함해야 합니다. (예: !, @, #)
                                     </p>
                                 )}
-                                {/* === 힌트 수정 끝 === */}
+                                {(signupForm.passwordConfirm.length > 0 && !passwordMatchValid) && (
+                                    <p className="auth__hint">
+                                        비밀번호가 일치하지 않습니다.
+                                    </p>
+                                )}
 
 
                                 <div className="auth__actions">
@@ -296,20 +210,16 @@ export default function AuthPage() {
                         {activeStep === 1 && (
                             <>
                                 <label className="form__field">
-                                    <span>직군 (대분류)</span>
+                                    <span>직군 (Job Category)</span>
                                     <select
-                                        value={signupForm.jobMainCategory}
-                                        onChange={(e) => {
-                                            const newMainCatId = e.target.value;
-                                            const newMainCat = jobData.find(cat => cat.id === newMainCatId);
-                                            const newSubCatId = (newMainCat && newMainCat.roles.length > 0) ? newMainCat.roles[0].id : '';
-
+                                        value={signupForm.jobCategory}
+                                        onChange={(event) => {
+                                            const newCategory = jobData.find(j => j.id === event.target.value);
                                             setSignupForm((prev) => ({
                                                 ...prev,
-                                                jobMainCategory: newMainCatId,
-                                                jobSubCategory: newSubCatId,
-                                                jobOtherText: ''
-                                            }));
+                                                jobCategory: newCategory.id,
+                                                jobRole: newCategory.roles[0] || ''
+                                            }))
                                         }}
                                     >
                                         {jobData.map((cat) => (
@@ -318,31 +228,31 @@ export default function AuthPage() {
                                     </select>
                                 </label>
 
-                                {signupForm.jobMainCategory !== 'other' && (
+                                {selectedJobRoles.length > 0 && (
                                     <label className="form__field">
-                                        <span>세부 직무</span>
+                                        <span>세부 직무 (Job Role)</span>
                                         <select
-                                            value={signupForm.jobSubCategory}
-                                            onChange={(e) => setSignupForm((prev) => ({
+                                            value={signupForm.jobRole}
+                                            onChange={(event) => setSignupForm((prev) => ({
                                                 ...prev,
-                                                jobSubCategory: e.target.value
+                                                jobRole: event.target.value
                                             }))}
                                         >
-                                            {availableSubCategories.map((role) => (
-                                                <option key={role.id} value={role.id}>{role.label}</option>
+                                            {selectedJobRoles.map((role) => (
+                                                <option key={role} value={role}>{role}</option>
                                             ))}
                                         </select>
                                     </label>
                                 )}
 
-                                {signupForm.jobMainCategory === 'other' && (
+                                {signupForm.jobCategory === 'other' && (
                                     <label className="form__field">
                                         <span>기타 직군 (직접 입력)</span>
                                         <input
                                             type="text"
                                             placeholder="직군을 입력하세요"
-                                            value={signupForm.jobOtherText}
-                                            onChange={(event) => setSignupForm((prev) => ({ ...prev, jobOtherText: event.target.value }))}
+                                            value={signupForm.jobCategoryOther}
+                                            onChange={(event) => setSignupForm((prev) => ({ ...prev, jobCategoryOther: event.target.value }))}
                                             required
                                         />
                                     </label>
@@ -353,11 +263,8 @@ export default function AuthPage() {
                                             onClick={() => setActiveStep(0)}>
                                         이전
                                     </button>
-                                    <button
-                                        type="button"
-                                        className="cta-button cta-button--primary"
-                                        onClick={handleStep1Next}
-                                    >
+                                    <button type="button" className="cta-button cta-button--primary"
+                                            onClick={() => setActiveStep(2)}>
                                         다음
                                     </button>
                                 </div>
@@ -381,42 +288,38 @@ export default function AuthPage() {
                                     </select>
                                 </label>
 
-                                {/* === 6. 알림 채널 UI 변경 (Select -> Checkbox) === */}
                                 <div className="form__field">
                                     <span>알림 채널</span>
-                                    <div className="form__checkbox-group">
-                                        <label className="form__checkbox">
-                                            <input
-                                                type="checkbox"
-                                                checked={signupForm.notificationChannels.email}
-                                                disabled // 이메일은 항상 true이고 비활성화
-                                            />
-                                            이메일 (필수)
-                                        </label>
-                                        <label className="form__checkbox">
-                                            <input
-                                                type="checkbox"
-                                                checked={signupForm.notificationChannels.kakao}
-                                                onChange={(e) => setSignupForm(prev => ({
-                                                    ...prev,
-                                                    notificationChannels: {
-                                                        ...prev.notificationChannels,
-                                                        kakao: e.target.checked
-                                                    }
-                                                }))}
-                                            />
-                                            카카오톡 (선택)
-                                        </label>
-                                    </div>
+                                    {/* [MODIFIED] 알림 안내 텍스트 스타일 변경 */}
+                                    <p className="auth__notification-info">
+                                        <span role="img" aria-label="info icon" style={{ marginRight: '5px' }}>📧</span>
+                                        이메일 알림은 기본으로 제공됩니다.
+                                    </p>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '4px 0' }}>
+                                        <input
+                                            type="checkbox"
+                                            id="kakao-toggle"
+                                            checked={signupForm.notificationKakao}
+                                            onChange={(event) => setSignupForm((prev) => ({
+                                                ...prev,
+                                                notificationKakao: event.target.checked
+                                            }))}
+                                        />
+                                        <span style={{ margin: 0, fontWeight: 'normal', fontSize: '15px' }}>
+                                            카카오톡으로도 알림 받기 (선택)
+                                        </span>
+                                    </label>
                                 </div>
-                                {/* === UI 변경 끝 === */}
 
 
                                 <div className="auth__summary-card">
                                     <p>
-                                        {/* === 7. 요약 카드 라벨 헬퍼 함수 사용 === */}
-                                        <strong>{signupForm.cadence?.label}</strong>, <strong>{getNotificationLabel()}</strong>(으)로
-                                        <strong> {getJobLabel()}</strong> 역할에 대한
+                                        <strong>{signupForm.cadence?.label}</strong>, <strong>{notificationSummary}</strong>(으)로
+                                        <strong> {
+                                            signupForm.jobCategory === 'other'
+                                                ? signupForm.jobCategoryOther
+                                                : signupForm.jobRole
+                                        }</strong> ({selectedJobCategory?.label}) 역할에 대한
                                         AI 면접 질문을 보내드립니다.
                                     </p>
                                 </div>

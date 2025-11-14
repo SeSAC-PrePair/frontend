@@ -11,6 +11,7 @@ import PurchaseHistory from './pages/rewards/PurchaseHistory'
 import AnswerPage from './pages/Answer'
 import AppLayout from './layouts/AppLayout'
 import './index.css'
+import SignupSuccessPage from "./pages/SignupSuccessPage.jsx";
 
 function ProtectedRoute({ children }) {
   const { user } = useAppState()
@@ -37,6 +38,7 @@ function AppRoutes() {
       <Route element={<AppLayout />}>
         <Route index element={<LandingPage />} />
         <Route path="auth" element={<AuthPage />} />
+          <Route path="/signup-success" element={<SignupSuccessPage />} />
         <Route
           path="coach"
           element={
