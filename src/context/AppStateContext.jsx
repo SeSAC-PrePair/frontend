@@ -196,18 +196,32 @@ const defaultActivity = Array.from({ length: 18 }, (_, weekIndex) =>
 
 const defaultPurchases = [
   {
-    id: 'reward-004',
-    name: '편의점 모바일 쿠폰',
-    cost: 300,
+    id: 'purchase-001',
+    rewardId: 'gs25-night-pack',
+    name: 'GS25 야식 리셋팩',
+    cost: 450,
     purchasedAt: '2025-11-05T07:00:00.000Z',
-    deliveryStatus: '배송 중',
+    deliveryStatus: '바코드 발급',
+    usageStatus: 'ready',
+    barcode: '9245 1180 6623 4471',
+    pin: 'PP-311204',
+    expiresAt: '2025-12-05T23:59:59.000Z',
+    usedAt: null,
+    memo: '밤 11시 이후 사용 가능 매장 확인',
   },
   {
-    id: 'reward-002',
+    id: 'purchase-000',
+    rewardId: 'book-culture-10k',
     name: '도서 문화 상품권 1만원',
-    cost: 10000,
+    cost: 1000,
     purchasedAt: '2025-10-23T11:15:00.000Z',
     deliveryStatus: '사용 완료',
+    usageStatus: 'used',
+    barcode: '8810 4402 3324 9951',
+    pin: 'PP-904411',
+    expiresAt: '2026-10-23T23:59:59.000Z',
+    usedAt: '2025-11-01T12:30:00.000Z',
+    memo: '전자책 구매 시 사용',
   },
 ]
 
@@ -235,6 +249,21 @@ const defaultUserProfile = {
 }
 
 const defaultChannels = notificationChannelPresets.filter((channel) => channel.isDefault).map((channel) => channel.id)
+
+function generateMockBarcode() {
+  return Array.from({ length: 4 }, () => String(Math.floor(1000 + Math.random() * 9000))).join(' ')
+}
+
+function generateMockPin() {
+  return `PP-${Math.floor(100000 + Math.random() * 900000)}`
+}
+
+function calculateExpiry(days = 30) {
+  const expires = new Date()
+  expires.setDate(expires.getDate() + days)
+  expires.setHours(23, 59, 59, 0)
+  return expires.toISOString()
+}
 
 function getTrackLabel(trackId) {
   return jobTrackMap[trackId]?.label ?? trackId
@@ -482,31 +511,38 @@ export function AppProvider({ children }) {
     [dispatchQuestion],
   )
 
-  const redeemReward = useCallback(
-    ({ id, name, cost }) => {
-      if (!user || user.points < cost) {
-        return { success: false, reason: '포인트가 부족합니다.' }
-      }
+    const redeemReward = useCallback(
+      ({ id, name, cost }) => {
+        if (!user || user.points < cost) {
+          return { success: false, reason: '포인트가 부족합니다.' }
+        }
 
-      setUser((prev) => {
-        if (!prev) return prev
-        return { ...prev, points: prev.points - cost }
-      })
+        setUser((prev) => {
+          if (!prev) return prev
+          return { ...prev, points: prev.points - cost }
+        })
 
-      const record = {
-        id: `${id}-${Date.now()}`,
-        name,
-        cost,
-        purchasedAt: new Date().toISOString(),
-        deliveryStatus: '처리 중',
-      }
+        const record = {
+          id: `${id}-${Date.now()}`,
+          rewardId: id,
+          name,
+          cost,
+          purchasedAt: new Date().toISOString(),
+          deliveryStatus: '바코드 발급 완료',
+          usageStatus: 'ready',
+          barcode: generateMockBarcode(),
+          pin: generateMockPin(),
+          expiresAt: calculateExpiry(),
+          usedAt: null,
+          memo: '발급 즉시 사용 가능합니다.',
+        }
 
-      setPurchases((prev) => [record, ...prev])
+        setPurchases((prev) => [record, ...prev])
 
-      return { success: true, record }
-    },
-    [user],
-  )
+        return { success: true, record }
+      },
+      [user],
+    )
 
   const value = {
     user,
