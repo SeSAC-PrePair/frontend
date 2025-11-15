@@ -171,6 +171,26 @@
     margin: 0.4rem 0 0;
     font-weight: 600;
     color: var(--accent-primary);
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.history-card__meta dd span {
+    white-space: nowrap;
+}
+
+.history-card__status-label {
+    font-size: 1rem;
+}
+
+.history-card__status-meta {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: rgba(20, 31, 64, 0.75);
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
 }
 
 .history-card--used {

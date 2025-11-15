@@ -272,6 +272,16 @@
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
+.purchase-grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 320px));
+    justify-content: center;
+}
+
+.purchase-grid > .purchase-card {
+    width: min(100%, 360px);
+    margin: 0 auto;
+}
+
 .reward-card,
 .purchase-card {
     position: relative;
@@ -310,45 +320,81 @@
 .purchase-card__meta {
     display: flex;
     justify-content: space-between;
+    align-items: flex-start;
     gap: 0.6rem;
     font-size: 0.86rem;
     color: rgba(20, 31, 64, 0.64);
 }
 
+.purchase-card__date {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.2rem;
+    line-height: 1.2;
+}
+
+.purchase-card__date span {
+    white-space: nowrap;
+}
+
 .purchase-card__barcode {
     display: grid;
-    gap: 0.3rem;
-    padding: 0.8rem 1rem;
+    gap: 0.4rem;
+    padding: 1rem 1.2rem;
     border-radius: var(--radius-md);
     border: 1px dashed rgba(64, 81, 115, 0.28);
     background: rgba(248, 249, 255, 0.8);
-    font-weight: 600;
+    text-align: center;
+}
+
+.purchase-card__barcode-bars {
+    height: 56px;
+    border-radius: var(--radius-sm);
+    background: repeating-linear-gradient(90deg, #192743 0 5px, transparent 5px 9px);
+    opacity: 0.9;
+}
+
+.purchase-card__barcode-number {
+    font-weight: 700;
     letter-spacing: 0.08em;
     color: #11172f;
-  }
-
-.purchase-card__pin {
-    font-size: 0.84rem;
-    color: rgba(20, 31, 64, 0.6);
-    letter-spacing: 0.04em;
 }
 
 .purchase-card__footer {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-end;
     gap: 0.8rem;
 }
 
 .purchase-card__status {
     display: inline-flex;
-    align-items: center;
-    padding: 0.4rem 0.9rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.15rem;
+    padding: 0.5rem 1rem;
     border-radius: 999px;
     font-size: 0.82rem;
     font-weight: 600;
     background: rgba(92, 115, 165, 0.12);
     color: var(--accent-primary);
+}
+
+.purchase-card__status-label {
+    line-height: 1.2;
+}
+
+.purchase-card__status-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    font-size: 0.74rem;
+    color: rgba(20, 31, 64, 0.72);
+}
+
+.purchase-card__status-meta span {
+    white-space: nowrap;
 }
 
 .purchase-card__status--used {
@@ -469,6 +515,10 @@
     .rewards__grid,
     .purchase-grid {
         grid-template-columns: 1fr;
+    }
+
+    .purchase-grid > .purchase-card {
+        width: 100%;
     }
 }
 

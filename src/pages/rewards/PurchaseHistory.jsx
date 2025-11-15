@@ -1,7 +1,12 @@
 import {useAppState} from '../../context/AppStateContext'
 import {Link} from 'react-router-dom'
 import '../../styles/pages/PurchaseHistory.css'
-import {formatDate, formatDateTime, getPurchaseUsageState} from './purchaseUtils'
+import {
+    formatDate,
+    getDateTimeParts,
+    getPurchaseUsageState,
+    normalizeDeliveryStatus,
+} from './purchaseUtils'
 
 export default function PurchaseHistory() {
     const {purchases} = useAppState()
@@ -24,14 +29,16 @@ export default function PurchaseHistory() {
             ) : (
                 <ul className="purchase-history__list">
                     {purchases.map((purchase) => {
-                        const {isUsed, usageLabel} = getPurchaseUsageState(purchase)
+                        const {isUsed, usageLabel, usageTimestamp} = getPurchaseUsageState(purchase)
+                        const purchasedAtParts = getDateTimeParts(purchase.purchasedAt)
+                        const deliveryLabel = normalizeDeliveryStatus(purchase.deliveryStatus)
 
                         return (
                             <li key={purchase.id}
                                 className={`history-card history-card--${purchase.usageStatus ?? 'ready'}`}>
                                 <div className="history-card__header">
                                     <div>
-                                        <span className="history-card__label">{purchase.deliveryStatus}</span>
+                                        <span className="history-card__label">{deliveryLabel}</span>
                                         <strong
                                             className={isUsed ? 'history-card__title--used' : ''}>{purchase.name}</strong>
                                         {purchase.memo && <p>{purchase.memo}</p>}
@@ -49,7 +56,16 @@ export default function PurchaseHistory() {
                                 <dl className="history-card__meta">
                                     <div>
                                         <dt>구매</dt>
-                                        <dd>{formatDateTime(purchase.purchasedAt)}</dd>
+                                        <dd>
+                                            {purchasedAtParts ? (
+                                                <>
+                                                    <span>{purchasedAtParts.date}</span>
+                                                    <span>{purchasedAtParts.time}</span>
+                                                </>
+                                            ) : (
+                                                <span>-</span>
+                                            )}
+                                        </dd>
                                     </div>
                                     <div>
                                         <dt>사용 기한</dt>
@@ -57,7 +73,15 @@ export default function PurchaseHistory() {
                                     </div>
                                     <div>
                                         <dt>사용 상태</dt>
-                                        <dd>{usageLabel}</dd>
+                                        <dd>
+                                            <span className="history-card__status-label">{usageLabel}</span>
+                                            {usageTimestamp && (
+                                                <span className="history-card__status-meta">
+                                                    <span>{usageTimestamp.date}</span>
+                                                    <span>{usageTimestamp.time}</span>
+                                                </span>
+                                            )}
+                                        </dd>
                                     </div>
                                 </dl>
                             </li>

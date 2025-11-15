@@ -1,7 +1,8 @@
 import {Link} from "react-router-dom";
 import {
-    formatDateTime,
+    getDateTimeParts,
     getPurchaseUsageState,
+    normalizeDeliveryStatus,
 } from "../pages/rewards/purchaseUtils";
 
 export default function RecentPurchases({purchases = [], limit = 3}) {
@@ -22,12 +23,24 @@ export default function RecentPurchases({purchases = [], limit = 3}) {
     return (
         <ul className="purchase-grid">
             {recentPurchases.map((purchase) => {
-                const {usageLabel} = getPurchaseUsageState(purchase);
+                const {usageLabel, usageTimestamp} = getPurchaseUsageState(purchase);
+                const purchasedAtParts = getDateTimeParts(purchase.purchasedAt);
+                const deliveryLabel = normalizeDeliveryStatus(purchase.deliveryStatus);
+
                 return (
                     <li key={purchase.id} className="purchase-card">
                         <div className="purchase-card__meta">
-                            <span>{purchase.deliveryStatus}</span>
-                            <span>{formatDateTime(purchase.purchasedAt)}</span>
+                            <span>{deliveryLabel}</span>
+                            <span className="purchase-card__date">
+                                {purchasedAtParts ? (
+                                    <>
+                                        <span>{purchasedAtParts.date}</span>
+                                        <span>{purchasedAtParts.time}</span>
+                                    </>
+                                ) : (
+                                    <span>-</span>
+                                )}
+                            </span>
                         </div>
                         <strong>{purchase.name}</strong>
                         {purchase.memo && <p>{purchase.memo}</p>}
@@ -35,20 +48,24 @@ export default function RecentPurchases({purchases = [], limit = 3}) {
                             className="purchase-card__barcode"
                             aria-label={`${purchase.name} 바코드`}
                         >
-                            <span>{purchase.barcode}</span>
-                            {purchase.pin && (
-                                <span className="purchase-card__pin">PIN {purchase.pin}</span>
-                            )}
+                            <div className="purchase-card__barcode-bars" aria-hidden="true"/>
+                            <span className="purchase-card__barcode-number">{purchase.barcode}</span>
                         </div>
                         <div className="purchase-card__footer">
-              <span
-                  className={`purchase-card__status purchase-card__status--${purchase.usageStatus ?? "ready"}`}
-              >
-                {usageLabel}
-              </span>
+                            <span
+                                className={`purchase-card__status purchase-card__status--${purchase.usageStatus ?? "ready"}`}
+                            >
+                                <span className="purchase-card__status-label">{usageLabel}</span>
+                                {usageTimestamp && (
+                                    <span className="purchase-card__status-meta">
+                                        <span>{usageTimestamp.date}</span>
+                                        <span>{usageTimestamp.time}</span>
+                                    </span>
+                                )}
+                            </span>
                             <span className="purchase-card__cost">
-                -{purchase.cost.toLocaleString()} pts
-              </span>
+                                -{purchase.cost.toLocaleString()} pts
+                            </span>
                         </div>
                     </li>
                 );
