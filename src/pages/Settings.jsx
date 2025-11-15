@@ -138,64 +138,58 @@ export default function SettingsPage() {
                     <legend>목표 직무 · 관심 분야</legend>
                     <div className="settings__goal-section">
                         <div className="settings__group">
-                            <p className="settings__subhead">직무 트랙</p>
-                            <div className="settings__track-grid">
-                                {tracks.length > 0 ? (
-                                    tracks.map((track) => {
-                                        const checked = form.jobTrackId === track.id
-                                        return (
-                                            <label key={track.id} className={`track-card ${checked ? 'is-checked' : ''}`}>
-                                                <input
-                                                    type="radio"
-                                                    name="job-track"
-                                                    value={track.id}
-                                                    checked={checked}
-                                                    onChange={() => handleTrackSelect(track.id)}
-                                                />
-                                                <div>
-                                                    <strong>{track.label}</strong>
-                                                    <p>{track.description}</p>
-                                                    <ul>
-                                                        {track.roles.slice(0, 3).map((role) => (
-                                                            <li key={role.id}>{role.label}</li>
-                                                        ))}
-                                                        {track.roles.length > 3 && (
-                                                            <li>+{track.roles.length - 3}개 직무</li>
-                                                        )}
-                                                    </ul>
-                                                </div>
-                                            </label>
-                                        )
-                                    })
-                                ) : (
-                                    <p className="settings__empty">직무 정보를 불러오는 중입니다.</p>
-                                )}
-                            </div>
+                            <p id="settings-job-track-label" className="settings__subhead">
+                                직군 (Job Category)
+                            </p>
+                            {tracks.length > 0 ? (
+                                <div className="settings__field">
+                                    <select
+                                        id="settings-job-track"
+                                        className="settings__select"
+                                        aria-labelledby="settings-job-track-label"
+                                        value={form.jobTrackId}
+                                        onChange={(event) => handleTrackSelect(event.target.value)}
+                                    >
+                                        {tracks.map((track) => (
+                                            <option key={track.id} value={track.id}>
+                                                {track.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {selectedTrack?.description && (
+                                        <p className="settings__field-note">{selectedTrack.description}</p>
+                                    )}
+                                </div>
+                            ) : (
+                                <p className="settings__empty">직무 정보를 불러오는 중입니다.</p>
+                            )}
                         </div>
 
                         <div className="settings__group">
-                            <p className="settings__subhead">세부 직무 선택</p>
+                            <p id="settings-job-role-label" className="settings__subhead">
+                                세부 직무 (Job Role)
+                            </p>
                             {selectedTrack?.roles?.length ? (
-                                <div className="settings__role-chips">
-                                    {selectedTrack.roles.map((role) => {
-                                        const checked = form.jobRoleId === role.id
-                                        return (
-                                            <label key={role.id} className={`role-chip ${checked ? 'is-checked' : ''}`}>
-                                                <input
-                                                    type="radio"
-                                                    name="job-role"
-                                                    value={role.id}
-                                                    checked={checked}
-                                                    onChange={() => handleRoleSelect(role.id)}
-                                                />
-                                                <span>{role.label}</span>
-                                                {role.example && <small>{role.example}</small>}
-                                            </label>
-                                        )
-                                    })}
+                                <div className="settings__field">
+                                    <select
+                                        id="settings-job-role"
+                                        className="settings__select"
+                                        aria-labelledby="settings-job-role-label"
+                                        value={form.jobRoleId}
+                                        onChange={(event) => handleRoleSelect(event.target.value)}
+                                    >
+                                        {selectedTrack.roles.map((role) => (
+                                            <option key={role.id} value={role.id}>
+                                                {role.label}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
                             ) : (
-                                <p className="settings__empty">먼저 트랙을 선택해 주세요.</p>
+                                <p className="settings__empty">먼저 직군을 선택해 주세요.</p>
+                            )}
+                            {selectedRole?.example && (
+                                <p className="settings__field-note">예시 키워드 · {selectedRole.example}</p>
                             )}
                             {selectedRole?.reason && <p className="settings__role-hint">{selectedRole.reason}</p>}
                         </div>
