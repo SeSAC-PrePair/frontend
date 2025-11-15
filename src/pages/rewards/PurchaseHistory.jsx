@@ -1,9 +1,7 @@
 import { useAppState } from '../../context/AppStateContext'
 import { Link } from 'react-router-dom'
 import '../../styles/pages/PurchaseHistory.css'
-
-const formatDate = (value) => (value ? new Date(value).toLocaleDateString('ko-KR') : '-')
-const formatDateTime = (value) => (value ? new Date(value).toLocaleString('ko-KR') : '-')
+import { formatDate, formatDateTime, getPurchaseUsageState } from './purchaseUtils'
 
 export default function PurchaseHistory() {
   const { purchases } = useAppState()
@@ -25,25 +23,19 @@ export default function PurchaseHistory() {
         </div>
       ) : (
         <ul className="purchase-history__list">
-          {purchases.map((purchase) => {
-            const isUsed = purchase.usageStatus === 'used' || Boolean(purchase.usedAt)
-            const isExpired = purchase.usageStatus === 'expired'
-            const usageLabel = isUsed
-              ? `사용 완료 · ${formatDateTime(purchase.usedAt)}`
-              : isExpired
-                ? '기간 만료'
-                : '사용 가능'
+            {purchases.map((purchase) => {
+              const { isUsed, usageLabel } = getPurchaseUsageState(purchase)
 
-            return (
-              <li key={purchase.id} className={`history-card history-card--${purchase.usageStatus ?? 'ready'}`}>
-                <div className="history-card__header">
-                  <div>
-                    <span className="history-card__label">{purchase.deliveryStatus}</span>
-                    <strong className={isUsed ? 'history-card__title--used' : ''}>{purchase.name}</strong>
-                    {purchase.memo && <p>{purchase.memo}</p>}
+              return (
+                <li key={purchase.id} className={`history-card history-card--${purchase.usageStatus ?? 'ready'}`}>
+                  <div className="history-card__header">
+                    <div>
+                      <span className="history-card__label">{purchase.deliveryStatus}</span>
+                      <strong className={isUsed ? 'history-card__title--used' : ''}>{purchase.name}</strong>
+                      {purchase.memo && <p>{purchase.memo}</p>}
+                    </div>
+                    <span className="history-card__cost">-{purchase.cost.toLocaleString()} pts</span>
                   </div>
-                  <span className="history-card__cost">-{purchase.cost.toLocaleString()} pts</span>
-                </div>
 
                 <div className="history-card__barcode" role="group" aria-label={`${purchase.name} 바코드`}>
                   <div className="history-card__barcode-bars" aria-hidden="true" />
