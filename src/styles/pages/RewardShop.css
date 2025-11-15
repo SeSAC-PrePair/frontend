@@ -344,6 +344,29 @@
     font-size: 0.9rem;
 }
 
+.reward-shop__recent {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 1.2rem;
+    padding: 1.8rem;
+    border-radius: var(--radius-xl);
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(64, 81, 115, 0.15);
+    box-shadow: 0 20px 42px rgba(64, 81, 115, 0.14);
+}
+
+.reward-shop__recent header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.reward-shop__recent-actions {
+    display: inline-flex;
+    justify-content: center;
+}
+
 @media (max-width: 900px) {
     .reward-shop__header {
         flex-direction: column;
