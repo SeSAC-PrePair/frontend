@@ -1,25 +1,103 @@
 import {motion} from 'framer-motion'
-import {useState} from 'react'
+import {useEffect, useState} from 'react'
 import {useAppState} from '../context/AppStateContext'
 import '../styles/pages/Settings.css'
 
+const focusAreas = [
+    {
+        id: 'product-strategy',
+        label: '프로덕트 전략',
+        description: '시장 리서치, 로드맵 수립, KPI 설계에 집중하고 싶어요.',
+    },
+    {
+        id: 'growth-data',
+        label: '그로스 · 데이터',
+        description: '데이터 기반 실험, 퍼널 진단, 인사이트 발굴이 목표예요.',
+    },
+    {
+        id: 'leadership',
+        label: '리더십 · 협업',
+        description: '조직 운영, 팀 커뮤니케이션 역량을 기르고 싶어요.',
+    },
+    {
+        id: 'communication',
+        label: '커뮤니케이션 · 스토리',
+        description: '설득력 있는 발표, 글쓰기, 스토리텔링을 연습하고 싶어요.',
+    },
+]
+
 
 export default function SettingsPage() {
-    const {user, updateSettings, cadencePresets, notificationChannelPresets} = useAppState()
+    const {user, updateSettings, cadencePresets, notificationChannelPresets, jobTracks} = useAppState()
+    const tracks = jobTracks ?? []
+    const fallbackTrackId = user?.jobTrackId ?? tracks[0]?.id ?? ''
+    const fallbackTrack = tracks.find((track) => track.id === fallbackTrackId) ?? tracks[0]
+    const fallbackRoleId = user?.jobRoleId ?? fallbackTrack?.roles?.[0]?.id ?? ''
+    const focusMatch = focusAreas.find((area) => area.label === user?.focusArea)
+    const fallbackFocusAreaId = focusMatch?.id ?? focusAreas[0]?.id ?? ''
+
     const [form, setForm] = useState({
-        goal: user?.goal ?? '',
-        focusArea: user?.focusArea ?? focusAreas[0],
+        jobTrackId: fallbackTrackId,
+        jobRoleId: fallbackRoleId,
+        focusAreaId: fallbackFocusAreaId,
         questionCadence: user?.questionCadence ?? 'daily',
         notificationChannels: user?.notificationChannels?.filter((channel) => channel !== 'email') ?? [],
     })
     const [status, setStatus] = useState('')
+    const selectedTrack = tracks.find((track) => track.id === form.jobTrackId) ?? tracks[0]
+    const selectedRole =
+        selectedTrack?.roles?.find((role) => role.id === form.jobRoleId) ?? selectedTrack?.roles?.[0]
+
+    useEffect(() => {
+        if (!user) return
+        const nextTrackId = user.jobTrackId ?? tracks[0]?.id ?? ''
+        const nextTrack = tracks.find((track) => track.id === nextTrackId) ?? tracks[0]
+        const nextRoleId = user.jobRoleId ?? nextTrack?.roles?.[0]?.id ?? ''
+        const nextFocusAreaId =
+            focusAreas.find((area) => area.label === user.focusArea)?.id ?? focusAreas[0]?.id ?? ''
+
+        setForm({
+            jobTrackId: nextTrackId,
+            jobRoleId: nextRoleId,
+            focusAreaId: nextFocusAreaId,
+            questionCadence: user.questionCadence ?? 'daily',
+            notificationChannels: user.notificationChannels?.filter((channel) => channel !== 'email') ?? [],
+        })
+    }, [user, tracks])
+
+    const handleTrackSelect = (trackId) => {
+        setForm((prev) => {
+            if (prev.jobTrackId === trackId) return prev
+            const nextTrack = tracks.find((track) => track.id === trackId)
+            return {
+                ...prev,
+                jobTrackId: trackId,
+                jobRoleId: nextTrack?.roles?.[0]?.id ?? '',
+            }
+        })
+    }
+
+    const handleRoleSelect = (roleId) => {
+        setForm((prev) => ({...prev, jobRoleId: roleId}))
+    }
+
+    const handleFocusSelect = (focusId) => {
+        setForm((prev) => ({...prev, focusAreaId: focusId}))
+    }
 
     const handleSubmit = (event) => {
         event.preventDefault()
         const cadenceMeta = cadencePresets.find((item) => item.id === form.questionCadence)
+        const trackMeta = tracks.find((track) => track.id === form.jobTrackId)
+        const roleMeta = trackMeta?.roles?.find((role) => role.id === form.jobRoleId)
+        const focusMeta = focusAreas.find((area) => area.id === form.focusAreaId)
         updateSettings({
-            goal: form.goal,
-            focusArea: form.focusArea,
+            jobTrackId: trackMeta?.id ?? '',
+            jobTrackLabel: trackMeta?.label ?? '',
+            jobRoleId: roleMeta?.id ?? '',
+            jobRoleLabel: roleMeta?.label ?? '',
+            desiredField: roleMeta?.label ?? trackMeta?.label ?? user?.desiredField ?? '',
+            focusArea: focusMeta?.label ?? '',
             questionCadence: form.questionCadence,
             questionCadenceLabel: cadenceMeta?.label,
             questionSchedule: cadenceMeta?.schedule,
@@ -57,16 +135,96 @@ export default function SettingsPage() {
 
             <form className="settings__form" onSubmit={handleSubmit}>
                 <fieldset>
-                    <legend>목표</legend>
-                    <label className="form__field">
-                        <textarea
-                            value={form.goal}
-                            onChange={(event) => setForm((prev) => ({...prev, goal: event.target.value}))}
-                            placeholder="6개월 내 글로벌 스타트업 PM 포지션 합격"
-                        />
-                    </label>
-                </fieldset>
+                    <legend>목표 직무 · 관심 분야</legend>
+                    <div className="settings__goal-section">
+                        <div className="settings__group">
+                            <p className="settings__subhead">직무 트랙</p>
+                            <div className="settings__track-grid">
+                                {tracks.length > 0 ? (
+                                    tracks.map((track) => {
+                                        const checked = form.jobTrackId === track.id
+                                        return (
+                                            <label key={track.id} className={`track-card ${checked ? 'is-checked' : ''}`}>
+                                                <input
+                                                    type="radio"
+                                                    name="job-track"
+                                                    value={track.id}
+                                                    checked={checked}
+                                                    onChange={() => handleTrackSelect(track.id)}
+                                                />
+                                                <div>
+                                                    <strong>{track.label}</strong>
+                                                    <p>{track.description}</p>
+                                                    <ul>
+                                                        {track.roles.slice(0, 3).map((role) => (
+                                                            <li key={role.id}>{role.label}</li>
+                                                        ))}
+                                                        {track.roles.length > 3 && (
+                                                            <li>+{track.roles.length - 3}개 직무</li>
+                                                        )}
+                                                    </ul>
+                                                </div>
+                                            </label>
+                                        )
+                                    })
+                                ) : (
+                                    <p className="settings__empty">직무 정보를 불러오는 중입니다.</p>
+                                )}
+                            </div>
+                        </div>
 
+                        <div className="settings__group">
+                            <p className="settings__subhead">세부 직무 선택</p>
+                            {selectedTrack?.roles?.length ? (
+                                <div className="settings__role-chips">
+                                    {selectedTrack.roles.map((role) => {
+                                        const checked = form.jobRoleId === role.id
+                                        return (
+                                            <label key={role.id} className={`role-chip ${checked ? 'is-checked' : ''}`}>
+                                                <input
+                                                    type="radio"
+                                                    name="job-role"
+                                                    value={role.id}
+                                                    checked={checked}
+                                                    onChange={() => handleRoleSelect(role.id)}
+                                                />
+                                                <span>{role.label}</span>
+                                                {role.example && <small>{role.example}</small>}
+                                            </label>
+                                        )
+                                    })}
+                                </div>
+                            ) : (
+                                <p className="settings__empty">먼저 트랙을 선택해 주세요.</p>
+                            )}
+                            {selectedRole?.reason && <p className="settings__role-hint">{selectedRole.reason}</p>}
+                        </div>
+
+                        <div className="settings__group">
+                            <p className="settings__subhead">관심 분야</p>
+                            <div className="settings__focus-grid">
+                                {focusAreas.map((area) => {
+                                    const checked = form.focusAreaId === area.id
+                                    return (
+                                        <label key={area.id} className={`focus-card ${checked ? 'is-checked' : ''}`}>
+                                            <input
+                                                type="radio"
+                                                name="focus-area"
+                                                value={area.id}
+                                                checked={checked}
+                                                onChange={() => handleFocusSelect(area.id)}
+                                            />
+                                            <div>
+                                                <strong>{area.label}</strong>
+                                                <small>{area.description}</small>
+                                            </div>
+                                        </label>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
 
                 <fieldset>
                     <legend>질문 빈도</legend>
