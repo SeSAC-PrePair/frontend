@@ -1,6 +1,6 @@
 .purchase-history {
   display: grid;
-  gap: 2rem;
+  gap: 2.2rem;
   padding: clamp(2rem, 4vw, 4rem) 0 4.2rem;
   position: relative;
   isolation: isolate;
@@ -51,68 +51,145 @@
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 1rem;
-}
-
-.purchase-history__item {
-  position: relative;
-  padding: 1.4rem 1.6rem 1.4rem 2.6rem;
-  border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(64, 81, 115, 0.2);
-  display: flex;
-  justify-content: space-between;
   gap: 1.2rem;
-  flex-wrap: wrap;
-  box-shadow: 0 20px 42px rgba(64, 81, 115, 0.16);
 }
 
-.purchase-history__item::before {
+.history-card {
+  position: relative;
+  padding: 1.8rem 2rem;
+  border-radius: var(--radius-xl);
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(64, 81, 115, 0.16);
+  box-shadow: 0 22px 48px rgba(64, 81, 115, 0.18);
+  display: grid;
+  gap: 1.4rem;
+}
+
+.history-card::before {
   content: '';
   position: absolute;
-  top: 1.4rem;
-  left: 1rem;
-  width: 6px;
-  height: calc(100% - 2.8rem);
-  border-radius: 999px;
-  background: linear-gradient(180deg, rgba(174, 197, 242, 0.8), rgba(242, 228, 236, 0.8));
+  inset: 0.9rem;
+  border: 1px dashed rgba(64, 81, 115, 0.18);
+  border-radius: inherit;
+  pointer-events: none;
 }
 
-.purchase-history__item strong {
+.history-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.4rem;
+  position: relative;
+  z-index: 1;
+}
+
+.history-card__label {
+  display: inline-block;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(20, 31, 64, 0.6);
+}
+
+.history-card__header strong {
   display: block;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   color: var(--accent-primary);
 }
 
-.purchase-history__item span {
-  display: block;
-  color: rgba(20, 31, 64, 0.62);
-  font-size: 0.88rem;
+.history-card__title--used {
+  color: rgba(20, 31, 64, 0.55);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
 }
 
-.purchase-history__item > div:last-child {
-  text-align: right;
+.history-card__header p {
+  margin: 0.35rem 0 0;
+  color: rgba(20, 31, 64, 0.7);
 }
 
-.purchase-history__cost {
-  color: var(--accent-cyan);
+.history-card__cost {
+  font-weight: 700;
+  color: var(--accent-blue);
+  white-space: nowrap;
+}
+
+.history-card__barcode {
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.2rem 1.3rem;
+  border: 1px solid rgba(64, 81, 115, 0.2);
+  background: rgba(248, 249, 255, 0.88);
+  display: grid;
+  gap: 0.6rem;
+  position: relative;
+  z-index: 1;
+}
+
+.history-card__barcode-bars {
+  height: 64px;
+  border-radius: var(--radius-sm);
+  background: repeating-linear-gradient(90deg, #192743 0 5px, transparent 5px 9px);
+  opacity: 0.9;
+}
+
+.history-card__barcode-number {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+  color: #11172f;
+}
+
+.history-card__barcode-pin {
+  text-align: center;
+  font-size: 0.9rem;
+  color: rgba(20, 31, 64, 0.7);
+}
+
+.history-card__meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+}
+
+.history-card__meta div {
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius-md);
+  background: rgba(244, 247, 255, 0.75);
+  border: 1px solid rgba(64, 81, 115, 0.12);
+}
+
+.history-card__meta dt {
+  margin: 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(20, 31, 64, 0.6);
+}
+
+.history-card__meta dd {
+  margin: 0.4rem 0 0;
   font-weight: 600;
-  font-size: 1rem;
+  color: var(--accent-primary);
+}
+
+.history-card--used {
+  opacity: 0.85;
+}
+
+.history-card--expired .history-card__barcode,
+.history-card--expired .history-card__barcode-bars {
+  filter: grayscale(1);
+  opacity: 0.6;
 }
 
 @media (max-width: 720px) {
-  .purchase-history__item {
+  .history-card {
+    padding: 1.6rem 1.4rem;
+  }
+
+  .history-card__header {
     flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .purchase-history__item > div:last-child {
-    text-align: left;
-  }
-}
-
-@media (max-width: 520px) {
-  .purchase-history__item {
-    padding: 1.2rem 1.3rem 1.2rem 2.2rem;
   }
 }

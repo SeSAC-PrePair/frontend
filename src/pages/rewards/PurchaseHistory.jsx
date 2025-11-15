@@ -2,6 +2,9 @@ import { useAppState } from '../../context/AppStateContext'
 import { Link } from 'react-router-dom'
 import '../../styles/pages/PurchaseHistory.css'
 
+const formatDate = (value) => (value ? new Date(value).toLocaleDateString('ko-KR') : '-')
+const formatDateTime = (value) => (value ? new Date(value).toLocaleString('ko-KR') : '-')
+
 export default function PurchaseHistory() {
   const { purchases } = useAppState()
 
@@ -9,8 +12,8 @@ export default function PurchaseHistory() {
     <div className="purchase-history">
       <header>
         <span className="tag">Purchase History</span>
-        <h1>리워드 구매 내역</h1>
-        <p>포인트로 교환한 리워드를 한눈에 확인하세요.</p>
+        <h1>리워드 바코드 지갑</h1>
+        <p>카테고리별로 구매한 리워드를 바코드와 함께 관리하세요.</p>
       </header>
 
       {purchases.length === 0 ? (
@@ -22,18 +25,49 @@ export default function PurchaseHistory() {
         </div>
       ) : (
         <ul className="purchase-history__list">
-          {purchases.map((purchase) => (
-            <li key={purchase.id} className="purchase-history__item">
-              <div>
-                <strong>{purchase.name}</strong>
-                <span>{new Date(purchase.purchasedAt).toLocaleString('ko-KR')}</span>
-              </div>
-              <div>
-                <span className="purchase-history__cost">-{purchase.cost} pts</span>
-                <span>{purchase.deliveryStatus}</span>
-              </div>
-            </li>
-          ))}
+          {purchases.map((purchase) => {
+            const isUsed = purchase.usageStatus === 'used' || Boolean(purchase.usedAt)
+            const isExpired = purchase.usageStatus === 'expired'
+            const usageLabel = isUsed
+              ? `사용 완료 · ${formatDateTime(purchase.usedAt)}`
+              : isExpired
+                ? '기간 만료'
+                : '사용 가능'
+
+            return (
+              <li key={purchase.id} className={`history-card history-card--${purchase.usageStatus ?? 'ready'}`}>
+                <div className="history-card__header">
+                  <div>
+                    <span className="history-card__label">{purchase.deliveryStatus}</span>
+                    <strong className={isUsed ? 'history-card__title--used' : ''}>{purchase.name}</strong>
+                    {purchase.memo && <p>{purchase.memo}</p>}
+                  </div>
+                  <span className="history-card__cost">-{purchase.cost.toLocaleString()} pts</span>
+                </div>
+
+                <div className="history-card__barcode" role="group" aria-label={`${purchase.name} 바코드`}>
+                  <div className="history-card__barcode-bars" aria-hidden="true" />
+                  <span className="history-card__barcode-number">{purchase.barcode}</span>
+                  {purchase.pin && <span className="history-card__barcode-pin">PIN {purchase.pin}</span>}
+                </div>
+
+                <dl className="history-card__meta">
+                  <div>
+                    <dt>구매</dt>
+                    <dd>{formatDateTime(purchase.purchasedAt)}</dd>
+                  </div>
+                  <div>
+                    <dt>사용 기한</dt>
+                    <dd>{formatDate(purchase.expiresAt)}</dd>
+                  </div>
+                  <div>
+                    <dt>사용 상태</dt>
+                    <dd>{usageLabel}</dd>
+                  </div>
+                </dl>
+              </li>
+            )
+          })}
         </ul>
       )}
     </div>
