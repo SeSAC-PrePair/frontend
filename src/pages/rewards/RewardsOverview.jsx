@@ -26,11 +26,8 @@ export default function RewardsOverview() {
     return (
         <div className="rewards">
             <header className="rewards__header">
-                {/* [MODIFIED]
-                  헤더 왼쪽 영역: 태그, 타이틀, 설명만 남깁니다.
-                */}
                 <div>
-                    <span className="tag">My Page · PrePair</span>
+                    <span className="tag">Home · PrePair</span>
                     <h1>{user?.name ?? 'PrePair 사용자'}님의 마이페이지</h1>
                 </div>
                 <div className="rewards__cta">
