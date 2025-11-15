@@ -119,6 +119,41 @@
     color: rgba(20, 31, 64, 0.64);
 }
 
+.rewards__purchases header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.rewards__purchases header > div:first-child {
+    flex: 1 1 260px;
+}
+
+.rewards__purchases-actions {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.8rem;
+}
+
+.rewards__text-link {
+    font-weight: 600;
+    color: var(--accent-primary);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.rewards__text-link::after {
+    content: '›';
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
 .dispatch-card {
     position: relative;
     display: grid;
@@ -238,6 +273,63 @@
     gap: 0.6rem;
     font-size: 0.86rem;
     color: rgba(20, 31, 64, 0.64);
+}
+
+.purchase-card__barcode {
+    display: grid;
+    gap: 0.3rem;
+    padding: 0.8rem 1rem;
+    border-radius: var(--radius-md);
+    border: 1px dashed rgba(64, 81, 115, 0.28);
+    background: rgba(248, 249, 255, 0.8);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: #11172f;
+  }
+
+.purchase-card__pin {
+    font-size: 0.84rem;
+    color: rgba(20, 31, 64, 0.6);
+    letter-spacing: 0.04em;
+}
+
+.purchase-card__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.purchase-card__status {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    background: rgba(92, 115, 165, 0.12);
+    color: var(--accent-primary);
+}
+
+.purchase-card__status--used {
+    background: rgba(92, 165, 140, 0.15);
+    color: #2c6c52;
+}
+
+.purchase-card__status--expired {
+    background: rgba(220, 96, 96, 0.15);
+    color: #a23434;
+}
+
+.purchase-card__cost {
+    font-weight: 700;
+    color: var(--accent-blue);
+}
+
+.purchase-card--empty {
+    text-align: center;
+    justify-items: center;
+    gap: 1.2rem;
 }
 
 .history-list {
