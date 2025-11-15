@@ -3,6 +3,7 @@ import {Link, useNavigate} from "react-router-dom";
 import Modal from "../../components/Modal";
 import RecentPurchases from "../../components/RecentPurchases";
 import {useAppState} from "../../context/AppStateContext";
+import {getDateTimeParts, normalizeDeliveryStatus} from "./purchaseUtils";
 import "../../styles/pages/Rewards.css";
 import "../../styles/pages/RewardShop.css";
 
@@ -127,6 +128,8 @@ export default function RewardShop() {
     const [activeCategoryId, setActiveCategoryId] = useState(
         rewardCatalog[0]?.id ?? null,
     );
+    const [activePurchase, setActivePurchase] = useState(null);
+    const [isBarcodeModalOpen, setBarcodeModalOpen] = useState(false);
     const recentPurchaseCount = Math.min(3, purchases?.length ?? 0);
 
     const remainingPoints = useMemo(() => {
@@ -141,6 +144,14 @@ export default function RewardShop() {
             rewardCatalog[0]
         );
     }, [activeCategoryId]);
+
+    const activePurchaseMeta = useMemo(() => {
+        if (!activePurchase) return null;
+        return {
+            deliveryLabel: normalizeDeliveryStatus(activePurchase.deliveryStatus),
+            purchasedAt: getDateTimeParts(activePurchase.purchasedAt),
+        };
+    }, [activePurchase]);
 
     const handleSelectReward = (item, category) => {
         if (!item) return;
@@ -170,6 +181,17 @@ export default function RewardShop() {
         setModalOpen(false);
         setSelectedReward(null);
         setModalError("");
+    };
+
+    const handleOpenPurchaseDetail = (purchase) => {
+        if (!purchase) return;
+        setActivePurchase(purchase);
+        setBarcodeModalOpen(true);
+    };
+
+    const handleClosePurchaseDetail = () => {
+        setBarcodeModalOpen(false);
+        setActivePurchase(null);
     };
 
     return (
@@ -292,7 +314,11 @@ export default function RewardShop() {
                     </div>
 
                 </header>
-                <RecentPurchases purchases={purchases} limit={3}/>
+                <RecentPurchases
+                    purchases={purchases}
+                    limit={3}
+                    onSelectPurchase={handleOpenPurchaseDetail}
+                />
                 <div className="reward-shop__recent-actions">
                     <Link
                         to="/rewards/history"
@@ -346,6 +372,58 @@ export default function RewardShop() {
                         {modalError && (
                             <p className="redeem-confirm__error">{modalError}</p>
                         )}
+                    </div>
+                )}
+            </Modal>
+            <Modal
+                open={isBarcodeModalOpen}
+                onClose={handleClosePurchaseDetail}
+                title={activePurchase?.name ?? "바코드 확인"}
+                size="sm"
+                footer={
+                    <button
+                        type="button"
+                        className="cta-button cta-button--primary"
+                        onClick={handleClosePurchaseDetail}
+                    >
+                        닫기
+                    </button>
+                }
+            >
+                {activePurchase && (
+                    <div className="purchase-barcode">
+                        <div className="purchase-barcode__card" role="img" aria-label={`${activePurchase.name} 바코드`}>
+                            <div className="purchase-barcode__meta">
+                                <span>{activePurchaseMeta?.deliveryLabel ?? "바코드 발급"}</span>
+                                {activePurchaseMeta?.purchasedAt ? (
+                                    <span>
+                                        {activePurchaseMeta.purchasedAt.date}
+                                        <br/>
+                                        {activePurchaseMeta.purchasedAt.time}
+                                    </span>
+                                ) : (
+                                    <span>-</span>
+                                )}
+                            </div>
+                            <strong className="purchase-barcode__title">
+                                {activePurchase.name}
+                            </strong>
+                            <div className="purchase-barcode__visual">
+                                <div className="purchase-barcode__barcode" aria-hidden="true">
+                                    <div className="purchase-barcode__barcode-bars"/>
+                                    <span className="purchase-barcode__number">
+                                        {activePurchase.barcode}
+                                    </span>
+                                </div>
+                                <div className="purchase-barcode__pin">
+                                    <span>PIN</span>
+                                    <strong>{activePurchase.pin}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <p className="purchase-barcode__hint">
+                            매장 결제 시 바코드 또는 PIN 번호를 보여주세요.
+                        </p>
                     </div>
                 )}
             </Modal>

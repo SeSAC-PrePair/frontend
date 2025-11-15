@@ -367,6 +367,115 @@
     justify-content: center;
 }
 
+.purchase-barcode {
+    display: grid;
+    gap: 0.9rem;
+}
+
+.purchase-barcode__card {
+    position: relative;
+    display: grid;
+    gap: 1.1rem;
+    padding: 1.6rem;
+    border-radius: 30px;
+    background: linear-gradient(165deg, rgba(244, 247, 255, 0.92), rgba(225, 236, 255, 0.85));
+    border: 1px solid rgba(64, 81, 115, 0.16);
+    box-shadow: 0 26px 48px rgba(64, 81, 115, 0.18);
+    text-align: left;
+}
+
+.purchase-barcode__card::after {
+    content: '';
+    position: absolute;
+    inset: 1rem;
+    border-radius: 22px;
+    border: 1px dashed rgba(64, 81, 115, 0.26);
+    pointer-events: none;
+}
+
+.purchase-barcode__card > * {
+    position: relative;
+    z-index: 1;
+}
+
+.purchase-barcode__meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.6rem;
+    font-size: 0.85rem;
+    color: rgba(20, 31, 64, 0.65);
+}
+
+.purchase-barcode__meta span:last-child {
+    text-align: right;
+    line-height: 1.2;
+}
+
+.purchase-barcode__title {
+    margin: 0;
+    font-size: 1.28rem;
+    color: var(--accent-primary);
+}
+
+.purchase-barcode__visual {
+    display: grid;
+    gap: 1rem;
+}
+
+.purchase-barcode__barcode {
+    display: grid;
+    gap: 0.5rem;
+    padding: 1.2rem 1.4rem;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px dashed rgba(64, 81, 115, 0.22);
+}
+
+.purchase-barcode__barcode-bars {
+    height: 72px;
+    border-radius: 12px;
+    background: repeating-linear-gradient(90deg, #101b32 0 6px, transparent 6px 10px);
+    opacity: 0.92;
+}
+
+.purchase-barcode__number {
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-align: center;
+    color: #0f172a;
+}
+
+.purchase-barcode__pin {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.9rem 1.3rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(64, 81, 115, 0.18);
+}
+
+.purchase-barcode__pin span {
+    font-size: 0.9rem;
+    letter-spacing: 0.08em;
+    color: rgba(20, 31, 64, 0.65);
+}
+
+.purchase-barcode__pin strong {
+    font-size: 1.1rem;
+    letter-spacing: 0.1em;
+    color: var(--accent-primary);
+}
+
+.purchase-barcode__hint {
+    margin: 0;
+    text-align: center;
+    color: rgba(20, 31, 64, 0.62);
+    font-size: 0.92rem;
+}
+
 @media (max-width: 900px) {
     .reward-shop__header {
         flex-direction: column;

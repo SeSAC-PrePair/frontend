@@ -5,7 +5,7 @@ import {
     normalizeDeliveryStatus,
 } from "../pages/rewards/purchaseUtils";
 
-export default function RecentPurchases({purchases = [], limit = 3}) {
+export default function RecentPurchases({purchases = [], limit = 3, onSelectPurchase}) {
     const recentPurchases = purchases.slice(0, limit);
     const hasPurchases = purchases.length > 0;
 
@@ -26,47 +26,57 @@ export default function RecentPurchases({purchases = [], limit = 3}) {
                 const {usageLabel, usageTimestamp} = getPurchaseUsageState(purchase);
                 const purchasedAtParts = getDateTimeParts(purchase.purchasedAt);
                 const deliveryLabel = normalizeDeliveryStatus(purchase.deliveryStatus);
+                const isInteractive = typeof onSelectPurchase === "function";
+                const CardComponent = isInteractive ? "button" : "article";
 
                 return (
-                    <li key={purchase.id} className="purchase-card">
-                        <div className="purchase-card__meta">
-                            <span>{deliveryLabel}</span>
-                            <span className="purchase-card__date">
-                                {purchasedAtParts ? (
-                                    <>
-                                        <span>{purchasedAtParts.date}</span>
-                                        <span>{purchasedAtParts.time}</span>
-                                    </>
-                                ) : (
-                                    <span>-</span>
-                                )}
-                            </span>
-                        </div>
-                        <strong>{purchase.name}</strong>
-                        {purchase.memo && <p>{purchase.memo}</p>}
-                        <div
-                            className="purchase-card__barcode"
-                            aria-label={`${purchase.name} 바코드`}
+                    <li key={purchase.id}>
+                        <CardComponent
+                            type={isInteractive ? "button" : undefined}
+                            className={`purchase-card${isInteractive ? " purchase-card--clickable" : ""}`}
+                            onClick={
+                                isInteractive ? () => onSelectPurchase(purchase) : undefined
+                            }
                         >
-                            <div className="purchase-card__barcode-bars" aria-hidden="true"/>
-                            <span className="purchase-card__barcode-number">{purchase.barcode}</span>
-                        </div>
-                        <div className="purchase-card__footer">
-                            <span
-                                className={`purchase-card__status purchase-card__status--${purchase.usageStatus ?? "ready"}`}
+                            <div className="purchase-card__meta">
+                                <span>{deliveryLabel}</span>
+                                <span className="purchase-card__date">
+                                    {purchasedAtParts ? (
+                                        <>
+                                            <span>{purchasedAtParts.date}</span>
+                                            <span>{purchasedAtParts.time}</span>
+                                        </>
+                                    ) : (
+                                        <span>-</span>
+                                    )}
+                                </span>
+                            </div>
+                            <strong>{purchase.name}</strong>
+                            {purchase.memo && <p>{purchase.memo}</p>}
+                            <div
+                                className="purchase-card__barcode"
+                                aria-label={`${purchase.name} 바코드`}
                             >
-                                <span className="purchase-card__status-label">{usageLabel}</span>
-                                {usageTimestamp && (
-                                    <span className="purchase-card__status-meta">
-                                        <span>{usageTimestamp.date}</span>
-                                        <span>{usageTimestamp.time}</span>
-                                    </span>
-                                )}
-                            </span>
-                            <span className="purchase-card__cost">
-                                -{purchase.cost.toLocaleString()} pts
-                            </span>
-                        </div>
+                                <div className="purchase-card__barcode-bars" aria-hidden="true"/>
+                                <span className="purchase-card__barcode-number">{purchase.barcode}</span>
+                            </div>
+                            <div className="purchase-card__footer">
+                                <span
+                                    className={`purchase-card__status purchase-card__status--${purchase.usageStatus ?? "ready"}`}
+                                >
+                                    <span className="purchase-card__status-label">{usageLabel}</span>
+                                    {usageTimestamp && (
+                                        <span className="purchase-card__status-meta">
+                                            <span>{usageTimestamp.date}</span>
+                                            <span>{usageTimestamp.time}</span>
+                                        </span>
+                                    )}
+                                </span>
+                                <span className="purchase-card__cost">
+                                    -{purchase.cost.toLocaleString()} pts
+                                </span>
+                            </div>
+                        </CardComponent>
                     </li>
                 );
             })}

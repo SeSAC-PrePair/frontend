@@ -275,11 +275,21 @@
 .purchase-grid {
     grid-template-columns: repeat(auto-fit, minmax(280px, 320px));
     justify-content: center;
+    justify-items: center;
+    list-style: none;
+    margin: 0 auto;
+    padding: 0;
+    width: 100%;
 }
 
-.purchase-grid > .purchase-card {
+.purchase-grid > li {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.purchase-grid > li > .purchase-card {
     width: min(100%, 360px);
-    margin: 0 auto;
 }
 
 .reward-card,
@@ -299,6 +309,27 @@
 .purchase-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 28px 54px rgba(64, 81, 115, 0.18);
+}
+
+.purchase-card {
+    width: 100%;
+    text-align: left;
+    cursor: default;
+}
+
+.purchase-card--clickable {
+    cursor: pointer;
+    border: 1px solid rgba(64, 81, 115, 0.24);
+}
+
+.purchase-card--clickable:focus-visible {
+    outline: 3px solid rgba(95, 140, 255, 0.35);
+    outline-offset: 4px;
+}
+
+.purchase-card--clickable:active {
+    transform: translateY(-2px);
+    box-shadow: 0 24px 48px rgba(64, 81, 115, 0.2);
 }
 
 .reward-card span {
@@ -517,7 +548,7 @@
         grid-template-columns: 1fr;
     }
 
-    .purchase-grid > .purchase-card {
+    .purchase-grid > li > .purchase-card {
         width: 100%;
     }
 }
