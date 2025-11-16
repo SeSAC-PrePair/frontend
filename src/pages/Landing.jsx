@@ -1,4 +1,7 @@
 import '../styles/pages/Landing.css'
+import {Link} from 'react-router-dom'
+import useMediaQuery from '../hooks/useMediaQuery'
+import robotLogo from '../assets/b01fa81ce7a959934e8f78fc6344081972afd0ae.png'
 
 // === 1. 서비스 설명에 맞게 피처 타일 내용 수정 ===
 const featureTiles = [
@@ -25,21 +28,51 @@ const featureTiles = [
 ]
 
 
+const stepCards = [
+    {
+        id: 'home',
+        title: '홈 화면',
+        description: '오늘의 질문, 누적 점수, 1년 잔디를 한눈에 확인하고 루틴을 이어갑니다.',
+        image: '/showcase/home.png',
+    },
+    {
+        id: 'interview',
+        title: 'AI 질문',
+        description: '매일 도착한 질문에 5분 투자. 간단한 텍스트로도 스스로 설명해보는 습관을 만듭니다.',
+        image: '/showcase/interview.png',
+    },
+    {
+        id: 'feedback',
+        title: 'AI 피드백',
+        description: '잘한 점 · 개선점 · 추천 학습으로 즉시 복기하고, 제출 답변까지 함께 확인합니다.',
+        image: '/showcase/ai-feedback.png',
+    },
+    {
+        id: 'reward',
+        title: '리워드',
+        description: '축적된 포인트는 리워드샵에서 즉시 교환하며 동기부여를 유지합니다.',
+        image: '/showcase/reward-shop.png',
+    },
+]
+
 export default function LandingPage() {
+
+    const isMobile = useMediaQuery('(max-width: 720px)')
 
     return (
         <div className="landing landing--refresh">
-            <section className="landing-features">
-                <header>
-                    {/*<p className="tag"></p>*/}
-                    <h2>완벽한 면접 준비를 위한 AI 파트너, PrePair</h2>
+            {/* HERO with big mockup image */}
 
-                    {/* === 2. 헤더 설명 문구 수정 === */}
-                    <p>
-                        AI가 당신의 직무에 맞춰 면접 질문을 생성하고, 답변에 대한 실시간 피드백과 점수를 드려요.
-                        꾸준히 준비하고 리워드도 받아가세요! 🚀
-                    </p>
-                </header>
+            <section className="landing-features">
+            <section className="landing-hero2">
+                <div className="hero2-copy">
+                    <h1>완벽한 면접 준비를 위한 <br></br>AI 파트너, PrePair</h1>
+                    <p>질문 → 작성 → 피드백 → 리워드. 인터뷰 루틴을 한 곳에서 자연스럽게 이어가세요.</p>
+                </div>
+                <div className="hero2-visual">
+                    <img src={robotLogo} alt="PrePair 로봇 캐릭터" style={{width: 320, height: 'auto', display: 'block'}} />
+                </div>
+            </section>
 
                 {/* === 3. 수정된 피처 타일이 자동 적용 === */}
                 <div className="landing-feature-grid">
@@ -52,6 +85,41 @@ export default function LandingPage() {
                     ))}
                 </div>
             </section>
+
+        
+
+            {/* 모바일: 바로 시작하기 CTA, 데스크톱: 사용 가이드 섹션 */}
+            {isMobile ? (
+                            
+                    <Link to="/auth?mode=signup" className="cta-button cta-button--primary">바로 시작하기</Link>
+                            ) : (
+                <section className="landing-stories">
+                    <header className="stories__header">
+                        <div>
+                            <h2>✅ PrePair, 이렇게 사용해요</h2>
+                            <p>로봇 코치와 함께 매일 한 걸음, 인터뷰 감각을 자연스럽게 끌어올립니다.</p>
+                        </div>
+                    </header>
+                    {stepCards.map((s, idx) => (
+                        <article key={s.id} className={`step-card ${idx % 2 === 1 ? 'is-alt' : ''}`}>
+                            <div className="step-visual">
+                                <img
+                                    src={s.image}
+                                    alt={`${s.title} 화면`}
+                                    style={{ width: 1920, maxWidth: '100%', height: 'auto', display: 'block' }}
+                                />
+                            </div>
+                            <div className="step-copy">
+                                <span className="step-index">{idx + 1}</span>
+                                <h3>{s.title}</h3>
+                                <p>{s.description}</p>
+                            </div>
+                        </article>
+                    ))}
+                </section>
+            )}
+
+    
 
             {/* 기존 배너 섹션 (변경 없음) */}
             <section className="landing-ticker">

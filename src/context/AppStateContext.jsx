@@ -192,7 +192,7 @@ const scoringRubric = [
     },
 ]
 
-const defaultActivity = Array.from({length: 18}, (_, weekIndex) =>
+const defaultActivity = Array.from({length: 53}, (_, weekIndex) =>
     Array.from({length: 7}, (_, dayIndex) => {
         const seed = (weekIndex + 2) * (dayIndex + 3)
         if (seed % 11 === 0) return 0
@@ -530,13 +530,32 @@ export function AppProvider({children}) {
              strengths = [],
              gaps = [],
              recommendations = [],
+             answer = '',
          }) => {
+            const submittedAt = new Date().toISOString()
+
+            setSentQuestions((prev) => {
+                if (prev.length === 0) return prev
+                const [latest, ...rest] = prev
+                const alreadyAnswered = Boolean(latest.answeredAt)
+                const bonus = Math.max(40, Math.round(score * 0.6))
+                const earnedPoints = alreadyAnswered ? 0 : bonus
+                const updated = {
+                    ...latest,
+                    answeredAt: submittedAt,
+                    score,
+                    answer,
+                    earnedPoints,
+                }
+                return [updated, ...rest]
+            })
+
             setScoreHistory((prev) => [
                 {
                     id: `session-${Date.now()}`,
                     question,
                     score,
-                    submittedAt: new Date().toISOString(),
+                    submittedAt,
                     summary,
                     highlights,
                     focusTags,
@@ -544,27 +563,21 @@ export function AppProvider({children}) {
                     strengths,
                     gaps,
                     recommendations,
+                    earnedPoints: Math.max(40, Math.round(score * 0.6)),
+                    answer,
                 },
                 ...prev,
             ])
 
-            setSentQuestions((prev) => {
-                if (prev.length === 0) return prev
-                const [latest, ...rest] = prev
-                const updated = {
-                    ...latest,
-                    answeredAt: new Date().toISOString(),
-                    score,
-                }
-                return [updated, ...rest]
-            })
-
             setUser((prev) => {
                 if (!prev) return prev
+                const last = sentQuestions?.[0]
+                const alreadyAnswered = last?.answeredAt != null
                 const bonus = Math.max(40, Math.round(score * 0.6))
+                const earned = alreadyAnswered ? 0 : bonus
                 return {
                     ...prev,
-                    points: prev.points + bonus,
+                    points: prev.points + earned,
                     streak: prev.streak + 1,
                 }
             })

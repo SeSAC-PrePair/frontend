@@ -17,7 +17,10 @@
   justify-content: center;
   width: 100%;
   overflow-x: auto;
+  overflow-y: visible;
+  padding-top: 0.8rem; /* room for top-row tooltip */
   padding-bottom: 0.4rem;
+  position: relative;
 }
 
 .heatmap-widget__column {
@@ -29,17 +32,25 @@
   width: 14px;
   height: 14px;
   border-radius: 5px;
-  background: #aec5f2;
-  opacity: 0.7;
+  background: #e9f0ff; /* base for level-0 */
+  opacity: 0.85;
   transition: transform 0.2s ease, opacity 0.2s ease;
   position: relative;
+  z-index: 0;
 }
+
+.heatmap-level-0 { background: #edf2ff; }
+.heatmap-level-1 { background: #d9e5ff; }
+.heatmap-level-2 { background: #bbd2ff; }
+.heatmap-level-3 { background: #97b8ff; }
+.heatmap-level-4 { background: #779dff; }
 
 .heatmap-widget__cell:hover,
 .heatmap-widget__cell:focus-visible {
   transform: scale(1.35);
-  opacity: 1;
+  opacity: 0.98;
   outline: none;
+  z-index: 5; /* ensure hovered cell is above neighbors */
 }
 
 .heatmap-widget__cell::after {
@@ -57,7 +68,7 @@
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease, transform 0.2s ease;
-  z-index: 2;
+  z-index: 10; /* above grid and scaled cells */
 }
 
 .heatmap-widget__cell:hover::after,
@@ -66,30 +77,48 @@
   transform: translate(-50%, 0);
 }
 
+.heatmap-widget__cell.is-top-row::after {
+  top: calc(100% + 8px);
+  bottom: auto;
+  transform: translate(-50%, -6px);
+}
+
+.heatmap-widget__cell.is-top-row:hover::after,
+.heatmap-widget__cell.is-top-row:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
 .heatmap-widget__legend {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.8rem;
+  gap: 0.35rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
 }
 
-.heatmap-widget__legend-dot {
-  width: 32px;
+.legend-swatch {
+  width: 18px;
   height: 12px;
-  border-radius: 999px;
-  background: #aec5f2;
-  box-shadow: 0 4px 10px rgba(64, 81, 115, 0.2);
+  border-radius: 3px;
+  box-shadow: 0 2px 6px rgba(64, 81, 115, 0.18);
 }
 
 @media (max-width: 480px) {
   .heatmap-widget {
     padding: 1.1rem;
+    overflow: visible; /* allow tooltip to extend outside safely */
   }
 
   .heatmap-widget__grid {
-    gap: 4px;
-    grid-auto-columns: 10px;
+    gap: 3px;                 /* 조금 더 넉넉하게 */
+    grid-auto-columns: 8px;   /* 가독성 향상 */
+    padding-top: 0.6rem; /* keep tooltip room on mobile too */
+    padding-bottom: 1.2rem; /* room for tooltip below on mobile */
+    overflow-x: visible; /* prevent horizontal scrollbar on mobile */
+    overflow-y: visible;
+    padding-left: 0.8rem;  /* keep left-most tooltip inside card */
+    padding-right: 0.8rem; /* keep right-most tooltip inside card */
   }
 
   .heatmap-widget__column {
@@ -99,5 +128,23 @@
   .heatmap-widget__cell {
     width: 10px;
     height: 10px;
+  }
+
+  /* On mobile, always render tooltip below to avoid clipping */
+  .heatmap-widget__cell::after {
+    top: calc(100% + 8px);
+    bottom: auto;
+    transform: translate(-50%, -6px);
+    z-index: 999;
+    max-width: calc(100vw - 40px); /* prevent off-screen overflow */
+    white-space: normal;           /* allow wrapping if needed */
+    word-break: keep-all;          /* avoid breaking every Korean character */
+    min-width: 120px;              /* prevent overly narrow tooltip */
+    text-align: center;
+  }
+
+  .heatmap-widget__cell:hover::after,
+  .heatmap-widget__cell:focus-visible::after {
+    transform: translate(-50%, 0);
   }
 }

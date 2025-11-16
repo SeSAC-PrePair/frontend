@@ -22,6 +22,7 @@ export default function AppLayout() {
     const isLanding = location.pathname === '/'
     const isAuth = location.pathname.startsWith('/auth')
     const showNavElements = !isLanding && !isAuth && user
+    const showAuthCtas = isLanding || !user
 
     useEffect(() => {
         setIsNavOpen(false)
@@ -77,7 +78,7 @@ export default function AppLayout() {
                         </button>
                     )}
 
-                    {!user && (
+                    {showAuthCtas && (
                         <>
                             <Link to="/auth?mode=login" className="cta-button cta-button--ghost">
                                 로그인
@@ -106,24 +107,34 @@ export default function AppLayout() {
             </main>
 
             <footer className="shell__footer">
-                <div className="footer__column footer__brand">
-                    <span className="footer__logo">매일매일</span>
-                    <p>Copyright © {new Date().getFullYear()} 매일매일. All rights reserved.</p>
-                </div>
-                <div className="footer__column">
-                    <strong>Contact</strong>
-                    <a href="mailto:team.maeilmail@gmail.com">team.maeilmail@gmail.com</a>
-                </div>
-                <div className="footer__column">
-                    <strong>Socials</strong>
-                    <a href="https" target="_blank" rel="noopener noreferrer">Velog</a>
-                    <a href="https" target="_blank" rel="noopener noreferrer">Github</a>
-                </div>
-                <div className="footer__column">
-                    <strong>Etc</strong>
-                    <Link to="/about-us">팀 소개</Link>
-                    <Link to="/feedback">서비스 피드백</Link>
-                </div>
+                {user ? (
+                    <div className="footer__column" style={{gridColumn: '1 / -1', color: '#bdbebf'}}>
+                        <small>
+                            Copyright © {new Date().getFullYear()} Prefair · team.maeilmail@gmail.com
+                        </small>
+                    </div>
+                ) : (
+                    <>
+                        <div className="footer__column footer__brand">
+                            <span className="footer__logo">Prefair</span>
+                            <p>Copyright © {new Date().getFullYear()} Prefair. All rights reserved.</p>
+                        </div>
+                        <div className="footer__column">
+                            <strong>Contact</strong>
+                            <a href="mailto:team.Prefair@gmail.com">team.maeilmail@gmail.com</a>
+                        </div>
+                        <div className="footer__column">
+                            <strong>Socials</strong>
+                            <a href="https" target="_blank" rel="noopener noreferrer">Velog</a>
+                            <a href="https" target="_blank" rel="noopener noreferrer">Github</a>
+                        </div>
+                        <div className="footer__column">
+                            <strong>Etc</strong>
+                            <Link to="/about-us">팀 소개</Link>
+                            <Link to="/feedback">서비스 피드백</Link>
+                        </div>
+                    </>
+                )}
             </footer>
 
         </div>

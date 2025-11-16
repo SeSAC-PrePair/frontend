@@ -1,5 +1,6 @@
 import {AnimatePresence, motion as Motion} from 'framer-motion'
-import {useMemo, useState} from 'react'
+import {useMemo, useState, useEffect} from 'react'
+import {useLocation} from 'react-router-dom'
 import {useAppState} from '../context/AppStateContext'
 import Modal from '../components/Modal'
 import useMediaQuery from '../hooks/useMediaQuery'
@@ -42,7 +43,7 @@ const focusTagPool = ['Storytelling', 'Leadership', 'Metrics', 'Collaboration', 
 
 const panelItems = [
     {id: 'practice', label: '인터뷰 하기'},
-    {id: 'insights', label: '피드백'},
+    {id: 'insights', label: 'AI 피드백'},
     {id: 'history', label: '기록'},
 ]
 
@@ -61,11 +62,14 @@ export default function CoachPage() {
         scoreHistory,
         sentQuestions,
     } = useAppState()
-    const [answer, setAnswer] = useState('')
+    const location = useLocation()
+    const latestDispatch = sentQuestions?.[0] ?? null
+    const [answer, setAnswer] = useState(latestDispatch?.answer ?? '')
     const [isEvaluating, setIsEvaluating] = useState(false)
     const [result, setResult] = useState(null)
     const [error, setError] = useState('')
-    const [activePanel, setActivePanel] = useState('practice')
+    const [activePanel, setActivePanel] = useState(location.state?.panel || 'practice')
+    const [selectedInsight, setSelectedInsight] = useState(null)
     const [showRubric, setShowRubric] = useState(false)
     const isMobile = useMediaQuery('(max-width: 720px)')
 
@@ -74,11 +78,11 @@ export default function CoachPage() {
     const safeScoreHistory = Array.isArray(scoreHistory) ? scoreHistory : []
     const latestHistory = safeScoreHistory.slice(0, 3)
     const formattedPoints = user?.points != null ? user.points.toLocaleString() : '0'
-    const activeInsight = result ?? lastFeedback ?? null
-    const latestDispatch = sentQuestions?.[0] ?? null
+    const activeInsight = selectedInsight ?? result ?? lastFeedback ?? null
+    const latestDispatchLocal = latestDispatch
     const questionContextLabel =
-        latestDispatch?.roleLabel || latestDispatch?.jobTrackLabel || user?.desiredField || 'AI 질문'
-    const questionDisplay = latestDispatch ?? currentQuestion
+        latestDispatchLocal?.roleLabel || latestDispatchLocal?.jobTrackLabel || user?.desiredField || 'AI 질문'
+    const questionDisplay = latestDispatchLocal ?? currentQuestion
 
     const breakdownSummary = useMemo(() => {
         if (!activeInsight?.breakdown) return null
@@ -102,6 +106,14 @@ export default function CoachPage() {
 
         return {top, low}
     }, [activeInsight])
+
+    useEffect(() => {
+        // 최신 질문에 저장된 답변이 있으면 작성란에 미리 채움 (수정 시 리워드 미지급 정책 안내)
+        if (!answer && latestDispatchLocal?.answer) {
+            setAnswer(latestDispatchLocal.answer)
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [latestDispatchLocal?.answer])
 
     const handleEvaluate = () => {
         const trimmed = answer.trim()
@@ -140,6 +152,7 @@ export default function CoachPage() {
                 highlights,
                 focusTags,
                 earnedPoints: Math.max(40, Math.round(baseScore * 0.6)),
+                answer: trimmed,
             }
 
             setResult(computed)
@@ -153,6 +166,7 @@ export default function CoachPage() {
                 strengths: computed.strengths,
                 gaps: computed.gaps,
                 recommendations: computed.recommendations,
+                answer: trimmed,
             })
             setIsEvaluating(false)
             setAnswer('')
@@ -222,6 +236,9 @@ export default function CoachPage() {
                                     </small>
                                 </header>
                                   <div className="coach__composer-body">
+                                      <small className="coach__reward-note">
+                                          최초 1회 제출에 한해 리워드가 지급되며, 이후 수정 제출 시 리워드는 제공되지 않습니다.
+                                      </small>
                                       <textarea
                                           value={answer}
                                           onChange={(event) => setAnswer(event.target.value)}
@@ -257,7 +274,7 @@ export default function CoachPage() {
                                     type="button"
                                     className="cta-button cta-button--primary"
                                     onClick={handleEvaluate}
-                                    disabled={isEvaluating}
+                                    disabled={isEvaluating || answer.trim().length < minLength}
                                 >
                                     {isEvaluating ? 'AI가 분석 중...' : 'AI 피드백 받기'}
                                 </button>
@@ -279,6 +296,7 @@ export default function CoachPage() {
                                     <div className="coach__insight-score">
                                         <span>AI 평가</span>
                                         <strong>{activeInsight.score} 점</strong>
+                                    
                                     </div>
 
                                     <div className="coach__insight-body">
@@ -292,7 +310,7 @@ export default function CoachPage() {
                                           </div>
                                           {(activeInsight.gaps ?? []).length > 0 && (
                                               <div>
-                                                  <strong>못한 점</strong>
+                                                  <strong>개선할 점</strong>
                                                   <ul>
                                                       {activeInsight.gaps.map((item) => (
                                                           <li key={item}>{item}</li>
@@ -312,46 +330,24 @@ export default function CoachPage() {
                                           )}
                                     </div>
 
-                                    {activeInsight.breakdown && (
-                                        <div className="coach__insight-breakdown">
-                                            <strong>룰 기반 점수</strong>
-                                            <ul>
-                                                {Object.entries(activeInsight.breakdown).map(([id, value]) => {
-                                                    const rubric = scoringRubric.find((rule) => rule.id === id)
-                                                    return (
-                                                        <li key={id}>
-                                                            <span>{rubric?.label}</span>
-                                                            <div className="bar">
-                                                                <span style={{width: `${value}%`}}>{value}</span>
-                                                            </div>
-                                                        </li>
-                                                    )
-                                                })}
-                                            </ul>
-                                            {breakdownSummary && (
-                                                <p className="coach__insight-note">
-                                                    가장 강한 영역은{' '}
-                                                    <strong>{scoringRubric.find((rule) => rule.id === breakdownSummary.top.id)?.label}</strong>,
-                                                    {' '}
-                                                    개선하면 좋은 영역은{' '}
-                                                    <strong>{scoringRubric.find((rule) => rule.id === breakdownSummary.low.id)?.label}</strong> 입니다.
-                                                </p>
-                                            )}
-                                        </div>
-                                    )}
+                                    
+
+                                    
 
                                     <div className="coach__insight-meta">
                                         <article>
-                                            <span>누적 포인트</span>
-                                            <strong>{formattedPoints} pts</strong>
+                                        <small>획득 포인트: <strong>{(activeInsight.earnedPoints ?? 0).toLocaleString()} 포인트</strong></small>
                                         </article>
                                     </div>
 
-                                      <div className="coach__insight-actions">
-                                        <button type="button" onClick={() => setShowRubric((prev) => !prev)}>
-                                            {showRubric ? '점수화 룰 닫기' : '점수화 룰 보기'}
-                                        </button>
-                                    </div>
+                                    {activeInsight.answer && (
+                                        <div className="coach__submitted-answer">
+                                            <strong>제출한 답변</strong>
+                                            <p>{activeInsight.answer}</p>
+                                        </div>
+                                    )}
+
+                                      
 
                                     {!isMobile && (
                                         <AnimatePresence>
@@ -403,7 +399,22 @@ export default function CoachPage() {
                             {latestHistory.length > 0 ? (
                                 <div className="coach__history">
                                     {latestHistory.map((entry) => (
-                                        <article key={entry.id} className="history-card">
+                                        <article
+                                            key={entry.id}
+                                            className="history-card"
+                                            onClick={() => {
+                                                setSelectedInsight(entry)
+                                                setActivePanel('insights')
+                                            }}
+                                            role="button"
+                                            tabIndex={0}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    setSelectedInsight(entry)
+                                                    setActivePanel('insights')
+                                                }
+                                            }}
+                                        >
                                             <header>
                                                 <span>{new Date(entry.submittedAt).toLocaleDateString('ko-KR')}</span>
                                                 <strong>{entry.score}점</strong>
@@ -437,30 +448,9 @@ export default function CoachPage() {
                 </AnimatePresence>
             </div>
 
-            {isMobile && (
-                <Modal
-                    open={showRubric}
-                    onClose={() => setShowRubric(false)}
-                    title="점수화 룰 상세"
-                    size="md"
-                    footer={
-                        <button type="button" className="cta-button cta-button--ghost"
-                                onClick={() => setShowRubric(false)}>
-                            닫기
-                        </button>
-                    }
-                >
-                    <ul className="coach__rubric-list">
-                        {scoringRubric.map((rule) => (
-                            <li key={rule.id}>
-                                <strong>{rule.label}</strong>
-                                <span>{Math.round(rule.weight * 100)}%</span>
-                                <p>{rule.rule}</p>
-                            </li>
-                        ))}
-                    </ul>
-                </Modal>
-            )}
+            
         </div>
     )
 }
+
+

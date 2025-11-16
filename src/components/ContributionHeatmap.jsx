@@ -23,13 +23,15 @@ export default function ContributionHeatmap({data}) {
                             const offset = weekIndex * 7 + dayIndex
                             const cellDate = new Date(startDate.getTime() + offset * dayMs)
                             const dateLabel = formatter.format(cellDate)
-                            const score = value * 25
+                            const level = Math.max(0, Math.min(4, Number(value) || 0))
+                            const score = level * 25
                             const tooltip = `${dateLabel} · 활동 점수 ${score}`
+                            const isTopRow = dayIndex <= 1
 
                             return (
                                 <span
                                     key={`${weekIndex}-${dayIndex}`}
-                                    className="heatmap-widget__cell"
+                                    className={`heatmap-widget__cell heatmap-level-${level}${isTopRow ? ' is-top-row' : ''}`}
                                     role="gridcell"
                                     aria-label={`${days[dayIndex]} · ${tooltip}`}
                                     data-tooltip={tooltip}
@@ -40,10 +42,14 @@ export default function ContributionHeatmap({data}) {
                     </div>
                 ))}
             </div>
-            <div className="heatmap-widget__legend" aria-hidden="true">
-                <span>최근 활동</span>
-                <span className="heatmap-widget__legend-dot" />
-                <span>점수 확인</span>
+            <div className="heatmap-widget__legend" aria-label="점수 범례">
+                <span>낮음</span>
+                <span className="legend-swatch heatmap-level-0" aria-hidden="true" />
+                <span className="legend-swatch heatmap-level-1" aria-hidden="true" />
+                <span className="legend-swatch heatmap-level-2" aria-hidden="true" />
+                <span className="legend-swatch heatmap-level-3" aria-hidden="true" />
+                <span className="legend-swatch heatmap-level-4" aria-hidden="true" />
+                <span>높음</span>
             </div>
         </div>
     )

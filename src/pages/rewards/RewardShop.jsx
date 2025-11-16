@@ -206,7 +206,7 @@ export default function RewardShop() {
                 </div>
                 <div className="reward-shop__balance">
                     <span>보유 포인트</span>
-                    <strong>{user?.points.toLocaleString()} pts</strong>
+                    <strong>{user?.points.toLocaleString()} 포인트</strong>
                 </div>
             </header>
 
@@ -279,7 +279,7 @@ export default function RewardShop() {
                                                 </ul>
                                             )}
                                             <div className="reward-item__footer">
-                                                <span>{item.cost.toLocaleString()} pts</span>
+                                                <span>{item.cost.toLocaleString()} 포인트</span>
                                                 <button
                                                     type="button"
                                                     onClick={() =>
@@ -361,11 +361,11 @@ export default function RewardShop() {
                         <ul className="redeem-confirm__meta">
                             <li>
                                 <span>필요 포인트</span>
-                                <strong>{selectedReward.cost.toLocaleString()} pts</strong>
+                                <strong>{selectedReward.cost.toLocaleString()} 포인트</strong>
                             </li>
                             <li>
                                 <span>교환 후 잔여 포인트</span>
-                                <strong>{remainingPoints?.toLocaleString()} pts</strong>
+                                <strong>{remainingPoints?.toLocaleString()} 포인트</strong>
                             </li>
                         </ul>
                         {modalError && (
@@ -398,7 +398,7 @@ export default function RewardShop() {
                                     <span>
                                         {activePurchaseMeta.purchasedAt.date}
                                         <br/>
-                                        {activePurchaseMeta.purchasedAt.time}
+                                    
                                     </span>
                                 ) : (
                                     <span>-</span>

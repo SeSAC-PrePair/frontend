@@ -125,17 +125,14 @@ export default function SettingsPage() {
                 <div>
                     <span className="tag">Personal Control Center</span>
                     <h1>개인 설정</h1>
-                    <p>목표와 루틴을 조정하면 AI 코치가 난이도, 질문 스타일, 리워드 제안을 맞춰 드립니다.</p>
+                
                 </div>
-                <motion.div className="settings__card" initial={{opacity: 0, y: 16}} animate={{opacity: 1, y: 0}}>
-                    <span>현재 잔여 포인트</span>
-                    <strong>{user?.points.toLocaleString()} pts</strong>
-                </motion.div>
+            
             </header>
 
             <form className="settings__form" onSubmit={handleSubmit}>
                 <fieldset>
-                    <legend>목표 직무 · 관심 분야</legend>
+                    <b>목표 직무 · 관심 분야</b>
                     <div className="settings__goal-section">
                         <div className="settings__group">
                             <p id="settings-job-track-label" className="settings__subhead">
@@ -191,7 +188,7 @@ export default function SettingsPage() {
                 </fieldset>
 
                 <fieldset>
-                    <legend>질문 빈도</legend>
+                    <b>질문 빈도</b>
                     <div className="settings__cadence">
                         {cadencePresets.map((option) => {
                             const checked = form.questionCadence === option.id
@@ -216,7 +213,7 @@ export default function SettingsPage() {
                 </fieldset>
 
                 <fieldset>
-                    <legend>알림 채널</legend>
+                    <b>알림 채널</b>
                     <div className="settings__channels">
                         {notificationChannelPresets.map((channel) => {
                             const isEmail = channel.id === 'email'
