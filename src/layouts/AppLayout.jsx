@@ -7,7 +7,7 @@ import brandLogo from '/src/assets/b01fa81ce7a959934e8f78fc6344081972afd0ae.png'
 
 const navItems = [
     { to: '/rewards', label: 'home' },
-    { to: '/coach', label: 'coach' },
+    { to: '/coach', label: 'interview' },
     { to: '/rewards/shop', label: 'reward' },
     { to: '/settings', label: 'settings' },
 ]

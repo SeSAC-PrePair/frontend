@@ -7,9 +7,10 @@ import '../../styles/pages/Rewards.css'
 export default function RewardsOverview() {
     const location = useLocation()
     const navigate = useNavigate()
-    const {user, activity, sentQuestions} = useAppState()
+    const {user, activity, sentQuestions, scoreHistory} = useAppState()
 
     const latestDispatch = sentQuestions[0] ?? null
+    const answerCount = (scoreHistory?.length ?? 0).toLocaleString('ko-KR')
     const redirectSource = location.state?.from
     const streakDays = user?.streak ?? 0;
 
@@ -62,6 +63,18 @@ export default function RewardsOverview() {
                     </article>
                 </section>
             )}
+
+              <div className="rewards__answer-count" aria-live="polite">
+                  <div className="answer-count-card">
+                      <div className="answer-count-card__icon" aria-hidden="true">
+                          <span role="img" aria-label="calendar">📅</span>
+                      </div>
+                      <div>
+                          <p>답변한 질문</p>
+                          <strong>{answerCount}개</strong>
+                      </div>
+                  </div>
+              </div>
 
             <section className="rewards__purchases">
                 <header>

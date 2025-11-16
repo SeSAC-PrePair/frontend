@@ -18,6 +18,9 @@ const mockScoreHistory = [
         summary: '실패 원인을 데이터로 추적하고, 개선 로드맵을 제시한 점이 인상적입니다.',
         highlights: ['문제 재정의 능력', '팀 커뮤니케이션 전략', '재발 방지 플랜'],
         focusTags: ['Retro', 'Leadership', 'Learning Mindset'],
+        strengths: ['데이터 근거로 원인을 규명했습니다.', '후속 로드맵을 명확히 설계했습니다.'],
+        gaps: ['위기 당시 리스크 커뮤니케이션 절차가 다소 모호했습니다.'],
+        recommendations: ['리스크 커뮤니케이션 스크립트를 미리 작성해 보세요.', '회고 회의 흐름을 3단계로 정리해 보세요.'],
         breakdown: {
             structure: 90,
             clarity: 94,
@@ -33,6 +36,9 @@ const mockScoreHistory = [
         summary: '명확한 KPI를 두고 실험 설계를 진행한 정량 분석이 돋보입니다.',
         highlights: ['A/B 테스트 설계', '지표 읽는 방법', '팀 설득'],
         focusTags: ['Product Sense', 'Experiment'],
+        strengths: ['실험 설계를 KPI에 직결시켰습니다.', '데이터 스토리텔링으로 팀을 설득했습니다.'],
+        gaps: ['헬스 메트릭 대안이 조금 더 보강되면 좋습니다.'],
+        recommendations: ['핵심/보조 지표를 구분해 스토리라인을 연습하세요.', '데이터 기반 설득 문장을 2~3개 준비해 보세요.'],
         breakdown: {
             structure: 82,
             clarity: 86,
@@ -48,6 +54,9 @@ const mockScoreHistory = [
         summary: '이상 징후를 탐지하는 퍼널 진단 방법은 적절했으나, 후속 의사결정 근거가 조금 아쉬웠습니다.',
         highlights: ['퍼널 분석', '알람 설계'],
         focusTags: ['Diagnostics'],
+        strengths: ['퍼널 전환율을 세분화해 진단했습니다.', '알람 기준을 명확히 설명했습니다.'],
+        gaps: ['후속 실험 계획이 보다 구체적이면 설득력이 높아집니다.'],
+        recommendations: ['이상 징후 대응 프로세스를 3단계로 정리해 보세요.', '추가 실험 아이디어를 숫자와 함께 제시해 보세요.'],
         breakdown: {
             structure: 72,
             clarity: 78,
@@ -511,7 +520,17 @@ export function AppProvider({children}) {
     }, [])
 
     const recordInterviewResult = useCallback(
-        ({score, summary, highlights, breakdown, focusTags, question}) => {
+        ({
+             score,
+             summary,
+             highlights,
+             breakdown,
+             focusTags,
+             question,
+             strengths = [],
+             gaps = [],
+             recommendations = [],
+         }) => {
             setScoreHistory((prev) => [
                 {
                     id: `session-${Date.now()}`,
@@ -522,6 +541,9 @@ export function AppProvider({children}) {
                     highlights,
                     focusTags,
                     breakdown,
+                    strengths,
+                    gaps,
+                    recommendations,
                 },
                 ...prev,
             ])
