@@ -1,13 +1,7 @@
-import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAppState } from '../context/AppStateContext'
-import '../styles/pages/Auth.css' // CSS 파일도 함께 수정될 수 있습니다.
-
-const cardVariants = {
-    hidden: { opacity: 0, y: 28 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } },
-}
+import '../styles/pages/Auth.css'
 
 const steps = [
     { id: 'account', label: '기본 정보' },
@@ -110,12 +104,7 @@ export default function AuthPage() {
 
     return (
         <div className="auth">
-            <motion.section
-                className="auth__form"
-                variants={cardVariants}
-                initial="hidden"
-                animate="visible"
-            >
+            <section className="auth__form">
                 <header>
                     <h2>{mode === 'signup' ? '회원가입' : '로그인'}</h2>
                 </header>
@@ -369,7 +358,7 @@ export default function AuthPage() {
                         </button>
                     </form>
                 )}
-            </motion.section>
+            </section>
         </div>
     )
 }

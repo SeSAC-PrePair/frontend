@@ -1,7 +1,9 @@
 .settings {
     display: grid;
     gap: 2.8rem;
-    padding: clamp(2.2rem, 3.5vw, 4rem) 0 4.4rem;
+    padding: clamp(2.2rem, 3.5vw, 4rem) clamp(1rem, 5vw, 6rem) 4.4rem;
+    max-width: 1400px;
+    margin: 0 auto;
     position: relative;
     isolation: isolate;
 }
@@ -39,12 +41,11 @@
     position: relative;
     padding: 1.8rem 2rem;
     border-radius: var(--radius-lg);
-    background: linear-gradient(140deg, rgba(255, 255, 255, 0.94), rgba(174, 197, 242, 0.3));
-    border: 1px solid rgba(64, 81, 115, 0.2);
+    background: white;
+    border: 1px solid rgba(102, 153, 255, 0.12);
     display: grid;
     gap: 0.4rem;
     text-align: right;
-    box-shadow: 0 26px 52px rgba(64, 81, 115, 0.2);
 }
 
 .settings__card strong {
@@ -58,23 +59,8 @@
     gap: 2rem;
     padding: clamp(1.6rem, 3vw, 2.2rem);
     border-radius: var(--radius-lg);
-    background: rgba(255, 255, 255, 0.95);
-    border: 1px solid rgba(64, 81, 115, 0.2);
-    box-shadow: 0 30px 56px rgba(64, 81, 115, 0.18);
-    overflow: hidden;
-    z-index: 1;
-}
-
-.settings__form::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at 80% 0%, rgba(242, 228, 236, 0.35), transparent 65%);
-    pointer-events: none;
-}
-
-.settings__form > * {
-    position: relative;
+    background: white;
+    border: 1px solid rgba(102, 153, 255, 0.12);
     z-index: 1;
 }
 
@@ -111,32 +97,33 @@
 
 .settings__select {
     width: 100%;
-    border-radius: 1.2rem;
-    border: 1px solid rgba(64, 81, 115, 0.2);
-    padding: 0.9rem 1.2rem;
+    border-radius: 8px;
+    border: 1px solid #e5e8eb;
+    padding: 1rem 2.5rem 1rem 1rem;
     font: inherit;
-    font-weight: 600;
-    color: var(--text-primary, #141f40);
-    background: rgba(255, 255, 255, 0.96);
-    box-shadow: 0 24px 48px rgba(64, 81, 115, 0.12);
+    font-weight: 500;
+    font-size: 0.9375rem;
+    color: #191f28;
+    background: #ffffff;
+    
     appearance: none;
     cursor: pointer;
-    transition: border 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
-    background-image: url("data:image/svg+xml,%3Csvg width='14' height='9' viewBox='0 0 14 9' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L7 7.5L13 1.5' stroke='%23141F40' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+    background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 6L8 10L12 6' stroke='%236b7684' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: right 1rem center;
-    background-size: 12px;
+    background-position: right 0.75rem center;
+    background-size: 16px;
 }
 
 .settings__select:focus {
     outline: none;
-    border-color: rgba(63, 123, 255, 0.6);
-    box-shadow: 0 32px 56px rgba(63, 123, 255, 0.2);
+    border-color: #3182f6;
+    
 }
 
 .settings__select:hover {
-    border-color: rgba(64, 81, 115, 0.35);
-    transform: translateY(-1px);
+    border-color: #b0b8c1;
+    background-color: #f9fafb;
 }
 
 .settings__field-note {
@@ -173,7 +160,7 @@
     display: grid;
     gap: 0.3rem;
     cursor: pointer;
-    transition: border 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    transition: border 0.2s ease, transform 0.2s ease;
 }
 
 .focus-card input {
@@ -196,7 +183,7 @@
 .focus-card.is-checked {
     border-color: rgba(64, 81, 115, 0.4);
     background: rgba(174, 197, 242, 0.22);
-    box-shadow: 0 16px 32px rgba(64, 81, 115, 0.14);
+    
     transform: translateY(-1px);
 }
 
@@ -222,25 +209,26 @@
     line-height: 1.6;
     color: var(--text-primary);
     resize: vertical;
-    transition: border 0.25s ease, box-shadow 0.25s ease;
+    transition: border 0.25s ease;
 }
 
 .settings__form textarea:focus {
     outline: none;
     border-color: rgba(63, 123, 255, 0.45);
-    box-shadow: 0 18px 32px rgba(63, 123, 255, 0.18);
+    
 }
 
 .cadence-card {
     position: relative;
-    border-radius: var(--radius-md);
-    padding: 1.2rem 1.4rem 1.3rem 1.4rem;
-    background: rgba(255, 255, 255, 0.92);
-    border: 1px solid rgba(64, 81, 115, 0.2);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    background: #ffffff;
+    border: 1px solid #e5e8eb;
     display: grid;
-    gap: 0.45rem;
-    transition: border 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
-    min-height: 140px;
+    gap: 0.5rem;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+    min-height: auto;
+    cursor: pointer;
 }
 
 .cadence-card input {
@@ -251,25 +239,34 @@
 }
 
 .cadence-card strong {
-    font-size: 1.02rem;
-    color: var(--accent-primary);
+    font-size: 1rem;
+    font-weight: 600;
+    color: #191f28;
 }
 
 .cadence-card span {
-    font-weight: 600;
-    color: rgba(20, 31, 64, 0.7);
+    font-weight: 500;
+    color: #4e5968;
 }
 
 .cadence-card small {
-    color: rgba(20, 31, 64, 0.6);
-    font-size: 0.85rem;
+    color: #6b7684;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.cadence-card:hover {
+    border-color: #b0b8c1;
+    background: #f9fafb;
 }
 
 .cadence-card.is-checked {
-    border-color: rgba(64, 81, 115, 0.4);
-    transform: translateY(-2px);
-    box-shadow: 0 20px 40px rgba(64, 81, 115, 0.2);
-    background: rgba(174, 197, 242, 0.28);
+    border-color: #3182f6;
+    background: #f4f8ff;
+}
+
+.cadence-card.is-checked strong {
+    color: #3182f6;
 }
 
 .settings__channels {
@@ -289,7 +286,7 @@
     font-size: 0.9rem;
     color: var(--accent-primary);
     transition: border 0.2s ease, background 0.2s ease, transform 0.2s ease;
-    box-shadow: 0 10px 24px rgba(64, 81, 115, 0.08);
+    
 }
 
 .channel-pill input {
