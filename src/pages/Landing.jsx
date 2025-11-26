@@ -11,7 +11,7 @@ const benefits = [
         description: '개발, 기획, 마케팅 등 내 직무에 최적화된 AI 생성 면접 질문'
     },
     {
-        icon: '📬',
+        icon: '🔔',
         title: '매일 도착하는 알림',
         description: '메일 또는 카카오톡으로 원하는 시간에 자동 발송'
     },
@@ -32,7 +32,7 @@ const howItWorks = [
         step: '01',
         title: '회원가입 및 직무 설정',
         description: '이메일로 간편하게 가입하고, 내 직무와 알림 방식을 선택하세요.',
-        icon: '✍️'
+        icon: '📨'
     },
     {
         step: '02',
@@ -44,13 +44,13 @@ const howItWorks = [
         step: '03',
         title: '답변 작성 및 제출',
         description: '받은 질문에 대한 답변을 작성하고 제출하세요.',
-        icon: '💭'
+        icon: '✍️'
     },
     {
         step: '04',
         title: 'AI 피드백 & 리워드',
         description: 'AI가 즉시 분석한 피드백과 점수를 확인하고, 포인트를 받으세요.',
-        icon: '🎯'
+        icon: '🤖'
     },
 ]
 
@@ -79,14 +79,14 @@ const testimonials = [
 ]
 
 const jobPostings = [
-    { company: '네이버', position: '프론트엔드 개발자', type: '정규직', logo: '🟢' },
-    { company: '카카오', position: 'PM/기획자', type: '정규직', logo: '🟡' },
-    { company: '토스', position: '백엔드 개발자', type: '정규직', logo: '🔵' },
-    { company: '배달의민족', position: 'UX 디자이너', type: '정규직', logo: '🩵' },
-    { company: '쿠팡', position: '데이터 분석가', type: '정규직', logo: '🟠' },
-    { company: '라인', position: 'iOS 개발자', type: '정규직', logo: '🟢' },
-    { company: '당근마켓', position: 'Android 개발자', type: '정규직', logo: '🥕' },
-    { company: '야놀자', position: '마케터', type: '정규직', logo: '🔴' },
+    { company: '하이퍼레일', position: '프론트엔드 개발자', type: '정규직', logo: '🚄' },
+    { company: '골든치즈', position: 'PM/기획자', type: '정규직', logo: '🧀' },
+    { company: '체스테크', position: '백엔드 개발자', type: '정규직', logo: '♟️' },
+    { company: '플러피랩', position: 'UX 디자이너', type: '정규직', logo: '🐥' },
+    { company: '버거테크', position: '데이터 분석가', type: '정규직', logo: '🍔' },
+    { company: '카모빌', position: 'iOS 개발자', type: '정규직', logo: '🚗' },
+    { company: '프레시캐롯', position: 'Android 개발자', type: '정규직', logo: '🥕' },
+    { company: '타겟랩', position: '마케터', type: '정규직', logo: '🎯' },
 ]
 
 export default function LandingPage() {
@@ -145,31 +145,28 @@ export default function LandingPage() {
                 </div>
                 <div className="hero-visual">
                     <div className="hero-showcase">
-                        {/* 중앙 로고 */}
-                        <div className="showcase-logo">
+                        {/* 배경 그라데이션 원 */}
+                        <div className="showcase-glow showcase-glow--1"></div>
+                        <div className="showcase-glow showcase-glow--2"></div>
+                        <div className="showcase-glow showcase-glow--3"></div>
+                        
+                        {/* 원형 링들 */}
+                        <div className="showcase-ring showcase-ring--1"></div>
+                        <div className="showcase-ring showcase-ring--2"></div>
+                        <div className="showcase-ring showcase-ring--3"></div>
+                        
+                        {/* 파티클 효과 */}
+                        <div className="showcase-particle showcase-particle--1"></div>
+                        <div className="showcase-particle showcase-particle--2"></div>
+                        <div className="showcase-particle showcase-particle--3"></div>
+                        <div className="showcase-particle showcase-particle--4"></div>
+                        <div className="showcase-particle showcase-particle--5"></div>
+                        <div className="showcase-particle showcase-particle--6"></div>
+                        
+                        {/* 중앙 로봇 */}
+                        <div className="showcase-robot">
+                            <div className="robot-glow"></div>
                             <img src={robotLogo} alt="PrePair AI" />
-                        </div>
-
-                        {/* 궤도 링 */}
-                        <div className="showcase-orbit showcase-orbit--1"></div>
-                        <div className="showcase-orbit showcase-orbit--2"></div>
-
-                        {/* 떠다니는 아이콘들 */}
-                        <div className="showcase-item showcase-item--1">
-                            <span>📬</span>
-                            <small>매일 질문</small>
-                        </div>
-                        <div className="showcase-item showcase-item--2">
-                            <span>🤖</span>
-                            <small>AI 피드백</small>
-                        </div>
-                        <div className="showcase-item showcase-item--3">
-                            <span>📈</span>
-                            <small>성장 기록</small>
-                        </div>
-                        <div className="showcase-item showcase-item--4">
-                            <span>🎁</span>
-                            <small>리워드</small>
                         </div>
                     </div>
                 </div>

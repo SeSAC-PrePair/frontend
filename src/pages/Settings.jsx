@@ -30,8 +30,8 @@ const focusAreas = [
 export default function SettingsPage() {
     const {user, updateSettings, cadencePresets, notificationChannelPresets, jobTracks} = useAppState()
     const tracks = jobTracks ?? []
-    const fallbackTrackId = user?.jobTrackId ?? tracks[0]?.id ?? ''
-    const fallbackTrack = tracks.find((track) => track.id === fallbackTrackId) ?? tracks[0]
+    const fallbackTrackId = user?.jobTrackId === 'other' ? 'other' : (user?.jobTrackId ?? tracks[0]?.id ?? '')
+    const fallbackTrack = fallbackTrackId === 'other' ? null : tracks.find((track) => track.id === fallbackTrackId) ?? tracks[0]
     const fallbackRoleId = user?.jobRoleId ?? fallbackTrack?.roles?.[0]?.id ?? ''
     const focusMatch = focusAreas.find((area) => area.label === user?.focusArea)
     const fallbackFocusAreaId = focusMatch?.id ?? focusAreas[0]?.id ?? ''
@@ -42,6 +42,7 @@ export default function SettingsPage() {
         focusAreaId: fallbackFocusAreaId,
         questionCadence: user?.questionCadence ?? 'daily',
         notificationChannels: user?.notificationChannels?.filter((channel) => channel !== 'email') ?? [],
+        customJobTrack: user?.customJobLabel ?? '',
     })
     const [status, setStatus] = useState('')
     const selectedTrack = tracks.find((track) => track.id === form.jobTrackId) ?? tracks[0]
@@ -50,8 +51,8 @@ export default function SettingsPage() {
 
     useEffect(() => {
         if (!user) return
-        const nextTrackId = user.jobTrackId ?? tracks[0]?.id ?? ''
-        const nextTrack = tracks.find((track) => track.id === nextTrackId) ?? tracks[0]
+        const nextTrackId = user.jobTrackId === 'other' ? 'other' : (user.jobTrackId ?? tracks[0]?.id ?? '')
+        const nextTrack = nextTrackId === 'other' ? null : tracks.find((track) => track.id === nextTrackId) ?? tracks[0]
         const nextRoleId = user.jobRoleId ?? nextTrack?.roles?.[0]?.id ?? ''
         const nextFocusAreaId =
             focusAreas.find((area) => area.label === user.focusArea)?.id ?? focusAreas[0]?.id ?? ''
@@ -62,6 +63,7 @@ export default function SettingsPage() {
             focusAreaId: nextFocusAreaId,
             questionCadence: user.questionCadence ?? 'daily',
             notificationChannels: user.notificationChannels?.filter((channel) => channel !== 'email') ?? [],
+            customJobTrack: user.customJobLabel ?? '',
         })
     }, [user, tracks])
 
@@ -73,6 +75,7 @@ export default function SettingsPage() {
                 ...prev,
                 jobTrackId: trackId,
                 jobRoleId: nextTrack?.roles?.[0]?.id ?? '',
+                customJobTrack: trackId === 'other' ? prev.customJobTrack : '',
             }
         })
     }
@@ -91,17 +94,19 @@ export default function SettingsPage() {
         const trackMeta = tracks.find((track) => track.id === form.jobTrackId)
         const roleMeta = trackMeta?.roles?.find((role) => role.id === form.jobRoleId)
         const focusMeta = focusAreas.find((area) => area.id === form.focusAreaId)
+        const isOther = form.jobTrackId === 'other'
         updateSettings({
-            jobTrackId: trackMeta?.id ?? '',
-            jobTrackLabel: trackMeta?.label ?? '',
-            jobRoleId: roleMeta?.id ?? '',
-            jobRoleLabel: roleMeta?.label ?? '',
-            desiredField: roleMeta?.label ?? trackMeta?.label ?? user?.desiredField ?? '',
+            jobTrackId: isOther ? 'other' : (trackMeta?.id ?? ''),
+            jobTrackLabel: isOther ? form.customJobTrack : (trackMeta?.label ?? ''),
+            jobRoleId: isOther ? '' : (roleMeta?.id ?? ''),
+            jobRoleLabel: isOther ? '' : (roleMeta?.label ?? ''),
+            desiredField: isOther ? form.customJobTrack : (roleMeta?.label ?? trackMeta?.label ?? user?.desiredField ?? ''),
             focusArea: focusMeta?.label ?? '',
             questionCadence: form.questionCadence,
             questionCadenceLabel: cadenceMeta?.label,
             questionSchedule: cadenceMeta?.schedule,
             notificationChannels: ['email', ...form.notificationChannels],
+            customJobLabel: isOther ? form.customJobTrack : '',
         })
         setStatus('저장되었습니다!')
         setTimeout(() => setStatus(''), 2400)
@@ -152,13 +157,29 @@ export default function SettingsPage() {
                                                 {track.label}
                                             </option>
                                         ))}
+                                        <option value="other">기타</option>
                                     </select>
                                 </div>
                             ) : (
                                 <p className="settings__empty">직무 정보를 불러오는 중입니다.</p>
                             )}
+                            {form.jobTrackId === 'other' && (
+                                <div className="settings__field" style={{ marginTop: '12px' }}>
+                                    <input
+                                        type="text"
+                                        id="settings-custom-job-track"
+                                        className="settings__select"
+                                        placeholder="직군을 입력해주세요"
+                                        value={form.customJobTrack}
+                                        onChange={(event) =>
+                                            setForm((prev) => ({ ...prev, customJobTrack: event.target.value }))
+                                        }
+                                    />
+                                </div>
+                            )}
                         </div>
 
+                        {form.jobTrackId !== 'other' && (
                         <div className="settings__group">
                             <p id="settings-job-role-label" className="settings__subhead">
                                 세부 직무 (Job Role)
@@ -183,6 +204,7 @@ export default function SettingsPage() {
                                 <p className="settings__empty">먼저 직군을 선택해 주세요.</p>
                             )}
                         </div>
+                        )}
 
                     </div>
                 </fieldset>

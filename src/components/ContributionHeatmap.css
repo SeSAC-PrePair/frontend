@@ -55,10 +55,11 @@
 
 .heatmap-widget__cell::after {
   content: attr(data-tooltip);
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 50%;
-  transform: translate(-50%, 6px);
+  position: fixed;
+  left: var(--tooltip-x, 50%);
+  top: var(--tooltip-y, auto);
+  bottom: auto;
+  transform: translate(-50%, 0);
   padding: 0.35rem 0.6rem;
   border-radius: 10px;
   background: #405173;
@@ -67,26 +68,13 @@
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-  z-index: 10; /* above grid and scaled cells */
+  transition: opacity 0.2s ease;
+  z-index: 1000; /* above everything */
 }
 
 .heatmap-widget__cell:hover::after,
 .heatmap-widget__cell:focus-visible::after {
   opacity: 1;
-  transform: translate(-50%, 0);
-}
-
-.heatmap-widget__cell.is-top-row::after {
-  top: calc(100% + 8px);
-  bottom: auto;
-  transform: translate(-50%, -6px);
-}
-
-.heatmap-widget__cell.is-top-row:hover::after,
-.heatmap-widget__cell.is-top-row:focus-visible::after {
-  opacity: 1;
-  transform: translate(-50%, 0);
 }
 
 .heatmap-widget__legend {
@@ -132,8 +120,10 @@
 
   /* On mobile, always render tooltip below to avoid clipping */
   .heatmap-widget__cell::after {
+    position: absolute; /* 모바일에서는 absolute 유지 */
     top: calc(100% + 8px);
     bottom: auto;
+    left: 50%; /* 모바일에서는 기본 위치 사용 */
     transform: translate(-50%, -6px);
     z-index: 999;
     max-width: calc(100vw - 40px); /* prevent off-screen overflow */
