@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__exa__web_search_exa",
+      "WebFetch(domain:toss.im)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
