@@ -340,12 +340,14 @@ export default function CoachPage() {
                                         </article>
                                     </div>
 
-                                    {activeInsight.answer && (
-                                        <div className="coach__submitted-answer">
-                                            <strong>제출한 답변</strong>
-                                            <p>{activeInsight.answer}</p>
-                                        </div>
-                                    )}
+                                    <div className="coach__submitted-answer">
+                                        <strong>제출한 답변</strong>
+                                        {(activeInsight.answer || latestDispatchLocal?.answer) ? (
+                                            <p>{activeInsight.answer || latestDispatchLocal?.answer}</p>
+                                        ) : (
+                                            <p className="coach__submitted-answer--empty">답변이 없습니다.</p>
+                                        )}
+                                    </div>
 
                                       
 
@@ -417,23 +419,21 @@ export default function CoachPage() {
                                         >
                                             <header>
                                                 <span>{new Date(entry.submittedAt).toLocaleDateString('ko-KR')}</span>
-                                                <strong>{entry.score}점</strong>
+                                                {entry.answer && entry.score != null && (
+                                                    <strong>{entry.score}점</strong>
+                                                )}
                                             </header>
-                                            <p>{entry.question}</p>
-                                            {entry.focusTags?.length > 0 && (
-                                                <div className="badge-row">
-                                                    {entry.focusTags.map((tag) => (
-                                                        <span key={tag}>{tag}</span>
-                                                    ))}
-                                                </div>
-                                            )}
-                                            {entry.highlights?.length > 0 && (
-                                                <ul>
-                                                    {entry.highlights.slice(0, 2).map((highlight) => (
-                                                        <li key={highlight}>{highlight}</li>
-                                                    ))}
-                                                </ul>
-                                            )}
+                                            <div className="history-card__question">
+                                                <p>{entry.question}</p>
+                                            </div>
+                                            <div className="history-card__answer">
+                                                <strong>내 답변</strong>
+                                                {entry.answer ? (
+                                                    <p>{entry.answer.length > 21 ? `${entry.answer.slice(0, 21)}...` : entry.answer}</p>
+                                                ) : (
+                                                    <p className="history-card__answer--empty">답변이 없습니다.</p>
+                                                )}
+                                            </div>
                                         </article>
                                     ))}
                                 </div>

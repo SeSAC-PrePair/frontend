@@ -6,10 +6,10 @@ import '../styles/layouts/AppLayout.css'
 import brandLogo from '/src/assets/b01fa81ce7a959934e8f78fc6344081972afd0ae.png' // 1. 로고 파일 import
 
 const navItems = [
-    { to: '/rewards', label: 'home' },
-    { to: '/coach', label: 'interview' },
-    { to: '/rewards/shop', label: 'reward' },
-    { to: '/settings', label: 'settings' },
+    { to: '/rewards', label: 'Home' },
+    { to: '/coach', label: 'Interview' },
+    { to: '/rewards/shop', label: 'Reward' },
+    { to: '/settings', label: 'Settings' },
 ]
 
 const activeLinkClass = ({ isActive }) => (isActive ? 'nav__link nav__link--active' : 'nav__link')

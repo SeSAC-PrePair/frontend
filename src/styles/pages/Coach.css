@@ -396,18 +396,31 @@
   border: 1px solid rgba(64, 81, 115, 0.22);
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.92);
+  max-height: 110px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .coach__submitted-answer strong {
   display: block;
   margin-bottom: 0.4rem;
+  flex-shrink: 0;
 }
 
 .coach__submitted-answer p {
   margin: 0;
   color: var(--text-primary);
   line-height: 1.6;
+  word-break: break-word;
   white-space: pre-wrap;
+  flex: 1;
+  min-height: 0;
+}
+
+.coach__submitted-answer--empty {
+  color: var(--text-muted) !important;
+  font-style: italic;
 }
 .coach__insight-meta {
   display: grid;
@@ -497,7 +510,8 @@
   border-radius: var(--radius-lg);
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(64, 81, 115, 0.18);
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 0.7rem;
   
   transition: transform 0.25s ease;
@@ -514,11 +528,20 @@
   align-items: center;
   gap: 0.6rem;
   color: var(--text-secondary);
+  min-height: 2.2rem;
+  flex-shrink: 0;
 }
 
-.history-card p {
+.history-card__question {
+  min-height: 4.8em;
+  flex-shrink: 0;
+  margin-bottom: 0.8rem;
+}
+
+.history-card__question p {
   margin: 0;
   color: var(--text-primary);
+  line-height: 1.6;
 }
 
 .history-card ul {
@@ -527,6 +550,52 @@
   color: var(--text-secondary);
   display: grid;
   gap: 0.3rem;
+}
+
+.history-card__answer {
+  margin-top: 0;
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius-md);
+  background: rgba(242, 228, 236, 0.35);
+  border: 1px solid rgba(174, 197, 242, 0.4);
+  height: 95px;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.history-card__answer strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+  height: 1.2rem;
+}
+
+.history-card__answer p {
+  margin: 0;
+  color: var(--text-primary);
+  line-height: 1.6;
+  word-break: break-word;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-height: 0;
+}
+
+.history-card__answer--empty {
+  color: var(--text-muted) !important;
+  font-style: italic;
+  max-height: none !important;
+  overflow: visible !important;
+  display: block !important;
+  -webkit-line-clamp: unset !important;
 }
 
 .coach__empty {

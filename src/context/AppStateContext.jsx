@@ -499,6 +499,17 @@ export function AppProvider({children}) {
         sequenceRef.current = 0
     }, [])
 
+    const deleteAccount = useCallback(() => {
+        setUser(null)
+        setActiveQuestion(null)
+        setSentQuestions([])
+        setLastDispatch(null)
+        setScoreHistory([])
+        setActivity(defaultActivity)
+        setPurchases([])
+        sequenceRef.current = 0
+    }, [])
+
     const updateSettings = useCallback((nextSettings) => {
         setUser((prev) => {
             if (!prev) return prev
@@ -626,6 +637,7 @@ export function AppProvider({children}) {
         login,
         signup,
         logout,
+        deleteAccount,
         updateSettings,
         scoringRubric,
         currentQuestion,

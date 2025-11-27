@@ -1,5 +1,5 @@
-import {motion} from 'framer-motion'
 import {useEffect, useState} from 'react'
+import {useNavigate} from 'react-router-dom'
 import {useAppState} from '../context/AppStateContext'
 import '../styles/pages/Settings.css'
 
@@ -28,7 +28,8 @@ const focusAreas = [
 
 
 export default function SettingsPage() {
-    const {user, updateSettings, cadencePresets, notificationChannelPresets, jobTracks} = useAppState()
+    const {user, updateSettings, deleteAccount, cadencePresets, notificationChannelPresets, jobTracks} = useAppState()
+    const navigate = useNavigate()
     const tracks = jobTracks ?? []
     const fallbackTrackId = user?.jobTrackId === 'other' ? 'other' : (user?.jobTrackId ?? tracks[0]?.id ?? '')
     const fallbackTrack = fallbackTrackId === 'other' ? null : tracks.find((track) => track.id === fallbackTrackId) ?? tracks[0]
@@ -37,6 +38,8 @@ export default function SettingsPage() {
     const fallbackFocusAreaId = focusMatch?.id ?? focusAreas[0]?.id ?? ''
 
     const [form, setForm] = useState({
+        name: user?.name ?? '',
+        email: user?.email ?? '',
         jobTrackId: fallbackTrackId,
         jobRoleId: fallbackRoleId,
         focusAreaId: fallbackFocusAreaId,
@@ -58,6 +61,8 @@ export default function SettingsPage() {
             focusAreas.find((area) => area.label === user.focusArea)?.id ?? focusAreas[0]?.id ?? ''
 
         setForm({
+            name: user.name ?? '',
+            email: user.email ?? '',
             jobTrackId: nextTrackId,
             jobRoleId: nextRoleId,
             focusAreaId: nextFocusAreaId,
@@ -124,6 +129,16 @@ export default function SettingsPage() {
         })
     }
 
+    const handleDeleteAccount = () => {
+        const confirmed = window.confirm(
+            '정말 회원 탈퇴를 하시겠습니까?\n탈퇴 시 모든 데이터가 삭제되며 복구할 수 없습니다.'
+        )
+        if (confirmed) {
+            deleteAccount()
+            navigate('/', {replace: true})
+        }
+    }
+
     return (
         <div className="settings">
             <header className="settings__header">
@@ -136,6 +151,47 @@ export default function SettingsPage() {
             </header>
 
             <form className="settings__form" onSubmit={handleSubmit}>
+                <fieldset>
+                    <b>개인 정보</b>
+                    <div className="settings__goal-section">
+                        <div className="settings__group">
+                            <p id="settings-name-label" className="settings__subhead">
+                                이름
+                            </p>
+                            <div className="settings__field">
+                                <input
+                                    type="text"
+                                    id="settings-name"
+                                    className="settings__select"
+                                    aria-labelledby="settings-name-label"
+                                    placeholder="이름을 입력해주세요"
+                                    value={form.name}
+                                    disabled
+                                    readOnly
+                                />
+                            </div>
+                        </div>
+
+                        <div className="settings__group">
+                            <p id="settings-email-label" className="settings__subhead">
+                                이메일
+                            </p>
+                            <div className="settings__field">
+                                <input
+                                    type="email"
+                                    id="settings-email"
+                                    className="settings__select"
+                                    aria-labelledby="settings-email-label"
+                                    placeholder="이메일을 입력해주세요"
+                                    value={form.email}
+                                    disabled
+                                    readOnly
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+
                 <fieldset>
                     <b>목표 직무 · 관심 분야</b>
                     <div className="settings__goal-section">
@@ -263,6 +319,20 @@ export default function SettingsPage() {
                 </button>
                 {status && <p className="settings__status">{status}</p>}
             </form>
+
+            <div className="settings__danger-zone">
+                <h2 className="settings__danger-title">위험 구역</h2>
+                <p className="settings__danger-description">
+                    회원 탈퇴 시 모든 데이터가 영구적으로 삭제되며 복구할 수 없습니다.
+                </p>
+                <button
+                    type="button"
+                    onClick={handleDeleteAccount}
+                    className="settings__delete-button"
+                >
+                    회원 탈퇴
+                </button>
+            </div>
         </div>
     )
 }
