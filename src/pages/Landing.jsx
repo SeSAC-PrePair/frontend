@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import useMediaQuery from '../hooks/useMediaQuery'
 import robotLogo from '../assets/b01fa81ce7a959934e8f78fc6344081972afd0ae.png'
+import { fetchJobPostings, getEmploymentTypeText } from '../utils/worknetApi'
 import '../styles/pages/Landing.css'
 
 const benefits = [
@@ -78,15 +79,16 @@ const testimonials = [
     },
 ]
 
-const jobPostings = [
-    { company: '하이퍼레일', position: '프론트엔드 개발자', type: '정규직', logo: '🚄' },
-    { company: '골든치즈', position: 'PM/기획자', type: '정규직', logo: '🧀' },
-    { company: '체스테크', position: '백엔드 개발자', type: '정규직', logo: '♟️' },
-    { company: '플러피랩', position: 'UX 디자이너', type: '정규직', logo: '🐥' },
-    { company: '버거테크', position: '데이터 분석가', type: '정규직', logo: '🍔' },
-    { company: '카모빌', position: 'iOS 개발자', type: '정규직', logo: '🚗' },
-    { company: '프레시캐롯', position: 'Android 개발자', type: '정규직', logo: '🥕' },
-    { company: '타겟랩', position: '마케터', type: '정규직', logo: '🎯' },
+// 기본 채용정보 (API 호출 실패 시 사용)
+const defaultJobPostings = [
+    { company: '하이퍼레일', position: '프론트엔드 개발자', type: '정규직' },
+    { company: '골든치즈', position: 'PM/기획자', type: '정규직' },
+    { company: '체스테크', position: '백엔드 개발자', type: '정규직' },
+    { company: '플러피랩', position: 'UX 디자이너', type: '정규직' },
+    { company: '버거테크', position: '데이터 분석가', type: '정규직' },
+    { company: '카모빌', position: 'iOS 개발자', type: '정규직' },
+    { company: '프레시캐롯', position: 'Android 개발자', type: '정규직' },
+    { company: '타겟랩', position: '마케터', type: '정규직' },
 ]
 
 export default function LandingPage() {
@@ -95,6 +97,8 @@ export default function LandingPage() {
     const howStepsRef = useRef(null)
     const [benefitIndex, setBenefitIndex] = useState(0)
     const [howIndex, setHowIndex] = useState(0)
+    const [jobPostings, setJobPostings] = useState(defaultJobPostings)
+    const [isLoadingJobs, setIsLoadingJobs] = useState(true)
 
     const handleScroll = (ref, setIndex, itemCount) => {
         if (!ref.current) return
@@ -103,6 +107,39 @@ export default function LandingPage() {
         const newIndex = Math.round(scrollLeft / itemWidth)
         setIndex(newIndex)
     }
+
+    // 워크넷 API에서 채용정보 가져오기
+    useEffect(() => {
+        const loadJobPostings = async () => {
+            try {
+                setIsLoadingJobs(true)
+                const jobs = await fetchJobPostings({
+                    display: 20, // 더 많은 채용정보를 가져와서 무한 스크롤 효과를 위해
+                })
+                
+                // API 데이터를 컴포넌트에서 사용할 형식으로 변환
+                const formattedJobs = jobs.map((job) => ({
+                    company: job.company || job.empBusiNm || '공채기업',
+                    position: job.title || job.empWantedTitle || '채용공고',
+                    type: job.type || job.empWantedTypeNm || '정규직',
+                    region: job.region || job.coClcdNm || '',
+                    salary: job.sal || '',
+                    wantedInfoUrl: job.wantedInfoUrl || job.empWantedHomepgDetail || job.empWantedMobileUrl || '#',
+                }))
+                
+                if (formattedJobs.length > 0) {
+                    setJobPostings(formattedJobs)
+                }
+            } catch (error) {
+                console.error('채용정보 로딩 실패:', error)
+                // 에러 발생 시 기본 데이터 사용 (이미 defaultJobPostings로 설정됨)
+            } finally {
+                setIsLoadingJobs(false)
+            }
+        }
+        
+        loadJobPostings()
+    }, [])
 
     return (
         <div className="landing-new">
@@ -266,18 +303,28 @@ export default function LandingPage() {
                     <p>PrePair와 함께 면접 준비하고 꿈의 기업에 도전하세요</p>
                 </div>
                 <div className="job-banner">
-                    <div className="job-banner__track">
-                        {[...jobPostings, ...jobPostings].map((job, idx) => (
-                            <div key={idx} className="job-card">
-                                <span className="job-card__logo">{job.logo}</span>
-                                <div className="job-card__info">
-                                    <strong>{job.company}</strong>
-                                    <span>{job.position}</span>
-                                </div>
-                                <span className="job-card__type">{job.type}</span>
-                            </div>
-                        ))}
-                    </div>
+                    {isLoadingJobs ? (
+                        <div className="job-loading">채용정보를 불러오는 중...</div>
+                    ) : (
+                        <div className="job-banner__track">
+                            {[...jobPostings, ...jobPostings].map((job, idx) => (
+                                <a
+                                    key={`${job.company}-${idx}`}
+                                    href={job.wantedInfoUrl || '#'}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="job-card"
+                                >
+                                    <div className="job-card__info">
+                                        <strong>{job.company}</strong>
+                                        <span>{job.position}</span>
+                                        {job.region && <span className="job-card__region">{job.region}</span>}
+                                    </div>
+                                    <span className="job-card__type">{job.type}</span>
+                                </a>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </section>
         </div>
