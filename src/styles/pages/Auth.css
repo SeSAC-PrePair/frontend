@@ -1,8 +1,124 @@
 .auth {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: calc(100vh - 140px);
+    gap: 2rem;
+    padding: 2rem clamp(1rem, 5vw, 4rem);
+    max-width: 1200px;
+    margin: 0 auto;
+    align-items: center;
+}
+
+/* 로봇 섹션 (왼쪽) */
+.auth__robot-section {
     display: flex;
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
-    align-items: flex-start;
-    padding: 3rem 0 4.6rem;
+    gap: 2rem;
+}
+
+.auth__robot-text {
+    text-align: center;
+}
+
+.auth__robot-text h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin: 0;
+    background: linear-gradient(135deg, #6699ff 0%, #8b5cf6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.auth__robot-text p {
+    margin: 0.5rem 0 0;
+    color: #6b7280;
+    font-size: 1.125rem;
+}
+
+/* 로봇 마스코트 */
+.auth__robot {
+    position: relative;
+    width: 300px;
+    height: 300px;
+}
+
+.auth__robot img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 12px 32px rgba(255, 158, 181, 0.35));
+}
+
+/* 얼굴 마스크 - 기존 눈 가리기 (둥근 직사각형) */
+.auth__robot-face-mask {
+    position: absolute;
+    top: 27.5%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 38%;
+    height: 23%;
+    background: #3d3d5c;
+    border-radius: 42%;
+}
+
+/* 눈 컨테이너 */
+.auth__robot-eyes {
+    position: absolute;
+    top: 31%;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 22px;
+}
+
+/* 개별 눈 - 링 스타일 */
+.auth__robot-eye {
+    width: 23px;
+    height: 30px;
+    background: transparent;
+    border: 5px solid #7dd3fc;
+    border-radius: 50%;
+    transition: transform 0.1s ease-out, opacity 0.15s ease-out;
+    box-shadow:
+        0 0 10px rgba(125, 211, 252, 0.5),
+        inset 0 0 6px rgba(125, 211, 252, 0.3);
+}
+
+/* 눈동자 숨김 */
+.auth__robot-pupil {
+    display: none;
+}
+
+/* 타이핑 시 행복한 눈 (^ ^) */
+.auth__robot-eye--happy {
+    position: absolute;
+    width: 23px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 50px;
+    font-weight: bold;
+    color: #7dd3fc;
+    text-shadow: 0 0 10px rgba(125, 211, 252, 0.8);
+    border: none;
+    background: transparent;
+    line-height: 1;
+    transition: opacity 0.15s ease-out;
+    pointer-events: none;
+}
+
+/* 3번째 요소 (첫 번째 행복한 눈) */
+.auth__robot-eyes > .auth__robot-eye--happy:nth-child(3) {
+    left: 0;
+}
+
+/* 4번째 요소 (두 번째 행복한 눈) */
+.auth__robot-eyes > .auth__robot-eye--happy:nth-child(4) {
+    right: 0;
 }
 
 .auth__intro {
@@ -200,4 +316,30 @@
 
 .auth__hint--good {
     color: rgba(64, 174, 255, 1);
+}
+
+.auth__mode-switch {
+    text-align: center;
+    font-size: 0.9rem;
+    color: rgba(20, 31, 64, 0.72);
+    margin-top: 0.5rem;
+}
+
+/* 반응형 - 태블릿/모바일 */
+@media (max-width: 900px) {
+    .auth {
+        grid-template-columns: 1fr;
+        min-height: auto;
+        padding: 2rem 1.5rem 3rem;
+        gap: 0;
+    }
+
+    /* 모바일에서 로봇 섹션 숨김 */
+    .auth__robot-section {
+        display: none;
+    }
+
+    .auth__form {
+        max-width: 100%;
+    }
 }
