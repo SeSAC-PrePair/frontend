@@ -82,25 +82,7 @@ export async function generateFeedback(historyId, payload) {
         // 필드 존재 여부 및 값 확인
         const hasQuestion = 'question' in parsedBody && parsedBody.question != null && parsedBody.question !== ''
         const hasAnswer = 'answer' in parsedBody && parsedBody.answer != null && parsedBody.answer !== ''
-        
-        console.log('[Feedback API] ===== Request Details =====')
-        console.log('[Feedback API] Request URL:', apiUrl)
-        console.log('[Feedback API] Request Method: POST')
-        console.log('[Feedback API] Request payload (object):', requestBody)
-        console.log('[Feedback API] Request payload (parsed):', parsedBody)
-        console.log('[Feedback API] Request body string:', requestBodyString)
-        console.log('[Feedback API] Has question field:', 'question' in parsedBody)
-        console.log('[Feedback API] Has answer field:', 'answer' in parsedBody)
-        console.log('[Feedback API] Question is valid:', hasQuestion)
-        console.log('[Feedback API] Answer is valid:', hasAnswer)
-        console.log('[Feedback API] Question value:', parsedBody.question)
-        console.log('[Feedback API] Question type:', typeof parsedBody.question)
-        console.log('[Feedback API] Question length:', parsedBody.question?.length)
-        console.log('[Feedback API] Answer value (first 100 chars):', parsedBody.answer?.substring(0, 100) + '...')
-        console.log('[Feedback API] Answer type:', typeof parsedBody.answer)
-        console.log('[Feedback API] Answer length:', parsedBody.answer?.length)
-        console.log('[Feedback API] Body type:', typeof requestBodyString)
-        console.log('[Feedback API] Body length:', requestBodyString.length)
+    
         
         // 필드 검증 실패 시 에러
         if (!hasQuestion || !hasAnswer) {
