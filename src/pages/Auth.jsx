@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAppState } from '../context/AppStateContext'
+import robotLogo from '../assets/b01fa81ce7a959934e8f78fc6344081972afd0ae.png'
 import '../styles/pages/Auth.css'
 
 const steps = [
@@ -102,8 +103,107 @@ export default function AuthPage() {
         ? '이메일 및 카카오톡'
         : '이메일';
 
+    // 로봇 눈 마우스 트래킹
+    const robotRef = useRef(null)
+    const [eyeOffset, setEyeOffset] = useState({ x: 0, y: 0 })
+    const [isTyping, setIsTyping] = useState(false)
+    const typingTimeoutRef = useRef(null)
+
+    useEffect(() => {
+        const handleMouseMove = (event) => {
+            if (!robotRef.current) return
+
+            const robotRect = robotRef.current.getBoundingClientRect()
+            const robotCenterX = robotRect.left + robotRect.width / 2
+            const robotCenterY = robotRect.top + robotRect.height * 0.35 // 눈 위치 기준
+
+            const deltaX = event.clientX - robotCenterX
+            const deltaY = event.clientY - robotCenterY
+
+            // 눈 이동 범위 제한 (위쪽은 적게, 아래쪽은 많이)
+            const offsetX = Math.max(-8, Math.min(8, deltaX / 40))
+            const offsetY = deltaY < 0
+                ? Math.max(0, deltaY / 100)   // 위쪽: 최대 -3px, 둔감하게
+                : Math.min(15, deltaY / 20)   // 아래쪽: 최대 12px, 민감하게
+
+            setEyeOffset({ x: offsetX, y: offsetY })
+        }
+
+        window.addEventListener('mousemove', handleMouseMove)
+        return () => window.removeEventListener('mousemove', handleMouseMove)
+    }, [])
+
+    // 키보드 입력 감지
+    useEffect(() => {
+        const handleKeyDown = (event) => {
+            // 입력 필드에서만 반응하도록 체크
+            const tagName = event.target.tagName.toLowerCase()
+            if (tagName === 'input' || tagName === 'textarea') {
+                setIsTyping(true)
+
+                // 이전 타이머 클리어
+                if (typingTimeoutRef.current) {
+                    clearTimeout(typingTimeoutRef.current)
+                }
+
+                // 500ms 후 원래 눈으로 복구
+                typingTimeoutRef.current = setTimeout(() => {
+                    setIsTyping(false)
+                }, 500)
+            }
+        }
+
+        window.addEventListener('keydown', handleKeyDown)
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown)
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current)
+            }
+        }
+    }, [])
+
     return (
         <div className="auth">
+            {/* 로봇 마스코트 */}
+            <div className="auth__robot-section">
+                <div className="auth__robot" ref={robotRef}>
+                    <img src={robotLogo} alt="PrePair 로봇" />
+                    {/* 눈 영역 마스크 (검은색으로 기존 눈 가림) */}
+                    <div className="auth__robot-face-mask" />
+                    {/* 커스텀 눈 */}
+                    <div className="auth__robot-eyes">
+                        {/* 일반 눈 */}
+                        <div
+                            className="auth__robot-eye auth__robot-eye--left"
+                            style={{
+                                transform: `translate(${eyeOffset.x}px, ${eyeOffset.y}px)`,
+                                opacity: isTyping ? 0 : 1
+                            }}
+                        />
+                        <div
+                            className="auth__robot-eye auth__robot-eye--right"
+                            style={{
+                                transform: `translate(${eyeOffset.x}px, ${eyeOffset.y}px)`,
+                                opacity: isTyping ? 0 : 1
+                            }}
+                        />
+                        {/* 행복한 눈 (^ ^) */}
+                        <div
+                            className="auth__robot-eye--happy"
+                            style={{ opacity: isTyping ? 1 : 0 }}
+                        >^</div>
+                        <div
+                            className="auth__robot-eye--happy"
+                            style={{ opacity: isTyping ? 1 : 0 }}
+                        >^</div>
+                    </div>
+                </div>
+                <div className="auth__robot-text">
+                    <h1>PrePair</h1>
+                    <p>AI와 함께하는 면접 준비</p>
+                </div>
+            </div>
+
             <section className="auth__form">
                 <header>
                     <h2>{mode === 'signup' ? '회원가입' : '로그인'}</h2>
@@ -325,6 +425,16 @@ export default function AuthPage() {
                             </>
                         )}
 
+                        <p className="auth__mode-switch">
+                            이미 계정이 있으신가요?
+                            <button
+                                type="button"
+                                className="auth__link"
+                                onClick={() => setMode('login')}
+                            >
+                                로그인
+                            </button>
+                        </p>
                     </form>
                 ) : (
                     <form onSubmit={handleLogin}>
@@ -356,6 +466,17 @@ export default function AuthPage() {
                         <button type="submit" className="cta-button cta-button--primary" disabled={loginDisabled}>
                             로그인
                         </button>
+
+                        <p className="auth__mode-switch">
+                            계정이 없으신가요?
+                            <button
+                                type="button"
+                                className="auth__link"
+                                onClick={() => setMode('signup')}
+                            >
+                                회원가입
+                            </button>
+                        </p>
                     </form>
                 )}
             </section>

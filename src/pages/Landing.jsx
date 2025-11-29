@@ -182,29 +182,82 @@ export default function LandingPage() {
                 </div>
                 <div className="hero-visual">
                     <div className="hero-showcase">
-                        {/* 배경 그라데이션 원 */}
-                        <div className="showcase-glow showcase-glow--1"></div>
-                        <div className="showcase-glow showcase-glow--2"></div>
-                        <div className="showcase-glow showcase-glow--3"></div>
-                        
-                        {/* 원형 링들 */}
-                        <div className="showcase-ring showcase-ring--1"></div>
-                        <div className="showcase-ring showcase-ring--2"></div>
-                        <div className="showcase-ring showcase-ring--3"></div>
-                        
-                        {/* 파티클 효과 */}
-                        <div className="showcase-particle showcase-particle--1"></div>
-                        <div className="showcase-particle showcase-particle--2"></div>
-                        <div className="showcase-particle showcase-particle--3"></div>
-                        <div className="showcase-particle showcase-particle--4"></div>
-                        <div className="showcase-particle showcase-particle--5"></div>
-                        <div className="showcase-particle showcase-particle--6"></div>
-                        
+                        {/* 메시 그라데이션 배경 */}
+                        <div className="showcase-mesh"></div>
+
+                        {/* 오비탈 링 */}
+                        <div className="showcase-orbit showcase-orbit--1">
+                            <div className="orbit-dot"></div>
+                        </div>
+                        <div className="showcase-orbit showcase-orbit--2">
+                            <div className="orbit-dot"></div>
+                        </div>
+                        <div className="showcase-orbit showcase-orbit--3">
+                            <div className="orbit-dot"></div>
+                        </div>
+
+                        {/* 플로팅 글래스 카드들 */}
+                        <div className="floating-card floating-card--question">
+                            <div className="floating-card__icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                </svg>
+                            </div>
+                            <div className="floating-card__content">
+                                <span className="floating-card__label">오늘의 질문</span>
+                                <span className="floating-card__text">협업 경험을 알려주세요</span>
+                            </div>
+                        </div>
+
+                        <div className="floating-card floating-card--score">
+                            <div className="floating-card__icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                </svg>
+                            </div>
+                            <div className="floating-card__content">
+                                <span className="floating-card__label">AI 평가</span>
+                                <span className="floating-card__value">92<small>점</small></span>
+                            </div>
+                        </div>
+
+                        <div className="floating-card floating-card--feedback">
+                            <div className="floating-card__icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                            </div>
+                            <div className="floating-card__content">
+                                <span className="floating-card__label">피드백</span>
+                                <span className="floating-card__text">구체적인 예시 Good!</span>
+                            </div>
+                        </div>
+
+                        <div className="floating-card floating-card--reward">
+                            <div className="floating-card__icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="8" r="6"/>
+                                    <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>
+                                </svg>
+                            </div>
+                            <div className="floating-card__content">
+                                <span className="floating-card__label">리워드</span>
+                                <span className="floating-card__text">치킨 교환권 🍗</span>
+                            </div>
+                        </div>
+
                         {/* 중앙 로봇 */}
                         <div className="showcase-robot">
+                            <div className="robot-platform"></div>
                             <div className="robot-glow"></div>
                             <img src={robotLogo} alt="PrePair AI" />
+                            <div className="robot-shadow"></div>
                         </div>
+
+                        {/* 스파클 효과 */}
+                        <div className="sparkle sparkle--1"></div>
+                        <div className="sparkle sparkle--2"></div>
+                        <div className="sparkle sparkle--3"></div>
                     </div>
                 </div>
             </section>
