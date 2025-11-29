@@ -1,0 +1,431 @@
+/**
+ * 피드백 생성 API 유틸리티
+ */
+
+/**
+ * 질문에 대한 피드백을 생성합니다.
+ * @param {string} historyId - 히스토리 ID (예: "h-004")
+ * @param {Object} payload - 요청 페이로드
+ * @param {string} payload.question - 질문 내용
+ * @param {string} payload.answer - 답변 내용
+ * @returns {Promise<Object>} 피드백 응답 객체
+ * @throws {Error} API 호출 실패 시 에러 발생
+ */
+export async function generateFeedback(historyId, payload) {
+    // payload 자체 검증
+    if (!payload || typeof payload !== 'object') {
+        throw new Error('요청 데이터가 올바르지 않습니다.')
+    }
+
+    const { question, answer } = payload
+
+    // 디버깅: payload 내용 확인
+    console.log('[Feedback API] Payload received:', {
+        hasQuestion: 'question' in payload,
+        hasAnswer: 'answer' in payload,
+        questionType: typeof question,
+        answerType: typeof answer,
+        questionValue: question,
+        answerValue: answer,
+    })
+
+    // 필수 파라미터 검증
+    if (!question || typeof question !== 'string' || !question.trim()) {
+        console.error('[Feedback API] Question validation failed:', { question, type: typeof question })
+        throw new Error('질문이 없습니다. 다시 확인해주세요.')
+    }
+
+    if (!answer || typeof answer !== 'string' || !answer.trim()) {
+        console.error('[Feedback API] Answer validation failed:', { answer, type: typeof answer })
+        throw new Error('답변이 없습니다. 다시 확인해주세요.')
+    }
+
+    if (!historyId) {
+        throw new Error('히스토리 ID가 필요합니다.')
+    }
+
+    const apiUrl = `/api/evaluation/feedback/${historyId}`
+    
+    try {
+        const trimmedQuestion = question.trim()
+        const trimmedAnswer = answer.trim()
+        
+        // 추가 검증: 빈 문자열 체크
+        if (!trimmedQuestion) {
+            throw new Error('질문이 비어있습니다. 다시 확인해주세요.')
+        }
+        
+        if (!trimmedAnswer) {
+            throw new Error('답변이 비어있습니다. 다시 확인해주세요.')
+        }
+        
+        // 서버 스펙에 맞는 요청 본문 생성
+        // API 문서에 따르면: { question: string, answer: string }
+        // 명시적으로 객체를 생성하여 서버가 파싱할 수 있도록 함
+        const requestBody = {
+            question: String(trimmedQuestion),
+            answer: String(trimmedAnswer),
+        }
+        
+        // JSON 직렬화 (서버가 기대하는 형식과 정확히 일치하도록)
+        const requestBodyString = JSON.stringify(requestBody, null, 0)
+        
+        // 최종 요청 본문 검증
+        let parsedBody
+        try {
+            parsedBody = JSON.parse(requestBodyString)
+        } catch (parseErr) {
+            console.error('[Feedback API] Failed to parse request body:', parseErr)
+            throw new Error('요청 본문 생성에 실패했습니다.')
+        }
+        
+        // 필드 존재 여부 및 값 확인
+        const hasQuestion = 'question' in parsedBody && parsedBody.question != null && parsedBody.question !== ''
+        const hasAnswer = 'answer' in parsedBody && parsedBody.answer != null && parsedBody.answer !== ''
+        
+        console.log('[Feedback API] ===== Request Details =====')
+        console.log('[Feedback API] Request URL:', apiUrl)
+        console.log('[Feedback API] Request Method: POST')
+        console.log('[Feedback API] Request payload (object):', requestBody)
+        console.log('[Feedback API] Request payload (parsed):', parsedBody)
+        console.log('[Feedback API] Request body string:', requestBodyString)
+        console.log('[Feedback API] Has question field:', 'question' in parsedBody)
+        console.log('[Feedback API] Has answer field:', 'answer' in parsedBody)
+        console.log('[Feedback API] Question is valid:', hasQuestion)
+        console.log('[Feedback API] Answer is valid:', hasAnswer)
+        console.log('[Feedback API] Question value:', parsedBody.question)
+        console.log('[Feedback API] Question type:', typeof parsedBody.question)
+        console.log('[Feedback API] Question length:', parsedBody.question?.length)
+        console.log('[Feedback API] Answer value (first 100 chars):', parsedBody.answer?.substring(0, 100) + '...')
+        console.log('[Feedback API] Answer type:', typeof parsedBody.answer)
+        console.log('[Feedback API] Answer length:', parsedBody.answer?.length)
+        console.log('[Feedback API] Body type:', typeof requestBodyString)
+        console.log('[Feedback API] Body length:', requestBodyString.length)
+        
+        // 필드 검증 실패 시 에러
+        if (!hasQuestion || !hasAnswer) {
+            console.error('[Feedback API] Validation failed - missing fields:', {
+                hasQuestion,
+                hasAnswer,
+                questionValue: parsedBody.question,
+                answerValue: parsedBody.answer?.substring(0, 50),
+            })
+            throw new Error(`요청 데이터가 올바르지 않습니다. 질문: ${hasQuestion}, 답변: ${hasAnswer}`)
+        }
+        
+        console.log('[Feedback API] ===========================')
+        
+        // POST 요청 전송 (서버 스펙에 맞는 형식)
+        // API 문서에 따라 명시적으로 Content-Type 설정
+        const requestHeaders = {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Accept': 'application/json',
+        }
+        
+        console.log('[Feedback API] Request headers:', requestHeaders)
+        console.log('[Feedback API] Sending request with body:', requestBodyString.substring(0, 200) + '...')
+        
+        // 최종 요청 본문을 다시 파싱하여 확인
+        let finalBodyCheck
+        try {
+            finalBodyCheck = JSON.parse(requestBodyString)
+            console.log('[Feedback API] ===== Final Body Check Before Send =====')
+            console.log('[Feedback API] Full request body (string):', requestBodyString)
+            console.log('[Feedback API] Parsed request body:', finalBodyCheck)
+            console.log('[Feedback API] Has question field:', 'question' in finalBodyCheck)
+            console.log('[Feedback API] Has answer field:', 'answer' in finalBodyCheck)
+            console.log('[Feedback API] Question value:', finalBodyCheck.question)
+            console.log('[Feedback API] Question type:', typeof finalBodyCheck.question)
+            console.log('[Feedback API] Question length:', finalBodyCheck.question?.length)
+            console.log('[Feedback API] Answer value (first 100 chars):', finalBodyCheck.answer?.substring(0, 100) + '...')
+            console.log('[Feedback API] Answer type:', typeof finalBodyCheck.answer)
+            console.log('[Feedback API] Answer length:', finalBodyCheck.answer?.length)
+            console.log('[Feedback API] All keys in body:', Object.keys(finalBodyCheck))
+            console.log('[Feedback API] Body keys count:', Object.keys(finalBodyCheck).length)
+            console.log('[Feedback API] ==========================================')
+        } catch (e) {
+            console.error('[Feedback API] Failed to parse final body:', e)
+        }
+        
+        // 실제 fetch 요청 직전에 최종 확인
+        console.log('[Feedback API] About to send fetch request to:', apiUrl)
+        console.log('[Feedback API] Method: POST')
+        console.log('[Feedback API] Headers:', JSON.stringify(requestHeaders, null, 2))
+        console.log('[Feedback API] Body length:', requestBodyString.length)
+        console.log('[Feedback API] Body (full):', requestBodyString)
+        
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: requestHeaders,
+            body: requestBodyString,
+            credentials: 'include', // 쿠키 포함
+        })
+        
+        // 요청이 실제로 전송되었는지 확인
+        console.log('[Feedback API] Fetch completed, response status:', response.status)
+
+        // 응답이 JSON이 아닐 수 있으므로 먼저 텍스트로 읽기
+        const responseText = await response.text()
+        const contentType = response.headers.get('content-type') || ''
+        
+        // 디버깅을 위한 로그
+        console.log('[Feedback API] ===== Response Details =====')
+        console.log('[Feedback API] Response status:', response.status)
+        console.log('[Feedback API] Content-Type:', contentType)
+        console.log('[Feedback API] Response text (full):', responseText)
+        console.log('[Feedback API] =============================')
+        
+        if (!response.ok) {
+            let errorData
+            try {
+                if (responseText.trim()) {
+                    errorData = JSON.parse(responseText)
+                    console.error('[Feedback API] Error response data:', errorData)
+                } else {
+                    errorData = { message: '서버에서 빈 응답을 받았습니다.' }
+                }
+            } catch (parseError) {
+                console.error('[Feedback API] Error response parse failed:', parseError)
+                console.error('[Feedback API] Raw response:', responseText)
+                errorData = { 
+                    message: responseText || `서버 오류가 발생했습니다. (${response.status} ${response.statusText})` 
+                }
+            }
+
+            // 400 Bad Request 에러 처리
+            if (response.status === 400) {
+                // 에러 응답 형식: { message, error, statusCode }
+                const errorMessage = errorData.message || errorData.error || '질문이 없습니다. 다시 확인해주세요.'
+                
+                // 상세한 디버깅 정보 출력
+                console.error('[Feedback API] ===== 400 Bad Request Error Details =====')
+                console.error('[Feedback API] Error message:', errorMessage)
+                console.error('[Feedback API] Error object:', errorData.error)
+                console.error('[Feedback API] Status code:', errorData.statusCode)
+                console.error('[Feedback API] Full error data:', errorData)
+                console.error('[Feedback API] Raw response text:', responseText)
+                console.error('[Feedback API] Request URL:', apiUrl)
+                console.error('[Feedback API] Request payload sent:', {
+                    question: requestBody.question,
+                    answer: requestBody.answer?.substring(0, 100) + '...',
+                    questionLength: requestBody.question?.length,
+                    answerLength: requestBody.answer?.length,
+                    questionExists: !!requestBody.question,
+                    answerExists: !!requestBody.answer,
+                })
+                console.error('[Feedback API] =========================================')
+                
+                throw new Error(errorMessage)
+            }
+
+            throw new Error(
+                errorData.message || 
+                `피드백 생성에 실패했습니다. (${response.status} ${response.statusText})`
+            )
+        }
+
+        // 성공 응답 파싱
+        if (!responseText || !responseText.trim()) {
+            console.error('[Feedback API] Empty response received')
+            throw new Error('서버에서 빈 응답을 받았습니다.')
+        }
+
+        let data
+        try {
+            data = JSON.parse(responseText)
+            
+            // 서버 응답 구조 확인 및 로깅
+            console.log('[Feedback API] ===== Parsed Response Data =====')
+            console.log('[Feedback API] Full response object:', data)
+            console.log('[Feedback API] Response keys:', Object.keys(data))
+            console.log('[Feedback API] Has feedback field:', 'feedback' in data)
+            console.log('[Feedback API] Feedback type:', typeof data.feedback)
+            console.log('[Feedback API] Feedback value:', data.feedback)
+            
+            if (data.feedback) {
+                if (typeof data.feedback === 'string') {
+                    console.warn('[Feedback API] ⚠️ WARNING: feedback is a string, not an object!')
+                    console.warn('[Feedback API] Expected format: { good: "...", improvement: "...", recommendation: "..." }')
+                    console.warn('[Feedback API] Actual format: string')
+                    console.warn('[Feedback API] Feedback string value:', data.feedback)
+                } else if (typeof data.feedback === 'object') {
+                    console.log('[Feedback API] ✓ feedback is an object')
+                    console.log('[Feedback API] Feedback object keys:', Object.keys(data.feedback))
+                    console.log('[Feedback API] Has good field:', 'good' in data.feedback)
+                    console.log('[Feedback API] Has improvement field:', 'improvement' in data.feedback)
+                    console.log('[Feedback API] Has recommendation field:', 'recommendation' in data.feedback)
+                    console.log('[Feedback API] Good value:', data.feedback.good)
+                    console.log('[Feedback API] Improvement value:', data.feedback.improvement)
+                    console.log('[Feedback API] Recommendation value:', data.feedback.recommendation)
+                }
+            } else {
+                console.warn('[Feedback API] ⚠️ WARNING: feedback field is missing or null!')
+            }
+            
+            console.log('[Feedback API] Score:', data.score)
+            console.log('[Feedback API] Status:', data.status)
+            console.log('[Feedback API] ======================================')
+            
+        } catch (parseError) {
+            console.error('[Feedback API] JSON parse error:', parseError)
+            console.error('[Feedback API] Response text:', responseText)
+            console.error('[Feedback API] Content-Type:', contentType)
+            
+            // Content-Type이 JSON이 아닌 경우 (HTML이 반환된 경우 - API 엔드포인트가 없거나 프록시 문제)
+            if (!contentType.includes('application/json')) {
+                if (contentType.includes('text/html')) {
+                    console.error('[Feedback API] HTML 응답이 반환되었습니다. API 엔드포인트가 존재하지 않거나 프록시 설정을 확인해주세요.')
+                    console.error('[Feedback API] 요청 URL:', apiUrl)
+                    throw new Error('API 엔드포인트를 찾을 수 없습니다. 서버 설정을 확인해주세요.')
+                }
+                throw new Error(`서버가 JSON 형식이 아닌 응답을 반환했습니다. (Content-Type: ${contentType})`)
+            }
+            
+            throw new Error(`서버 응답을 파싱할 수 없습니다: ${parseError.message}`)
+        }
+
+        return data
+    } catch (error) {
+        // 네트워크 에러 등 기타 에러 처리
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+            throw new Error('네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.')
+        }
+        
+        // 이미 처리된 에러는 그대로 throw
+        throw error
+    }
+}
+
+/**
+ * 질문에 대한 추천 답안을 가져옵니다.
+ * @param {Object} payload - 요청 페이로드
+ * @param {string} payload.question - 질문 내용
+ * @returns {Promise<Object>} 추천 답안 응답 객체 { question, answer }
+ * @throws {Error} API 호출 실패 시 에러 발생
+ */
+export async function getSuggestedAnswer(payload) {
+    // payload 자체 검증
+    if (!payload || typeof payload !== 'object') {
+        throw new Error('요청 데이터가 올바르지 않습니다.')
+    }
+
+    const { question } = payload
+
+    // 필수 파라미터 검증
+    if (!question || typeof question !== 'string' || !question.trim()) {
+        throw new Error('질문이 없습니다. 다시 확인해주세요.')
+    }
+
+    const apiUrl = `/api/evaluation/feedback`
+    
+    try {
+        const trimmedQuestion = question.trim()
+        
+        // 서버 스펙에 맞는 요청 본문 생성
+        const requestBody = {
+            question: String(trimmedQuestion),
+        }
+        
+        const requestBodyString = JSON.stringify(requestBody, null, 0)
+        
+        const requestHeaders = {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Accept': 'application/json',
+        }
+        
+        // 디버깅 로그
+        console.log('[Suggested Answer API] ===== Request Details =====')
+        console.log('[Suggested Answer API] Request URL:', apiUrl)
+        console.log('[Suggested Answer API] Request Method: POST')
+        console.log('[Suggested Answer API] Request payload:', requestBody)
+        console.log('[Suggested Answer API] Request body string:', requestBodyString)
+        console.log('[Suggested Answer API] ===========================')
+        
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: requestHeaders,
+            body: requestBodyString,
+            credentials: 'include', // 쿠키 포함
+        })
+        
+        // 응답이 JSON이 아닐 수 있으므로 먼저 텍스트로 읽기
+        const responseText = await response.text()
+        const contentType = response.headers.get('content-type') || ''
+        
+        // 디버깅 로그
+        console.log('[Suggested Answer API] ===== Response Details =====')
+        console.log('[Suggested Answer API] Response status:', response.status)
+        console.log('[Suggested Answer API] Content-Type:', contentType)
+        console.log('[Suggested Answer API] Response text:', responseText)
+        console.log('[Suggested Answer API] =============================')
+        
+        if (!response.ok) {
+            let errorData
+            try {
+                if (responseText.trim()) {
+                    errorData = JSON.parse(responseText)
+                } else {
+                    errorData = { message: '서버에서 빈 응답을 받았습니다.' }
+                }
+            } catch (parseError) {
+                errorData = { 
+                    message: responseText || `서버 오류가 발생했습니다. (${response.status} ${response.statusText})` 
+                }
+            }
+
+            // 400 Bad Request 에러 처리
+            if (response.status === 400) {
+                const errorMessage = errorData.message || errorData.error || '질문이 없습니다. 다시 확인해주세요.'
+                console.error('[Suggested Answer API] 400 Bad Request:', errorMessage)
+                throw new Error(errorMessage)
+            }
+
+            // 500 Internal Server Error 처리
+            if (response.status === 500) {
+                const errorMessage = errorData.message || errorData.error || '서버 내부 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+                console.error('[Suggested Answer API] 500 Internal Server Error:', errorMessage)
+                console.error('[Suggested Answer API] Full error data:', errorData)
+                throw new Error(errorMessage)
+            }
+
+            throw new Error(
+                errorData.message || 
+                `추천 답안을 가져오는데 실패했습니다. (${response.status} ${response.statusText})`
+            )
+        }
+
+        // 성공 응답 파싱
+        if (!responseText || !responseText.trim()) {
+            throw new Error('서버에서 빈 응답을 받았습니다.')
+        }
+
+        let data
+        try {
+            data = JSON.parse(responseText)
+        } catch (parseError) {
+            if (!contentType.includes('application/json')) {
+                if (contentType.includes('text/html')) {
+                    throw new Error('API 엔드포인트를 찾을 수 없습니다. 서버 설정을 확인해주세요.')
+                }
+                throw new Error(`서버가 JSON 형식이 아닌 응답을 반환했습니다. (Content-Type: ${contentType})`)
+            }
+            throw new Error(`서버 응답을 파싱할 수 없습니다: ${parseError.message}`)
+        }
+
+        // 응답 형식 검증: { question, answer } 또는 { answer } 형식 모두 처리
+        if (!data.answer) {
+            throw new Error('서버 응답에 답안이 포함되어 있지 않습니다.')
+        }
+
+        return data
+    } catch (error) {
+        // 네트워크 에러 등 기타 에러 처리
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+            throw new Error('네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.')
+        }
+        
+        // 이미 처리된 에러는 그대로 throw
+        throw error
+    }
+}
+

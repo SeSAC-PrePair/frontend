@@ -443,53 +443,108 @@ export function AppProvider({children}) {
     )
 
     const signup = useCallback(
-        (payload) => {
-            const cadence = cadenceMap[payload.cadence?.id] ?? cadencePresets[0]
-            // jobData 구조에 맞게 처리
-            const isOther = payload.jobCategory === 'other'
-            const categoryMeta = jobData.find((cat) => cat.id === payload.jobCategory)
-            const trackLabel = isOther ? payload.jobCategoryOther : (categoryMeta?.label ?? '')
-            const roleLabel = isOther ? payload.jobCategoryOther : (payload.jobRole ?? trackLabel)
-            const mergedChannels =
-                payload.notificationKakao
-                    ? Array.from(new Set([...defaultChannels, 'kakao']))
-                    : defaultChannels
+        async (payload) => {
+            try {
+                // API 스펙에 맞게 데이터 변환
+                const cadence = cadenceMap[payload.cadence?.id] ?? cadencePresets[0]
+                const isOther = payload.jobCategory === 'other'
+                const categoryMeta = jobData.find((cat) => cat.id === payload.jobCategory)
+                
+                // job_category: 'other'인 경우 직접 입력한 값, 아니면 label
+                const jobCategory = isOther ? payload.jobCategoryOther : (categoryMeta?.label ?? '')
+                
+                // job_role: jobRole 값
+                const jobRole = isOther ? payload.jobCategoryOther : (payload.jobRole ?? '')
+                
+                // schedule_type: cadence.id를 대문자로 변환 (예: "daily" -> "DAILY")
+                const scheduleType = cadence.id.toUpperCase()
+                
+                // notification_type: API 스펙에 따라 "EMAIL" 또는 카카오톡 포함 시 다른 값
+                // 일단 API 스펙에 명시된 "EMAIL" 사용
+                const notificationType = 'EMAIL'
 
-            const newProfile = {
-                id: `user-${Date.now()}`,
-                name: payload.name || 'PrePair 사용자',
-                email: payload.email,
-                desiredField: roleLabel,
-                jobTrackId: isOther ? 'other' : (payload.jobCategory ?? ''),
-                jobTrackLabel: trackLabel,
-                jobRoleId: '',
-                jobRoleLabel: roleLabel,
-                customJobLabel: isOther ? payload.jobCategoryOther : '',
-                goal: payload.goal,
-                focusArea: payload.focusArea || '',
-                questionCadence: cadence.id,
-                questionCadenceLabel: cadence.label,
-                questionSchedule: cadence.schedule,
-                notificationChannels: mergedChannels,
-                avatar: payload.avatar || '🚀',
-                points: 520,
-                streak: 1,
-                tier: 'Trailblazer',
-                lastLoginAt: new Date().toISOString(),
+                // API 요청 데이터 구성
+                const requestData = {
+                    name: payload.name,
+                    email: payload.email,
+                    password: payload.password,
+                    settings: {
+                        job_category: jobCategory,
+                        job_role: jobRole,
+                        schedule_type: scheduleType,
+                        notification_type: notificationType,
+                    },
+                }
+
+                // API 호출
+                const response = await fetch('/api/auth/signup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData),
+                })
+
+                // 에러 처리
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}))
+                    
+                    if (response.status === 400) {
+                        throw new Error(errorData.message || '이메일과 비밀번호는 필수 입력 항목입니다.')
+                    } else if (response.status === 409) {
+                        throw new Error('이미 존재하는 이메일입니다.')
+                    } else {
+                        throw new Error(errorData.message || '회원가입에 실패했습니다. 잠시 후 다시 시도해주세요.')
+                    }
+                }
+
+                // 성공 시 로컬 상태 업데이트
+                const trackLabel = isOther ? payload.jobCategoryOther : (categoryMeta?.label ?? '')
+                const roleLabel = isOther ? payload.jobCategoryOther : (payload.jobRole ?? trackLabel)
+                const mergedChannels =
+                    payload.notificationKakao
+                        ? Array.from(new Set([...defaultChannels, 'kakao']))
+                        : defaultChannels
+
+                const newProfile = {
+                    id: `user-${Date.now()}`,
+                    name: payload.name || 'PrePair 사용자',
+                    email: payload.email,
+                    desiredField: roleLabel,
+                    jobTrackId: isOther ? 'other' : (payload.jobCategory ?? ''),
+                    jobTrackLabel: trackLabel,
+                    jobRoleId: '',
+                    jobRoleLabel: roleLabel,
+                    customJobLabel: isOther ? payload.jobCategoryOther : '',
+                    goal: payload.goal,
+                    focusArea: payload.focusArea || '',
+                    questionCadence: cadence.id,
+                    questionCadenceLabel: cadence.label,
+                    questionSchedule: cadence.schedule,
+                    notificationChannels: mergedChannels,
+                    avatar: payload.avatar || '🚀',
+                    points: 520,
+                    streak: 1,
+                    tier: 'Trailblazer',
+                    lastLoginAt: new Date().toISOString(),
+                }
+
+                setUser(newProfile)
+                setActiveQuestion(null)
+                setSentQuestions([])
+                setLastDispatch(null)
+                sequenceRef.current = 0
+                dispatchQuestion({
+                    profile: newProfile,
+                    channels: mergedChannels,
+                    cadenceId: cadence.id,
+                    sequence: 0,
+                })
+                return newProfile
+            } catch (error) {
+                // 에러를 다시 throw하여 호출하는 쪽에서 처리할 수 있도록 함
+                throw error
             }
-
-            setUser(newProfile)
-            setActiveQuestion(null)
-            setSentQuestions([])
-            setLastDispatch(null)
-            sequenceRef.current = 0
-            dispatchQuestion({
-                profile: newProfile,
-                channels: mergedChannels,
-                cadenceId: cadence.id,
-                sequence: 0,
-            })
-            return newProfile
         },
         [dispatchQuestion],
     )
@@ -547,13 +602,32 @@ export function AppProvider({children}) {
              answer = '',
          }) => {
             const submittedAt = new Date().toISOString()
+            
+            // 하루에 첫 번째 제출인지 확인하는 함수
+            const isFirstSubmissionToday = () => {
+                const today = new Date()
+                today.setHours(0, 0, 0, 0)
+                today.setMilliseconds(0)
+                
+                // scoreHistory에서 오늘 날짜에 제출한 항목이 있는지 확인 (더 정확함)
+                const hasSubmissionToday = scoreHistory.some((entry) => {
+                    if (!entry.submittedAt) return false
+                    const submittedDate = new Date(entry.submittedAt)
+                    submittedDate.setHours(0, 0, 0, 0)
+                    submittedDate.setMilliseconds(0)
+                    return submittedDate.getTime() === today.getTime()
+                })
+                
+                return !hasSubmissionToday
+            }
+
+            const isFirstToday = isFirstSubmissionToday()
+            const bonus = Math.max(40, Math.round(score * 0.6))
+            const earnedPoints = isFirstToday ? bonus : 0
 
             setSentQuestions((prev) => {
                 if (prev.length === 0) return prev
                 const [latest, ...rest] = prev
-                const alreadyAnswered = Boolean(latest.answeredAt)
-                const bonus = Math.max(40, Math.round(score * 0.6))
-                const earnedPoints = alreadyAnswered ? 0 : bonus
                 const updated = {
                     ...latest,
                     answeredAt: submittedAt,
@@ -577,7 +651,7 @@ export function AppProvider({children}) {
                     strengths,
                     gaps,
                     recommendations,
-                    earnedPoints: Math.max(40, Math.round(score * 0.6)),
+                    earnedPoints,
                     answer,
                 },
                 ...prev,
@@ -585,21 +659,23 @@ export function AppProvider({children}) {
 
             setUser((prev) => {
                 if (!prev) return prev
-                const last = sentQuestions?.[0]
-                const alreadyAnswered = last?.answeredAt != null
-                const bonus = Math.max(40, Math.round(score * 0.6))
-                const earned = alreadyAnswered ? 0 : bonus
                 return {
                     ...prev,
-                    points: prev.points + earned,
+                    points: prev.points + earnedPoints,
                     streak: prev.streak + 1,
                 }
             })
 
             setActivity((prev) => appendToHeatmap(prev))
             dispatchQuestion()
+            
+            // 포인트 적립 정보 반환 (팝업 표시용)
+            return {
+                earnedPoints,
+                isFirstToday,
+            }
         },
-        [dispatchQuestion],
+        [dispatchQuestion, scoreHistory],
     )
 
     const redeemReward = useCallback(

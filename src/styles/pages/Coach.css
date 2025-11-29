@@ -569,6 +569,15 @@
   line-height: 1.6;
   white-space: pre-wrap;
 }
+
+.coach__feedback-section {
+  border-left: 3px solid rgba(63, 123, 255, 0.3);
+  background: rgba(63, 123, 255, 0.02);
+}
+
+.coach__feedback-section strong {
+  color: rgba(63, 123, 255, 0.9);
+}
 .coach__insight-meta {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

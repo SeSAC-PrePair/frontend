@@ -3,33 +3,13 @@ import {useMemo, useState, useEffect} from 'react'
 import {useLocation} from 'react-router-dom'
 import {useAppState} from '../context/AppStateContext'
 import Modal from '../components/Modal'
+import PointsRewardModal from '../components/PointsRewardModal'
 import useMediaQuery from '../hooks/useMediaQuery'
+import {generateFeedback, getSuggestedAnswer} from '../utils/feedbackApi'
 import robotLogo from '../assets/b01fa81ce7a959934e8f78fc6344081972afd0ae.png'
 import '../styles/pages/Coach.css'
 
-const strengthsPool = [
-    '구조를 선명하게 잡아서 답변이 안정적이에요.',
-    '숫자와 임팩트를 함께 언급해 신뢰도가 높아요.',
-    '팀과 이해관계자를 설득하는 흐름이 좋습니다.',
-    '실패 경험을 솔직하게 공유해 몰입감을 줍니다.',
-    '사용자 시각을 자연스럽게 녹여냈어요.',
-]
-
-const gapPool = [
-    '배경 맥락을 조금 더 짧고 굵게 정리해보면 좋아요.',
-    '리스크 대비 전략이 구체적이면 설득력이 높아집니다.',
-    '각 단계의 본인 기여도를 한 문장씩 덧붙여 주세요.',
-    '후속 성과를 정량 지표로 연결해보면 어떨까요?',
-    '학습/회고 포인트를 한 줄로 정리해 주세요.',
-]
-
-const learningPool = [
-    'STAR 구조로 90초 이내 답변을 연습해 보세요.',
-    '최근 프로젝트 하나를 KPI와 리더십 각도로 재정리해 보세요.',
-    '데이터 설득 멘트를 3가지 버전으로 만들어 두면 좋습니다.',
-    '리스크 대응 프로세스를 다이어그램으로 그려보세요.',
-    '추천 질문 리스트 5개를 뽑아 거울 인터뷰를 진행해 보세요.',
-]
+// 하드코딩된 풀 제거 - API 응답에서 직접 사용
 
 const highlightTagPool = [
     '문제 재정의 능력',
@@ -41,6 +21,16 @@ const highlightTagPool = [
 ]
 
 const focusTagPool = ['Storytelling', 'Leadership', 'Metrics', 'Collaboration', 'Product Sense', 'Delivery']
+
+// historyId 순차 카운터 관리
+function getNextHistoryId() {
+    const STORAGE_KEY = 'prepair_history_counter'
+    let counter = parseInt(sessionStorage.getItem(STORAGE_KEY) || '0', 10)
+    counter += 1
+    sessionStorage.setItem(STORAGE_KEY, counter.toString())
+    // 001, 002, 003 형식으로 포맷팅
+    return `h-${String(counter).padStart(3, '0')}`
+}
 
 const panelItems = [
     {id: 'practice', label: '오늘의 질문'},
@@ -308,6 +298,8 @@ export default function CoachPage() {
     const [showAISuggestionModal, setShowAISuggestionModal] = useState(false)
     const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false)
     const [suggestedAnswer, setSuggestedAnswer] = useState(null)
+    const [showPointsRewardModal, setShowPointsRewardModal] = useState(false)
+    const [earnedPoints, setEarnedPoints] = useState(0)
     const isMobile = useMediaQuery('(max-width: 720px)')
 
     const minLength = 80
@@ -342,7 +334,7 @@ export default function CoachPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activePanel, rePracticeTarget])
 
-    const handleEvaluate = () => {
+    const handleEvaluate = async () => {
         const trimmed = answer.trim()
         if (trimmed.length < minLength) {
             setError(`답변을 조금 더 자세히 작성해주세요. (최소 ${minLength}자)`)
@@ -355,19 +347,86 @@ export default function CoachPage() {
         setError('')
         setIsEvaluating(true)
 
-        setTimeout(() => {
-            const baseScore = Math.min(98, Math.max(62, Math.round(60 + trimmed.length / 4 + Math.random() * 12)))
+        try {
+            // API 호출 - historyId를 순차적으로 생성 (001, 002, 003...)
+            const historyId = getNextHistoryId()
+            const feedbackResponse = await generateFeedback(historyId, {
+                question: currentQuestion.prompt,
+                answer: trimmed,
+            })
+
+            // API 응답을 기존 형식으로 변환
+            const baseScore = feedbackResponse.score || 0
             const breakdown = scoringRubric.reduce((acc, item) => {
+                // API에서 breakdown이 없으면 기본값 계산
                 const jitter = Math.random() * 8 - 4
                 acc[item.id] = Math.min(98, Math.max(60, Math.round(baseScore * item.weight * 1.2 + jitter)))
                 return acc
             }, {})
-            const summary = `구체적인 사례를 중심으로 ${currentQuestion.tags?.[0] || '핵심 역량'}을 잘 드러냈어요. 숫자와 맥락이 균형 있게 포함됐습니다.`
-            const strengths = pickRandom(strengthsPool, 3)
-            const gaps = pickRandom(gapPool, 2)
-            const recommendations = pickRandom(learningPool, 2)
-            const highlights = pickRandom(highlightTagPool, 3)
-            const focusTags = pickRandom(focusTagPool, 2)
+            
+            // API 응답에서 피드백 데이터 추출
+            // feedback이 객체일 수도 있고 문자열일 수도 있음
+            const feedbackData = feedbackResponse.feedback
+            
+            let strengths = []
+            let gaps = []
+            let recommendations = []
+            
+            if (typeof feedbackData === 'string' && feedbackData.trim()) {
+                // feedback이 문자열인 경우 - 개선점으로 처리
+                gaps = [feedbackData.trim()]
+            } else if (feedbackData && typeof feedbackData === 'object') {
+                // feedback이 객체인 경우 - API 문서 형식: { good, improvement, recommendation }
+                const getFeedbackField = (fieldName) => {
+                    const value = feedbackData[fieldName]
+                    if (Array.isArray(value)) return value
+                    if (typeof value === 'string' && value.trim()) {
+                        // 문자열을 줄바꿈이나 쉼표로 분리
+                        return value.split(/[,\n]/).map(s => s.trim()).filter(s => s)
+                    }
+                    return []
+                }
+                
+                strengths = getFeedbackField('good') || getFeedbackField('strengths') || []
+                gaps = getFeedbackField('improvement') || getFeedbackField('gaps') || []
+                recommendations = getFeedbackField('recommendation') || getFeedbackField('recommendations') || []
+            }
+            
+            // 최상위 레벨에서도 확인 (하위 호환성)
+            const getArrayField = (obj, fieldName) => {
+                const value = obj?.[fieldName]
+                if (Array.isArray(value)) return value
+                if (typeof value === 'string') {
+                    return value.split(/[,\n]/).map(s => s.trim()).filter(s => s)
+                }
+                return []
+            }
+            
+            // 최상위 레벨에 데이터가 있으면 우선 사용
+            const finalStrengths = getArrayField(feedbackResponse, 'strengths').length > 0 
+                ? getArrayField(feedbackResponse, 'strengths') 
+                : strengths
+            const finalGaps = getArrayField(feedbackResponse, 'gaps').length > 0 
+                ? getArrayField(feedbackResponse, 'gaps') 
+                : gaps
+            const finalRecommendations = getArrayField(feedbackResponse, 'recommendations').length > 0 
+                ? getArrayField(feedbackResponse, 'recommendations') 
+                : recommendations
+            
+            // 최종 값 사용
+            strengths = finalStrengths
+            gaps = finalGaps
+            recommendations = finalRecommendations
+            
+            // highlights와 focusTags는 API 응답에서 가져오거나 기본값 사용
+            const highlights = Array.isArray(feedbackResponse.highlights) 
+                ? feedbackResponse.highlights 
+                : pickRandom(highlightTagPool, 3)
+            const focusTags = Array.isArray(feedbackResponse.focusTags)
+                ? feedbackResponse.focusTags
+                : pickRandom(focusTagPool, 2)
+            
+            const summary = feedbackResponse.summary || feedbackData.summary || `구체적인 사례를 중심으로 ${currentQuestion.tags?.[0] || '핵심 역량'}을 잘 드러냈어요.`
 
             const computed = {
                 score: baseScore,
@@ -383,7 +442,7 @@ export default function CoachPage() {
             }
 
             setResult(computed)
-            recordInterviewResult({
+            const rewardInfo = recordInterviewResult({
                 score: computed.score,
                 summary: computed.summary,
                 highlights: computed.highlights,
@@ -398,8 +457,19 @@ export default function CoachPage() {
             setIsEvaluating(false)
             // 답변은 유지 (최신 답변으로 갱신됨)
             setModalFeedbackData(computed)
+            
+            // 포인트가 적립된 경우 팝업 표시
+            if (rewardInfo && rewardInfo.earnedPoints > 0 && rewardInfo.isFirstToday) {
+                setEarnedPoints(rewardInfo.earnedPoints)
+                setShowPointsRewardModal(true)
+            }
+            
             setShowFeedbackModal(true)
-        }, 900)
+        } catch (error) {
+            console.error('피드백 생성 오류:', error)
+            setError(error.message || '피드백 생성에 실패했습니다. 잠시 후 다시 시도해주세요.')
+            setIsEvaluating(false)
+        }
     }
 
     const generateAISuggestion = (question) => {
@@ -455,22 +525,48 @@ export default function CoachPage() {
         }, 800)
     }
 
-    const handleRequestRePracticeAISuggestion = () => {
+    const handleRequestRePracticeAISuggestion = async () => {
         if (!canGetRePracticeAISuggestion) return
         
         setIsLoadingSuggestion(true)
+        setError('')
         
-        // AI 제안 답변 생성 시뮬레이션 (포인트 차감 없음)
-        setTimeout(() => {
+        try {
             const targetQuestion = rePracticeTarget || currentQuestion || questionDisplay
-            const suggested = generateAISuggestion(targetQuestion)
+            const questionValue = targetQuestion?.question || targetQuestion?.prompt
+            
+            // 질문 필드 검증
+            if (!questionValue || typeof questionValue !== 'string' || !questionValue.trim()) {
+                setError('질문 정보가 없습니다. 다시 선택해주세요.')
+                setIsLoadingSuggestion(false)
+                return
+            }
+            
+            // API 호출
+            const response = await getSuggestedAnswer({
+                question: questionValue.trim(),
+            })
+            
+            // 응답에서 answer 추출
+            const suggested = response.answer || ''
+            
+            if (!suggested || !suggested.trim()) {
+                setError('추천 답안을 받을 수 없습니다. 잠시 후 다시 시도해주세요.')
+                setIsLoadingSuggestion(false)
+                return
+            }
+            
             setSuggestedAnswer(suggested)
             setIsLoadingSuggestion(false)
             setShowAISuggestionModal(true)
-        }, 800)
+        } catch (error) {
+            console.error('추천 답안 가져오기 오류:', error)
+            setError(error.message || '추천 답안을 가져오는데 실패했습니다. 잠시 후 다시 시도해주세요.')
+            setIsLoadingSuggestion(false)
+        }
     }
 
-    const handleRePracticeEvaluate = () => {
+    const handleRePracticeEvaluate = async () => {
         const trimmed = rePracticeAnswer.trim()
         if (trimmed.length < minLength) {
             setError(`답변을 조금 더 자세히 작성해주세요. (최소 ${minLength}자)`)
@@ -483,27 +579,127 @@ export default function CoachPage() {
         setError('')
         setIsEvaluating(true)
 
-        setTimeout(() => {
-            const baseScore = Math.min(98, Math.max(62, Math.round(60 + trimmed.length / 4 + Math.random() * 12)))
+        try {
+            // API 호출 - historyId를 순차적으로 생성 (001, 002, 003...)
+            const historyId = getNextHistoryId()
+            
+            // 질문 필드 검증 및 추출
+            const questionValue = rePracticeTarget?.question
+            
+            // 디버깅: 전송할 데이터 확인
+            console.log('[RePractice] rePracticeTarget:', rePracticeTarget)
+            console.log('[RePractice] question:', questionValue)
+            console.log('[RePractice] question type:', typeof questionValue)
+            console.log('[RePractice] question length:', questionValue?.length)
+            console.log('[RePractice] answer:', trimmed)
+            console.log('[RePractice] answer length:', trimmed.length)
+            
+            // 질문 필드 검증 (null, undefined, 빈 문자열, 공백만 있는 경우)
+            if (!questionValue || typeof questionValue !== 'string' || !questionValue.trim()) {
+                console.error('[RePractice] Invalid question value:', questionValue)
+                setError('질문 정보가 없습니다. 다시 선택해주세요.')
+                setIsEvaluating(false)
+                return
+            }
+            
+            // 질문과 답변 모두 trim하여 전송
+            const trimmedQuestion = questionValue.trim()
+            
+            // 최종 전송할 payload 확인
+            const finalPayload = {
+                question: trimmedQuestion,
+                answer: trimmed,
+            }
+            
+            console.log('[RePractice] ===== Final Payload Before API Call =====')
+            console.log('[RePractice] historyId:', historyId)
+            console.log('[RePractice] payload:', finalPayload)
+            console.log('[RePractice] payload JSON:', JSON.stringify(finalPayload))
+            console.log('[RePractice] question exists:', !!finalPayload.question)
+            console.log('[RePractice] answer exists:', !!finalPayload.answer)
+            console.log('[RePractice] question length:', finalPayload.question?.length)
+            console.log('[RePractice] answer length:', finalPayload.answer?.length)
+            console.log('[RePractice] =========================================')
+            
+            const feedbackResponse = await generateFeedback(historyId, finalPayload)
+
+            // API 응답을 새로운 형식에 맞게 변환
+            // 응답 형식: { question_id, user_id, question, created_at, answerd_at, answer, feedback: { good, improvement, recommendation }, score, status }
+            const baseScore = feedbackResponse.score || 0
             const breakdown = scoringRubric.reduce((acc, item) => {
+                // API에서 breakdown이 없으면 기본값 계산
                 const jitter = Math.random() * 8 - 4
                 acc[item.id] = Math.min(98, Math.max(60, Math.round(baseScore * item.weight * 1.2 + jitter)))
                 return acc
             }, {})
-            const summary = `연습 모드에서 ${rePracticeTarget.question} 답변을 다시 점검해 보았어요. 구조와 깊이를 중심으로 평가했습니다.`
-            const strengths = pickRandom(strengthsPool, 3)
-            const gaps = pickRandom(gapPool, 2)
-            const recommendations = pickRandom(learningPool, 2)
-            const highlights = pickRandom(highlightTagPool, 3)
-            const focusTags = pickRandom(focusTagPool, 2)
+            
+            // 새로운 API 응답 형식에서 피드백 데이터 추출
+            // feedback이 객체일 수도 있고 문자열일 수도 있음
+            const feedbackData = feedbackResponse.feedback
+            
+            // feedback이 문자열인 경우와 객체인 경우 모두 처리
+            let strengths = []
+            let gaps = []
+            let recommendations = []
+            
+            if (typeof feedbackData === 'string' && feedbackData.trim()) {
+                // feedback이 문자열인 경우 - 개선점으로 처리
+                gaps = [feedbackData.trim()]
+            } else if (feedbackData && typeof feedbackData === 'object') {
+                // feedback이 객체인 경우 - API 문서 형식: { good, improvement, recommendation }
+                const getFeedbackField = (fieldName) => {
+                    const value = feedbackData[fieldName]
+                    if (Array.isArray(value)) return value
+                    if (typeof value === 'string' && value.trim()) {
+                        // 문자열을 줄바꿈이나 쉼표로 분리
+                        return value.split(/[,\n]/).map(s => s.trim()).filter(s => s)
+                    }
+                    return []
+                }
+                
+                strengths = getFeedbackField('good') || getFeedbackField('strengths') || []
+                gaps = getFeedbackField('improvement') || getFeedbackField('gaps') || []
+                recommendations = getFeedbackField('recommendation') || getFeedbackField('recommendations') || []
+            }
+            
+            // 기존 형식과의 호환성을 위해 최상위 레벨에서도 확인
+            const getArrayField = (obj, fieldName) => {
+                const value = obj?.[fieldName]
+                if (Array.isArray(value)) return value
+                if (typeof value === 'string') {
+                    return value.split(/[,\n]/).map(s => s.trim()).filter(s => s)
+                }
+                return []
+            }
+            
+            // 최상위 레벨에 데이터가 있으면 우선 사용
+            const finalStrengths = getArrayField(feedbackResponse, 'strengths').length > 0 
+                ? getArrayField(feedbackResponse, 'strengths') 
+                : strengths
+            const finalGaps = getArrayField(feedbackResponse, 'gaps').length > 0 
+                ? getArrayField(feedbackResponse, 'gaps') 
+                : gaps
+            const finalRecommendations = getArrayField(feedbackResponse, 'recommendations').length > 0 
+                ? getArrayField(feedbackResponse, 'recommendations') 
+                : recommendations
+            
+            // highlights와 focusTags는 API 응답에서 가져오거나 기본값 사용
+            const highlights = Array.isArray(feedbackResponse.highlights) 
+                ? feedbackResponse.highlights 
+                : pickRandom(highlightTagPool, 3)
+            const focusTags = Array.isArray(feedbackResponse.focusTags)
+                ? feedbackResponse.focusTags
+                : pickRandom(focusTagPool, 2)
+            
+            const summary = feedbackResponse.summary || `연습 모드에서 ${rePracticeTarget.question} 답변을 다시 점검해 보았어요. 구조와 깊이를 중심으로 평가했습니다.`
 
             const computed = {
                 score: baseScore,
                 breakdown,
                 summary,
-                strengths,
-                gaps,
-                recommendations,
+                strengths: finalStrengths,
+                gaps: finalGaps,
+                recommendations: finalRecommendations,
                 highlights,
                 focusTags,
                 earnedPoints: 0,
@@ -514,7 +710,11 @@ export default function CoachPage() {
             setIsEvaluating(false)
             setModalFeedbackData({...computed, isPractice: true})
             setShowFeedbackModal(true)
-        }, 900)
+        } catch (error) {
+            console.error('피드백 생성 오류:', error)
+            setError(error.message || '피드백 생성에 실패했습니다. 잠시 후 다시 시도해주세요.')
+            setIsEvaluating(false)
+        }
     }
 
     return (
@@ -720,6 +920,11 @@ export default function CoachPage() {
                                                     type="button"
                                                     className="cta-button cta-button--primary history-card__repractice"
                                                     onClick={() => {
+                                                        // 질문 필드가 있는지 확인
+                                                        if (!entry?.question || typeof entry.question !== 'string' || !entry.question.trim()) {
+                                                            setError('질문 정보가 없는 항목입니다. 다른 질문을 선택해주세요.')
+                                                            return
+                                                        }
                                                         setRePracticeTarget(entry)
                                                         setRePracticeResult(null)
                                                         setRePracticeAnswer('')
@@ -973,42 +1178,42 @@ export default function CoachPage() {
                             <span>{modalFeedbackData.isPractice ? '연습용 AI 평가' : 'AI 평가'}</span>
                             <strong>{modalFeedbackData.score != null && modalFeedbackData.score > 0 ? `${modalFeedbackData.score} 점` : '-'}</strong>
                         </div>
-                        <div className="coach__insight-body">
-                            <div>
-                                <strong>{modalFeedbackData.isPractice ? '이번 답변에서 좋아진 점' : '잘한 점'}</strong>
-                                <ul>
-                                    {(modalFeedbackData.strengths ?? modalFeedbackData.highlights ?? []).map((item) => (
-                                        <li key={item}>{item}</li>
-                                    ))}
-                                </ul>
-                            </div>
-                            {(modalFeedbackData.gaps ?? []).length > 0 && (
-                                <div>
-                                    <strong>{modalFeedbackData.isPractice ? '더 보완하면 좋은 부분' : '개선할 점'}</strong>
-                                    <ul>
-                                        {modalFeedbackData.gaps.map((item) => (
-                                            <li key={item}>{item}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-                            {(modalFeedbackData.recommendations ?? modalFeedbackData.focusTags ?? []).length > 0 && (
-                                <div>
-                                    <strong>{modalFeedbackData.isPractice ? '다음 연습 가이드' : '추천 학습'}</strong>
-                                    <ul>
-                                        {(modalFeedbackData.recommendations ?? modalFeedbackData.focusTags).map((item) => (
-                                            <li key={item}>{item}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-                        </div>
                         {modalFeedbackData.answer && (
                             <div className="coach__submitted-answer coach__submitted-answer--scrollable">
                                 <strong>{modalFeedbackData.isPractice ? '이번에 작성한 연습 답변' : '제출한 답변'}</strong>
                                 <p>{modalFeedbackData.answer}</p>
                             </div>
                         )}
+                        <div className="coach__submitted-answer coach__feedback-section">
+                            <strong>{modalFeedbackData.isPractice ? '이번 답변에서 좋아진 점' : '잘한 점'}</strong>
+                            <p>
+                                {(modalFeedbackData.strengths ?? modalFeedbackData.highlights ?? []).length > 0 ? (
+                                    (modalFeedbackData.strengths ?? modalFeedbackData.highlights ?? []).join(', ')
+                                ) : (
+                                    '없음'
+                                )}
+                            </p>
+                        </div>
+                        <div className="coach__submitted-answer coach__feedback-section">
+                            <strong>{modalFeedbackData.isPractice ? '더 보완하면 좋은 부분' : '개선할 점'}</strong>
+                            <p>
+                                {(modalFeedbackData.gaps ?? []).length > 0 ? (
+                                    modalFeedbackData.gaps.join(', ')
+                                ) : (
+                                    '없음'
+                                )}
+                            </p>
+                        </div>
+                        <div className="coach__submitted-answer coach__feedback-section">
+                            <strong>{modalFeedbackData.isPractice ? '다음 연습 가이드' : '추가 학습'}</strong>
+                            <p>
+                                {(modalFeedbackData.recommendations ?? modalFeedbackData.focusTags ?? []).length > 0 ? (
+                                    (modalFeedbackData.recommendations ?? modalFeedbackData.focusTags).join(', ')
+                                ) : (
+                                    '없음'
+                                )}
+                            </p>
+                        </div>
                     </div>
                 )}
             </Modal>
@@ -1077,6 +1282,12 @@ export default function CoachPage() {
                     </div>
                 )}
             </Modal>
+
+            <PointsRewardModal
+                open={showPointsRewardModal}
+                onClose={() => setShowPointsRewardModal(false)}
+                points={earnedPoints}
+            />
         </div>
     )
 }

@@ -81,7 +81,7 @@ export default function AuthPage() {
         navigate(redirectFrom || '/rewards', { replace: true })
     }
 
-    const handleSignup = (event) => {
+    const handleSignup = async (event) => {
         event.preventDefault()
 
         if (signupForm.jobCategory === 'other' && !signupForm.jobCategoryOther) {
@@ -89,8 +89,12 @@ export default function AuthPage() {
             return;
         }
 
-        signup(signupForm)
-        navigate('/signup-success', { replace: true })
+        try {
+            await signup(signupForm)
+            navigate('/signup-success', { replace: true })
+        } catch (error) {
+            alert(error.message || '회원가입에 실패했습니다. 잠시 후 다시 시도해주세요.')
+        }
     }
 
     // 이메일 인증 메일 발송
@@ -107,8 +111,7 @@ export default function AuthPage() {
         }))
 
         try {
-            // 실제 API 엔드포인트에 맞게 URL을 수정해서 사용하시면 됩니다.
-            const response = await fetch('/api/auth/email/verification-code', {
+            const response = await fetch('/api/auth/email/request', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -117,7 +120,15 @@ export default function AuthPage() {
             })
 
             if (!response.ok) {
-                throw new Error('failed to send code')
+                const errorData = await response.json().catch(() => ({}))
+                
+                if (response.status === 400) {
+                    throw new Error(errorData.message || '이메일은 필수 입력 항목입니다.')
+                } else if (response.status === 404) {
+                    throw new Error('존재하지 않는 이메일입니다.')
+                } else {
+                    throw new Error(errorData.message || '인증 메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.')
+                }
             }
 
             setEmailVerification({
@@ -129,7 +140,7 @@ export default function AuthPage() {
             console.error(error)
             setEmailVerification({
                 status: 'error',
-                errorMessage: '인증 메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.',
+                errorMessage: error.message || '인증 메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.',
             })
         }
     }
