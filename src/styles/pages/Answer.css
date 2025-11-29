@@ -6,30 +6,6 @@
   isolation: isolate;
 }
 
-.answer::before,
-.answer::after {
-  content: '';
-  position: absolute;
-  inset: auto;
-  width: clamp(280px, 32vw, 420px);
-  height: clamp(280px, 32vw, 420px);
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(174, 197, 242, 0.45), transparent 65%);
-  z-index: 0;
-  filter: blur(6px);
-  opacity: 0.5;
-}
-
-.answer::before {
-  top: 2rem;
-  left: clamp(-60px, -8vw, -10px);
-}
-
-.answer::after {
-  bottom: 1rem;
-  right: clamp(-60px, -6vw, 20px);
-  background: radial-gradient(circle, rgba(242, 228, 236, 0.55), transparent 60%);
-}
 
 .answer__card {
   width: min(920px, 100%);
@@ -73,9 +49,10 @@
 }
 
 .answer__header h1 {
-  margin: 0;
-  font-size: clamp(2.1rem, 3vw, 2.65rem);
+  margin: 0.3rem 0 0.15rem;
+  font-size: clamp(1.875rem, 2.8vw, 2.5rem);
   letter-spacing: -0.01em;
+  line-height: 1.2;
 }
 
 .answer__header p {

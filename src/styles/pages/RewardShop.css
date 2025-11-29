@@ -8,14 +8,6 @@
     isolation: isolate;
 }
 
-.reward-shop::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-
-    pointer-events: none;
-    z-index: 0;
-}
 
 .reward-shop__header {
     position: relative;
@@ -28,9 +20,10 @@
 }
 
 .reward-shop__header h1 {
-    margin: 0.6rem 0 0.3rem;
-    font-size: clamp(2.1rem, 3vw, 2.7rem);
+    margin: 0.3rem 0 0.15rem;
+    font-size: clamp(1.875rem, 2.8vw, 2.5rem);
     letter-spacing: -0.01em;
+    line-height: 1.2;
 }
 
 .reward-shop__header p {

@@ -1,19 +1,13 @@
 .settings {
     display: grid;
-    gap: 2.8rem;
-    padding: clamp(2.2rem, 3.5vw, 4rem) clamp(1rem, 5vw, 6rem) 4.4rem;
+    gap: 3rem;
+    padding: clamp(2.4rem, 4vw, 4.6rem) clamp(1rem, 5vw, 6rem) 4.8rem;
     max-width: 1400px;
     margin: 0 auto;
     position: relative;
     isolation: isolate;
 }
 
-.settings::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-}
 
 .settings__header {
     display: flex;
@@ -26,8 +20,10 @@
 }
 
 .settings__header h1 {
-    margin: 1rem 0 0.6rem;
-    font-size: clamp(2.1rem, 3vw, 2.7rem);
+    margin: 0.3rem 0 0.15rem;
+    font-size: clamp(1.875rem, 2.8vw, 2.5rem);
+    letter-spacing: -0.01em;
+    line-height: 1.2;
 }
 
 .settings__header p {
@@ -39,10 +35,12 @@
 
 .settings__card {
     position: relative;
-    padding: 1.8rem 2rem;
+    padding: 1.75rem 2rem;
     border-radius: var(--radius-lg);
-    background: white;
-    border: 1px solid rgba(102, 153, 255, 0.12);
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(20px) saturate(180%);
+    box-shadow: var(--shadow-card);
     display: grid;
     gap: 0.4rem;
     text-align: right;
@@ -56,11 +54,13 @@
 .settings__form {
     position: relative;
     display: grid;
-    gap: 2rem;
-    padding: clamp(1.6rem, 3vw, 2.2rem);
+    gap: 1.75rem;
+    padding: clamp(1.8rem, 3vw, 2.2rem);
     border-radius: var(--radius-lg);
-    background: white;
-    border: 1px solid rgba(102, 153, 255, 0.12);
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(20px) saturate(180%);
+    box-shadow: var(--shadow-card);
     z-index: 1;
 }
 
@@ -97,18 +97,17 @@
 
 .settings__select {
     width: 100%;
-    border-radius: 8px;
-    border: 1px solid #e5e8eb;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
     padding: 1rem 2.5rem 1rem 1rem;
     font: inherit;
     font-weight: 500;
     font-size: 0.9375rem;
-    color: #191f28;
-    background: #ffffff;
-    
+    color: var(--text-primary);
+    background: var(--surface);
     appearance: none;
     cursor: pointer;
-    transition: border-color 0.2s ease, background-color 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 6L8 10L12 6' stroke='%236b7684' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
@@ -131,18 +130,18 @@
 
 .settings__select:focus {
     outline: none;
-    border-color: #3182f6;
-    
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 4px rgba(49, 130, 246, 0.1);
 }
 
 .settings__select:hover {
-    border-color: #b0b8c1;
-    background-color: #f9fafb;
+    border-color: var(--border-strong);
+    background-color: var(--surface-soft);
 }
 
 .settings__select[type="text"]:hover,
 .settings__select[type="email"]:hover {
-    background-color: #f9fafb;
+    background-color: var(--surface-soft);
 }
 
 .settings__field-note {
@@ -173,13 +172,14 @@
 .focus-card {
     position: relative;
     border-radius: var(--radius-md);
-    border: 1px solid rgba(64, 81, 115, 0.2);
-    padding: 0.9rem 1rem;
-    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid var(--border);
+    padding: 0.875rem 1rem;
+    background: var(--surface-glass);
     display: grid;
     gap: 0.3rem;
     cursor: pointer;
-    transition: border 0.2s ease, transform 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-soft);
 }
 
 .focus-card input {
@@ -200,9 +200,9 @@
 }
 
 .focus-card.is-checked {
-    border-color: rgba(64, 81, 115, 0.4);
-    background: rgba(174, 197, 242, 0.22);
-    
+    border-color: var(--accent-primary);
+    background: var(--accent-tertiary);
+    box-shadow: var(--shadow-card);
     transform: translateY(-1px);
 }
 
@@ -220,34 +220,36 @@
 
 .settings__form textarea {
     border-radius: var(--radius-md);
-    border: 1px solid rgba(64, 81, 115, 0.2);
+    border: 1px solid var(--border);
     min-height: 140px;
     padding: 1rem 1.2rem;
-    background: rgba(255, 255, 255, 0.9);
+    background: var(--surface-glass);
     font: inherit;
     line-height: 1.6;
     color: var(--text-primary);
     resize: vertical;
-    transition: border 0.25s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-soft);
 }
 
 .settings__form textarea:focus {
     outline: none;
-    border-color: rgba(63, 123, 255, 0.45);
-    
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 4px rgba(49, 130, 246, 0.1), var(--shadow-card);
 }
 
 .cadence-card {
     position: relative;
-    border-radius: 12px;
-    padding: 1.25rem 1.5rem;
-    background: #ffffff;
-    border: 1px solid #e5e8eb;
+    border-radius: var(--radius-md);
+    padding: 1.125rem 1.375rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
     display: grid;
     gap: 0.5rem;
-    transition: border-color 0.2s ease, background-color 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     min-height: auto;
     cursor: pointer;
+    box-shadow: var(--shadow-soft);
 }
 
 .cadence-card input {
@@ -275,17 +277,19 @@
 }
 
 .cadence-card:hover {
-    border-color: #b0b8c1;
-    background: #f9fafb;
+    border-color: var(--border-strong);
+    background: var(--surface-soft);
+    box-shadow: var(--shadow-card);
 }
 
 .cadence-card.is-checked {
-    border-color: #3182f6;
-    background: #f4f8ff;
+    border-color: var(--accent-primary);
+    background: var(--accent-tertiary);
+    box-shadow: var(--shadow-card);
 }
 
 .cadence-card.is-checked strong {
-    color: #3182f6;
+    color: var(--accent-primary);
 }
 
 .settings__channels {
@@ -298,14 +302,14 @@
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.55rem 1.2rem;
+    padding: 0.55rem 1.125rem;
     border-radius: 999px;
-    border: 1px solid rgba(64, 81, 115, 0.22);
-    background: rgba(174, 197, 242, 0.18);
+    border: 1px solid var(--border);
+    background: var(--accent-tertiary);
     font-size: 0.9rem;
     color: var(--accent-primary);
-    transition: border 0.2s ease, background 0.2s ease, transform 0.2s ease;
-    
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-soft);
 }
 
 .channel-pill input {
@@ -324,13 +328,14 @@
 }
 
 .channel-pill.is-default {
-    background: rgba(174, 197, 242, 0.32);
+    background: var(--accent-tertiary);
     border-style: dashed;
 }
 
 .channel-pill:hover {
-    transform: translateY(-2px);
+    transform: translateY(-1px);
     border-color: var(--border-strong);
+    box-shadow: var(--shadow-card);
 }
 
 .settings__status {
@@ -346,12 +351,13 @@
 
 .settings__danger-zone {
     position: relative;
-    margin-top: 3rem;
-    padding: 2rem;
+    margin-top: 2.5rem;
+    padding: 1.75rem;
     border-radius: var(--radius-lg);
     background: #fff5f5;
     border: 1px solid rgba(239, 68, 68, 0.2);
     z-index: 1;
+    box-shadow: var(--shadow-soft);
 }
 
 .settings__danger-title {
@@ -370,19 +376,21 @@
 
 .settings__delete-button {
     padding: 0.75rem 1.5rem;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     border: 1px solid #dc2626;
     background: #dc2626;
     color: white;
-    font-size: 0.95rem;
+    font-size: 0.9375rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-soft);
 }
 
 .settings__delete-button:hover {
     background: #b91c1c;
     border-color: #b91c1c;
+    box-shadow: var(--shadow-card);
     transform: translateY(-1px);
 }
 
@@ -392,8 +400,8 @@
 
 @media (max-width: 768px) {
     .settings {
-        padding: 2rem 0 3.4rem;
-        gap: 2.2rem;
+        padding: 2rem clamp(1.5rem, 5vw, 3rem) 3.4rem;
+        gap: 2.5rem;
     }
 
     .settings__header {
@@ -403,7 +411,7 @@
 
     .settings__form,
     .settings__card {
-        padding: 1.6rem;
+        padding: 1.75rem;
     }
 
     .settings__card {

@@ -6,12 +6,6 @@
     isolation: isolate;
 }
 
-.purchase-history::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-}
 
 .purchase-history header {
     position: relative;
@@ -21,8 +15,10 @@
 }
 
 .purchase-history header h1 {
-    margin: 0.8rem 0 0.2rem;
-    font-size: clamp(2.1rem, 3vw, 2.6rem);
+    margin: 0.3rem 0 0.15rem;
+    font-size: clamp(1.875rem, 2.8vw, 2.5rem);
+    letter-spacing: -0.01em;
+    line-height: 1.2;
 }
 
 .purchase-history header p {

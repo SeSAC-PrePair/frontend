@@ -121,6 +121,38 @@ export default function RewardsOverview() {
                 </div>
             </section>
 
+            <section className="rewards__purchases">
+                <header>
+                    <div>
+                        <h2>나의 구매 내역</h2>
+                        <p>나의 리워드 교환 내역을 확인하세요.</p>
+                    </div>
+                    <div className="rewards__points-row">
+                        <div className="rewards__points-chip">
+                            <span>보유 포인트</span>
+                            <strong>{pointsDisplay}</strong>
+                        </div>
+                        <div className="rewards__gauge" role="region" aria-label="보너스 게이지">
+                            <div className="rewards__gauge-bar" aria-hidden="true">
+                                <span style={{width: `${progressPct}%`}} />
+                            </div>
+                            <div className="rewards__gauge-meta">
+                                <small>다음 보너스까지 {remainingToBonus.toLocaleString()} 포인트</small>
+                                <small>{nextBonusAt.toLocaleString()} 포인트 도달 시 +100 포인트</small>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+                <div className="rewards__purchases-cta">
+                    <Link to="/rewards/history" className="cta-button cta-button--ghost">
+                        리워드 교환 내역 보러가기
+                    </Link>
+                    <Link to="/rewards/shop" className="cta-button cta-button--primary">
+                        리워드샵 가기
+                    </Link>
+                </div>
+            </section>
+
             <section className="rewards__heatmap">
                 <header>
                     <div>
@@ -175,38 +207,6 @@ export default function RewardsOverview() {
                 ) : (
                     <ContributionHeatmap data={activity}/>
                 )}
-            </section>
-
-            <section className="rewards__purchases">
-                <header>
-                    <div>
-                        <h2>나의 구매 내역</h2>
-                        <p>나의 리워드 교환 내역을 확인하세요.</p>
-                    </div>
-                    <div className="rewards__points-row">
-                        <div className="rewards__points-chip">
-                            <span>보유 포인트</span>
-                            <strong>{pointsDisplay}</strong>
-                        </div>
-                        <div className="rewards__gauge" role="region" aria-label="보너스 게이지">
-                            <div className="rewards__gauge-bar" aria-hidden="true">
-                                <span style={{width: `${progressPct}%`}} />
-                            </div>
-                            <div className="rewards__gauge-meta">
-                                <small>다음 보너스까지 {remainingToBonus.toLocaleString()} 포인트</small>
-                                <small>{nextBonusAt.toLocaleString()} 포인트 도달 시 +100 포인트</small>
-                            </div>
-                        </div>
-                    </div>
-                </header>
-                <div className="rewards__purchases-cta">
-                    <Link to="/rewards/history" className="cta-button cta-button--ghost">
-                        리워드 교환 내역 보러가기
-                    </Link>
-                    <Link to="/rewards/shop" className="cta-button cta-button--primary">
-                        리워드샵 가기
-                    </Link>
-                </div>
             </section>
         </div>
     )

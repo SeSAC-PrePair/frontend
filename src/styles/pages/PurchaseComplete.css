@@ -7,13 +7,6 @@
     text-align: center;
 }
 
-.purchase-complete::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at 50% 0%, rgba(174, 197, 242, 0.35), transparent 55%);
-    z-index: 0;
-}
 
 .purchase-complete header {
     position: relative;
@@ -23,8 +16,10 @@
 }
 
 .purchase-complete header h1 {
-    margin: 0.9rem 0 0.2rem;
-    font-size: clamp(2.1rem, 3vw, 2.7rem);
+    margin: 0.3rem 0 0.15rem;
+    font-size: clamp(1.875rem, 2.8vw, 2.5rem);
+    letter-spacing: -0.01em;
+    line-height: 1.2;
 }
 
 .purchase-complete header p {
