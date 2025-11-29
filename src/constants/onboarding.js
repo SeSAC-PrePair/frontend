@@ -1,3 +1,16 @@
+// 회원가입 및 설정에서 사용하는 직군/직무 데이터
+export const jobData = [
+  { id: 'service', label: '서비스직', roles: ['CS', '승무원', '요식업', '기타'] },
+  { id: 'public', label: '공무원 / 공공기관', roles: ['공무원', '공공기관', '기타'] },
+  { id: 'development', label: '개발', roles: ['프론트엔드', '백엔드', 'AI', 'DevOps', '기타'] },
+  { id: 'design', label: '디자인', roles: ['UX/UI', '그래픽', '영상', '기타'] },
+  { id: 'marketing', label: '마케팅 / 기획', roles: ['마케팅', '기획', '광고', '기타'] },
+  { id: 'finance', label: '금융 / 회계', roles: ['금융', '회계', '재무', '기타'] },
+  { id: 'education', label: '교육 / 강사', roles: ['교육', '강사', '기타'] },
+  { id: 'medical', label: '의료 / 간호 / 헬스케어', roles: ['의료', '간호', '헬스케어', '기타'] },
+  { id: 'other', label: '기타 (직접 입력)', roles: [] }
+]
+
 export const jobTracks = [
   {
     id: 'people',

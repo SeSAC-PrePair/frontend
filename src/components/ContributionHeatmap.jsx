@@ -15,7 +15,7 @@ export default function ContributionHeatmap({data}) {
     startDate.setHours(0, 0, 0, 0)
     startDate.setDate(startDate.getDate() - (totalDays - 1))
     const dayMs = 24 * 60 * 60 * 1000
-    const formatter = new Intl.DateTimeFormat('ko-KR', {month: 'numeric', day: 'numeric', weekday: 'short'})
+    const formatter = new Intl.DateTimeFormat('ko-KR', {month: 'long', day: 'numeric', weekday: 'short'})
 
     useEffect(() => {
         if (!gridRef.current) return
@@ -80,13 +80,23 @@ export default function ContributionHeatmap({data}) {
             cell.style.setProperty('--tooltip-y', `${tooltipY}px`)
         }
 
+        const handleMouseEnter = (e) => {
+            adjustTooltip(e.target)
+        }
+
+        const handleMouseMove = (e) => {
+            adjustTooltip(e.target)
+        }
+
         cells.forEach((cell) => {
-            cell.addEventListener('mouseenter', () => adjustTooltip(cell))
+            cell.addEventListener('mouseenter', handleMouseEnter)
+            cell.addEventListener('mousemove', handleMouseMove)
         })
 
         return () => {
             cells.forEach((cell) => {
-                cell.removeEventListener('mouseenter', () => adjustTooltip(cell))
+                cell.removeEventListener('mouseenter', handleMouseEnter)
+                cell.removeEventListener('mousemove', handleMouseMove)
             })
         }
     }, [data])
@@ -100,9 +110,10 @@ export default function ContributionHeatmap({data}) {
                             const offset = weekIndex * 7 + dayIndex
                             const cellDate = new Date(startDate.getTime() + offset * dayMs)
                             const dateLabel = formatter.format(cellDate)
-                            const level = Math.max(0, Math.min(4, Number(value) || 0))
-                            const score = level * 25
-                            const tooltip = `${dateLabel} · 활동 점수 ${score}`
+                            // 답변 여부: 0 = 답변 안함, 1 = 답변함
+                            const hasAnswered = Number(value) > 0 ? 1 : 0
+                            const level = hasAnswered
+                            const tooltip = hasAnswered ? `${dateLabel} · 답변함` : `${dateLabel} · 답변 안함`
                             const isTopRow = dayIndex <= 1
 
                             return (
@@ -119,14 +130,11 @@ export default function ContributionHeatmap({data}) {
                     </div>
                 ))}
             </div>
-            <div className="heatmap-widget__legend" aria-label="점수 범례">
-                <span>낮음</span>
+            <div className="heatmap-widget__legend" aria-label="답변 여부 범례">
+                <span>답변 안함</span>
                 <span className="legend-swatch heatmap-level-0" aria-hidden="true" />
                 <span className="legend-swatch heatmap-level-1" aria-hidden="true" />
-                <span className="legend-swatch heatmap-level-2" aria-hidden="true" />
-                <span className="legend-swatch heatmap-level-3" aria-hidden="true" />
-                <span className="legend-swatch heatmap-level-4" aria-hidden="true" />
-                <span>높음</span>
+                <span>답변함</span>
             </div>
         </div>
     )

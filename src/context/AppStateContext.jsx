@@ -4,6 +4,7 @@ import {
     cadencePresets,
     jobTrackMap,
     jobTracks,
+    jobData,
     notificationChannels as notificationChannelPresets,
 } from '../constants/onboarding'
 
@@ -443,13 +444,15 @@ export function AppProvider({children}) {
 
     const signup = useCallback(
         (payload) => {
-            const cadence = cadenceMap[payload.questionCadence] ?? cadencePresets[0]
-            const trackLabel = getTrackLabel(payload.jobTrackId)
-            const roleLabel =
-                payload.jobRoleLabel || getRoleLabel(payload.jobTrackId, payload.jobRoleId) || trackLabel
+            const cadence = cadenceMap[payload.cadence?.id] ?? cadencePresets[0]
+            // jobData 구조에 맞게 처리
+            const isOther = payload.jobCategory === 'other'
+            const categoryMeta = jobData.find((cat) => cat.id === payload.jobCategory)
+            const trackLabel = isOther ? payload.jobCategoryOther : (categoryMeta?.label ?? '')
+            const roleLabel = isOther ? payload.jobCategoryOther : (payload.jobRole ?? trackLabel)
             const mergedChannels =
-                payload.notificationChannels && payload.notificationChannels.length > 0
-                    ? Array.from(new Set([...defaultChannels, ...payload.notificationChannels]))
+                payload.notificationKakao
+                    ? Array.from(new Set([...defaultChannels, 'kakao']))
                     : defaultChannels
 
             const newProfile = {
@@ -457,11 +460,11 @@ export function AppProvider({children}) {
                 name: payload.name || 'PrePair 사용자',
                 email: payload.email,
                 desiredField: roleLabel,
-                jobTrackId: payload.jobTrackId,
+                jobTrackId: isOther ? 'other' : (payload.jobCategory ?? ''),
                 jobTrackLabel: trackLabel,
-                jobRoleId: payload.jobRoleId,
+                jobRoleId: '',
                 jobRoleLabel: roleLabel,
-                customJobLabel: payload.customJobLabel ?? '',
+                customJobLabel: isOther ? payload.jobCategoryOther : '',
                 goal: payload.goal,
                 focusArea: payload.focusArea || '',
                 questionCadence: cadence.id,
@@ -632,6 +635,22 @@ export function AppProvider({children}) {
         [user],
     )
 
+    const deductPoints = useCallback(
+        (amount) => {
+            if (!user || user.points < amount) {
+                return {success: false, reason: '포인트가 부족합니다.'}
+            }
+
+            setUser((prev) => {
+                if (!prev) return prev
+                return {...prev, points: prev.points - amount}
+            })
+
+            return {success: true, remainingPoints: user.points - amount}
+        },
+        [user],
+    )
+
     const value = {
         user,
         login,
@@ -647,6 +666,7 @@ export function AppProvider({children}) {
         activity,
         purchases,
         redeemReward,
+        deductPoints,
         sentQuestions,
         lastDispatch,
         dispatchQuestion,

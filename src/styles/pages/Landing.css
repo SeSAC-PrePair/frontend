@@ -37,7 +37,8 @@
 .hero-content {
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    /* 인터뷰 탭과 비슷하게 상단 뱃지와 타이틀 간 간격을 좀 더 컴팩트하게 조정 */
+    gap: 1.2rem;
 }
 
 .hero-badge {

@@ -198,11 +198,8 @@ export default function RewardShop() {
         <div className="reward-shop">
             <header className="reward-shop__header">
                 <div>
-                    <span className="tag">Reward Shop</span>
-                    <h1>수고한 당신께 보상을</h1>
-                    <p>
-                        그동안의 점수를 보상으로 교환해보세요.<br></br> 다양한 상품들이 당신을 기다리고 있어요!
-                    </p>
+                    <h1>{user?.name ?? "PrePair 사용자"}님의 리워드 샵</h1>
+                    <p>인터뷰로 모은 포인트를 원하는 리워드와 교환해 보세요.</p>
                 </div>
                 <div className="reward-shop__balance">
                     <span>보유 포인트</span>

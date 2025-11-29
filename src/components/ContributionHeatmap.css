@@ -39,8 +39,8 @@
   z-index: 0;
 }
 
-.heatmap-level-0 { background: #edf2ff; }
-.heatmap-level-1 { background: #d9e5ff; }
+.heatmap-level-0 { background: #edf2ff; } /* 답변 안함 */
+.heatmap-level-1 { background: #779dff; } /* 답변함 */
 .heatmap-level-2 { background: #bbd2ff; }
 .heatmap-level-3 { background: #97b8ff; }
 .heatmap-level-4 { background: #779dff; }
@@ -56,8 +56,8 @@
 .heatmap-widget__cell::after {
   content: attr(data-tooltip);
   position: fixed;
-  left: var(--tooltip-x, 50%);
-  top: var(--tooltip-y, auto);
+  left: var(--tooltip-x, 0);
+  top: var(--tooltip-y, 0);
   bottom: auto;
   transform: translate(-50%, 0);
   padding: 0.35rem 0.6rem;

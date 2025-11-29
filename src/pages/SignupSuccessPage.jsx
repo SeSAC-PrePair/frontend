@@ -89,19 +89,19 @@ export default function SignupSuccessPage() {
         // '발송 중' 애니메이션이 끝날 때쯤 '발송 완료'로 상태 변경
         const timer = setTimeout(() => {
             setStatus('sent');
-        }, 2200); // 2.2초 시뮬레이션
+        }, 2200); // 10분 시뮬레이션 (확인용)
         return () => clearTimeout(timer);
     }, []);
 
     const goToMyPage = () => {
-        navigate('/rewards');
+        navigate('/rewards', { replace: true });
     };
 
     // AuthPage의 레이아웃 클래스를 재사용하여 일관성 유지
     return (
         <div className="auth signup-success">
             <motion.section
-                className="auth__form signup-success__card" // AuthPage와 동일한 카드 스타일 재사용
+                className={`auth__form signup-success__card ${status === 'sent' ? 'signup-success__card--sent' : ''}`} // AuthPage와 동일한 카드 스타일 재사용
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
@@ -138,7 +138,7 @@ export default function SignupSuccessPage() {
                     ) : (
                         <motion.div
                             key="sent"
-                            className="signup-success__stage"
+                            className="signup-success__stage signup-success__stage--sent"
                             variants={sentIconVariants} // '발송 완료'용 variant 사용
                             initial="hidden"
                             animate="visible"

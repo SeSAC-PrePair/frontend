@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react'
 import {useNavigate} from 'react-router-dom'
 import {useAppState} from '../context/AppStateContext'
+import {jobData} from '../constants/onboarding'
 import '../styles/pages/Settings.css'
 
 const focusAreas = [
@@ -28,65 +29,76 @@ const focusAreas = [
 
 
 export default function SettingsPage() {
-    const {user, updateSettings, deleteAccount, cadencePresets, notificationChannelPresets, jobTracks} = useAppState()
+    const {user, updateSettings, deleteAccount, cadencePresets, notificationChannelPresets} = useAppState()
     const navigate = useNavigate()
-    const tracks = jobTracks ?? []
-    const fallbackTrackId = user?.jobTrackId === 'other' ? 'other' : (user?.jobTrackId ?? tracks[0]?.id ?? '')
-    const fallbackTrack = fallbackTrackId === 'other' ? null : tracks.find((track) => track.id === fallbackTrackId) ?? tracks[0]
-    const fallbackRoleId = user?.jobRoleId ?? fallbackTrack?.roles?.[0]?.id ?? ''
+    const defaultJobCategory = jobData[0]
+    const fallbackJobCategoryId = user?.jobTrackId === 'other' ? 'other' : (user?.jobTrackId ?? defaultJobCategory.id)
+    const fallbackJobCategory = fallbackJobCategoryId === 'other' ? null : jobData.find((cat) => cat.id === fallbackJobCategoryId) ?? defaultJobCategory
+    // 사용자의 jobRoleLabel을 찾거나 기본값 사용
+    const fallbackJobRole = user?.jobRoleLabel ?? (fallbackJobCategory ? fallbackJobCategory.roles[0] : '')
     const focusMatch = focusAreas.find((area) => area.label === user?.focusArea)
     const fallbackFocusAreaId = focusMatch?.id ?? focusAreas[0]?.id ?? ''
 
     const [form, setForm] = useState({
         name: user?.name ?? '',
         email: user?.email ?? '',
-        jobTrackId: fallbackTrackId,
-        jobRoleId: fallbackRoleId,
+        jobCategory: fallbackJobCategoryId,
+        jobRole: fallbackJobRole,
         focusAreaId: fallbackFocusAreaId,
         questionCadence: user?.questionCadence ?? 'daily',
         notificationChannels: user?.notificationChannels?.filter((channel) => channel !== 'email') ?? [],
-        customJobTrack: user?.customJobLabel ?? '',
+        jobCategoryOther: user?.customJobLabel ?? '',
     })
     const [status, setStatus] = useState('')
-    const selectedTrack = tracks.find((track) => track.id === form.jobTrackId) ?? tracks[0]
-    const selectedRole =
-        selectedTrack?.roles?.find((role) => role.id === form.jobRoleId) ?? selectedTrack?.roles?.[0]
+    const selectedJobCategory = jobData.find((cat) => cat.id === form.jobCategory) ?? defaultJobCategory
+    // 선택한 직군이 '기타'가 아닌 경우, 세부 직무 옵션에서 '기타' 항목은 숨김
+    const selectedJobRoles = selectedJobCategory
+        ? selectedJobCategory.roles.filter((role) =>
+            selectedJobCategory.id === 'other' ? true : role !== '기타'
+        )
+        : []
 
     useEffect(() => {
         if (!user) return
-        const nextTrackId = user.jobTrackId === 'other' ? 'other' : (user.jobTrackId ?? tracks[0]?.id ?? '')
-        const nextTrack = nextTrackId === 'other' ? null : tracks.find((track) => track.id === nextTrackId) ?? tracks[0]
-        const nextRoleId = user.jobRoleId ?? nextTrack?.roles?.[0]?.id ?? ''
+        const nextJobCategoryId = user.jobTrackId === 'other' ? 'other' : (user.jobTrackId ?? defaultJobCategory.id)
+        const nextJobCategory = nextJobCategoryId === 'other' ? null : jobData.find((cat) => cat.id === nextJobCategoryId) ?? defaultJobCategory
+        const nextJobRole = user.jobRoleLabel ?? (nextJobCategory ? nextJobCategory.roles[0] : '')
         const nextFocusAreaId =
             focusAreas.find((area) => area.label === user.focusArea)?.id ?? focusAreas[0]?.id ?? ''
 
         setForm({
             name: user.name ?? '',
             email: user.email ?? '',
-            jobTrackId: nextTrackId,
-            jobRoleId: nextRoleId,
+            jobCategory: nextJobCategoryId,
+            jobRole: nextJobRole,
             focusAreaId: nextFocusAreaId,
             questionCadence: user.questionCadence ?? 'daily',
             notificationChannels: user.notificationChannels?.filter((channel) => channel !== 'email') ?? [],
-            customJobTrack: user.customJobLabel ?? '',
+            jobCategoryOther: user.customJobLabel ?? '',
         })
-    }, [user, tracks])
+    }, [user])
 
-    const handleTrackSelect = (trackId) => {
+    const handleJobCategorySelect = (categoryId) => {
         setForm((prev) => {
-            if (prev.jobTrackId === trackId) return prev
-            const nextTrack = tracks.find((track) => track.id === trackId)
+            if (prev.jobCategory === categoryId) return prev
+            const nextCategory = jobData.find((cat) => cat.id === categoryId)
+            // 직군 변경 시에도 '기타' 직무는 기본값으로 선택되지 않도록 필터링
+            const availableRoles = nextCategory
+                ? nextCategory.roles.filter((role) =>
+                    nextCategory.id === 'other' ? true : role !== '기타'
+                )
+                : []
             return {
                 ...prev,
-                jobTrackId: trackId,
-                jobRoleId: nextTrack?.roles?.[0]?.id ?? '',
-                customJobTrack: trackId === 'other' ? prev.customJobTrack : '',
+                jobCategory: categoryId,
+                jobRole: availableRoles[0] || '',
+                jobCategoryOther: categoryId === 'other' ? prev.jobCategoryOther : '',
             }
         })
     }
 
-    const handleRoleSelect = (roleId) => {
-        setForm((prev) => ({...prev, jobRoleId: roleId}))
+    const handleJobRoleSelect = (role) => {
+        setForm((prev) => ({...prev, jobRole: role}))
     }
 
     const handleFocusSelect = (focusId) => {
@@ -96,22 +108,21 @@ export default function SettingsPage() {
     const handleSubmit = (event) => {
         event.preventDefault()
         const cadenceMeta = cadencePresets.find((item) => item.id === form.questionCadence)
-        const trackMeta = tracks.find((track) => track.id === form.jobTrackId)
-        const roleMeta = trackMeta?.roles?.find((role) => role.id === form.jobRoleId)
+        const categoryMeta = jobData.find((cat) => cat.id === form.jobCategory)
         const focusMeta = focusAreas.find((area) => area.id === form.focusAreaId)
-        const isOther = form.jobTrackId === 'other'
+        const isOther = form.jobCategory === 'other'
         updateSettings({
-            jobTrackId: isOther ? 'other' : (trackMeta?.id ?? ''),
-            jobTrackLabel: isOther ? form.customJobTrack : (trackMeta?.label ?? ''),
-            jobRoleId: isOther ? '' : (roleMeta?.id ?? ''),
-            jobRoleLabel: isOther ? '' : (roleMeta?.label ?? ''),
-            desiredField: isOther ? form.customJobTrack : (roleMeta?.label ?? trackMeta?.label ?? user?.desiredField ?? ''),
+            jobTrackId: isOther ? 'other' : (categoryMeta?.id ?? ''),
+            jobTrackLabel: isOther ? form.jobCategoryOther : (categoryMeta?.label ?? ''),
+            jobRoleId: isOther ? '' : '',
+            jobRoleLabel: isOther ? '' : (form.jobRole ?? ''),
+            desiredField: isOther ? form.jobCategoryOther : (form.jobRole ?? categoryMeta?.label ?? user?.desiredField ?? ''),
             focusArea: focusMeta?.label ?? '',
             questionCadence: form.questionCadence,
             questionCadenceLabel: cadenceMeta?.label,
             questionSchedule: cadenceMeta?.schedule,
             notificationChannels: ['email', ...form.notificationChannels],
-            customJobLabel: isOther ? form.customJobTrack : '',
+            customJobLabel: isOther ? form.jobCategoryOther : '',
         })
         setStatus('저장되었습니다!')
         setTimeout(() => setStatus(''), 2400)
@@ -143,7 +154,6 @@ export default function SettingsPage() {
         <div className="settings">
             <header className="settings__header">
                 <div>
-                    <span className="tag">Personal Control Center</span>
                     <h1>개인 설정</h1>
                 
                 </div>
@@ -199,66 +209,57 @@ export default function SettingsPage() {
                             <p id="settings-job-track-label" className="settings__subhead">
                                 직군 (Job Category)
                             </p>
-                            {tracks.length > 0 ? (
-                                <div className="settings__field">
-                                    <select
-                                        id="settings-job-track"
-                                        className="settings__select"
-                                        aria-labelledby="settings-job-track-label"
-                                        value={form.jobTrackId}
-                                        onChange={(event) => handleTrackSelect(event.target.value)}
-                                    >
-                                        {tracks.map((track) => (
-                                            <option key={track.id} value={track.id}>
-                                                {track.label}
-                                            </option>
-                                        ))}
-                                        <option value="other">기타</option>
-                                    </select>
-                                </div>
-                            ) : (
-                                <p className="settings__empty">직무 정보를 불러오는 중입니다.</p>
-                            )}
-                            {form.jobTrackId === 'other' && (
+                            <div className="settings__field">
+                                <select
+                                    id="settings-job-track"
+                                    className="settings__select"
+                                    aria-labelledby="settings-job-track-label"
+                                    value={form.jobCategory}
+                                    onChange={(event) => handleJobCategorySelect(event.target.value)}
+                                >
+                                    {jobData.map((cat) => (
+                                        <option key={cat.id} value={cat.id}>
+                                            {cat.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            {form.jobCategory === 'other' && (
                                 <div className="settings__field" style={{ marginTop: '12px' }}>
                                     <input
                                         type="text"
                                         id="settings-custom-job-track"
                                         className="settings__select"
                                         placeholder="직군을 입력해주세요"
-                                        value={form.customJobTrack}
+                                        value={form.jobCategoryOther}
                                         onChange={(event) =>
-                                            setForm((prev) => ({ ...prev, customJobTrack: event.target.value }))
+                                            setForm((prev) => ({ ...prev, jobCategoryOther: event.target.value }))
                                         }
                                     />
                                 </div>
                             )}
                         </div>
 
-                        {form.jobTrackId !== 'other' && (
+                        {selectedJobRoles.length > 0 && (
                         <div className="settings__group">
                             <p id="settings-job-role-label" className="settings__subhead">
                                 세부 직무 (Job Role)
                             </p>
-                            {selectedTrack?.roles?.length ? (
-                                <div className="settings__field">
-                                    <select
-                                        id="settings-job-role"
-                                        className="settings__select"
-                                        aria-labelledby="settings-job-role-label"
-                                        value={form.jobRoleId}
-                                        onChange={(event) => handleRoleSelect(event.target.value)}
-                                    >
-                                        {selectedTrack.roles.map((role) => (
-                                            <option key={role.id} value={role.id}>
-                                                {role.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            ) : (
-                                <p className="settings__empty">먼저 직군을 선택해 주세요.</p>
-                            )}
+                            <div className="settings__field">
+                                <select
+                                    id="settings-job-role"
+                                    className="settings__select"
+                                    aria-labelledby="settings-job-role-label"
+                                    value={form.jobRole}
+                                    onChange={(event) => handleJobRoleSelect(event.target.value)}
+                                >
+                                    {selectedJobRoles.map((role) => (
+                                        <option key={role} value={role}>
+                                            {role}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
                         )}
 

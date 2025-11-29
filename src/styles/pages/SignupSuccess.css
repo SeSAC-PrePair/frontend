@@ -36,8 +36,34 @@
 }
 
 @media (min-width: 768px) {
-    .signup-success {
+    /* .auth의 grid 레이아웃 오버라이드하여 중앙 정렬 */
+    .auth.signup-success {
+        display: flex;
+        grid-template-columns: none;
+        justify-content: center;
+        align-items: center;
         padding: 3rem 0 4.6rem;
+        min-height: calc(100vh - 120px);
+    }
+
+    .signup-success__card {
+        margin: 0 auto;
+        max-width: 520px;
+        width: 100%;
+    }
+}
+
+@media (max-width: 767px) {
+    /* 모바일에서 발송 완료 상태의 카드 정렬 방식 변경하여 발송 중 상태와 같은 y축 위치로 맞춤 */
+    .signup-success__card--sent {
+        align-items: flex-start;
+        justify-content: center;
+    }
+
+    /* 발송 완료 상태의 섹션을 발송 중 상태의 아이콘 위치와 맞추기 위해 아래로 이동 */
+    /* 발송 중 상태가 카드 중앙에 위치할 때와 같은 높이에 오도록 상단 여백 추가 */
+    .signup-success__card--sent .signup-success__stage--sent {
+        margin-top: clamp(4rem, 15vw, 6rem);
     }
 }
 

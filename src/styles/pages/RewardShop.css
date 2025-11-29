@@ -15,8 +15,13 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
-    align-items: flex-end;
+    align-items: flex-start;
     gap: 1.6rem;
+}
+
+.reward-shop__header > div:first-child {
+    display: grid;
+    gap: 1.25rem;
 }
 
 .reward-shop__header h1 {

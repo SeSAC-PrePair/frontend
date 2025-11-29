@@ -1,26 +1,16 @@
 import { useEffect, useState, useRef } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAppState } from '../context/AppStateContext'
+import { jobData } from '../constants/onboarding'
 import robotLogo from '../assets/b01fa81ce7a959934e8f78fc6344081972afd0ae.png'
 import '../styles/pages/Auth.css'
 
 const steps = [
     { id: 'account', label: '기본 정보' },
     { id: 'job', label: '직업/관심 선택' },
-    { id: 'cadence', label: '질문 주기 & 알림' },
+    // 모바일에서 줄 바꿈이 일어나지 않도록 조금 더 짧은 라벨 사용
+    { id: 'cadence', label: '질문/알림' },
 ]
-
-const jobData = [
-    { id: 'service', label: '서비스직', roles: ['CS', '승무원', '요식업', '기타'] },
-    { id: 'public', label: '공무원 / 공공기관', roles: ['공무원', '공공기관', '기타'] },
-    { id: 'development', label: '개발', roles: ['프론트엔드', '백엔드', 'AI', 'DevOps', '기타'] },
-    { id: 'design', label: '디자인', roles: ['UX/UI', '그래픽', '영상', '기타'] },
-    { id: 'marketing', label: '마케팅 / 기획', roles: ['마케팅', '기획', '광고', '기타'] },
-    { id: 'finance', label: '금융 / 회계', roles: ['금융', '회계', '재무', '기타'] },
-    { id: 'education', label: '교육 / 강사', roles: ['교육', '강사', '기타'] },
-    { id: 'medical', label: '의료 / 간호 / 헬스케어', roles: ['의료', '간호', '헬스케어', '기타'] },
-    { id: 'other', label: '기타 (직접 입력)', roles: [] }
-];
 
 
 export default function AuthPage() {
@@ -33,8 +23,8 @@ export default function AuthPage() {
     const redirectFrom = location.state?.from
     const redirectState = redirectFrom ? { from: redirectFrom } : undefined
 
-    const defaultCadence = cadencePresets[0]
-    const defaultJobCategory = jobData[0];
+    const defaultCadence = cadencePresets?.[0] || null
+    const defaultJobCategory = jobData?.[0] || { id: 'service', roles: ['CS'] };
 
     const [mode, setMode] = useState('signup')
     const [activeStep, setActiveStep] = useState(0)
@@ -51,6 +41,13 @@ export default function AuthPage() {
         cadence: defaultCadence,
         notificationKakao: false,
     })
+
+    // 이메일 인증 관련 상태
+    const [emailVerification, setEmailVerification] = useState({
+        status: 'idle', // idle | sending | sent | verifying | verified | error
+        errorMessage: '',
+    })
+    const [verificationCode, setVerificationCode] = useState('')
 
     useEffect(() => {
         const paramMode = searchParams.get('mode')
@@ -96,8 +93,100 @@ export default function AuthPage() {
         navigate('/signup-success', { replace: true })
     }
 
+    // 이메일 인증 메일 발송
+    const handleSendVerificationEmail = async () => {
+        if (!signupForm.email) {
+            alert('이메일을 먼저 입력해주세요.')
+            return
+        }
+
+        setEmailVerification((prev) => ({
+            ...prev,
+            status: 'sending',
+            errorMessage: '',
+        }))
+
+        try {
+            // 실제 API 엔드포인트에 맞게 URL을 수정해서 사용하시면 됩니다.
+            const response = await fetch('/api/auth/email/verification-code', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email: signupForm.email }),
+            })
+
+            if (!response.ok) {
+                throw new Error('failed to send code')
+            }
+
+            setEmailVerification({
+                status: 'sent',
+                errorMessage: '',
+            })
+            alert('인증 코드가 입력하신 이메일로 발송되었습니다.')
+        } catch (error) {
+            console.error(error)
+            setEmailVerification({
+                status: 'error',
+                errorMessage: '인증 메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.',
+            })
+        }
+    }
+
+    // 이메일 인증 코드 검증
+    const handleVerifyEmailCode = async () => {
+        if (!verificationCode || verificationCode.length !== 6) {
+            alert('이메일로 받은 6자리 인증 코드를 입력해주세요.')
+            return
+        }
+
+        setEmailVerification((prev) => ({
+            ...prev,
+            status: 'verifying',
+            errorMessage: '',
+        }))
+
+        try {
+            // 실제 API 엔드포인트에 맞게 URL을 수정해서 사용하시면 됩니다.
+            const response = await fetch('/api/auth/email/verify-code', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: signupForm.email,
+                    code: verificationCode,
+                }),
+            })
+
+            const data = await response.json().catch(() => ({}))
+
+            if (!response.ok || !data?.success) {
+                throw new Error('invalid code')
+            }
+
+            setEmailVerification({
+                status: 'verified',
+                errorMessage: '',
+            })
+            alert('이메일 인증이 완료되었습니다.')
+        } catch (error) {
+            console.error(error)
+            setEmailVerification({
+                status: 'error',
+                errorMessage: '인증 코드가 올바르지 않습니다. 다시 확인해주세요.',
+            })
+        }
+    }
+
     const selectedJobCategory = jobData.find(j => j.id === signupForm.jobCategory);
-    const selectedJobRoles = selectedJobCategory ? selectedJobCategory.roles : [];
+    // 선택한 직군이 '기타'가 아닌 경우, 세부 직무 옵션에서 '기타' 항목은 숨김
+    const selectedJobRoles = selectedJobCategory
+        ? selectedJobCategory.roles.filter((role) =>
+            selectedJobCategory.id === 'other' ? true : role !== '기타'
+        )
+        : [];
 
     const notificationSummary = signupForm.notificationKakao
         ? '이메일 및 카카오톡'
@@ -238,13 +327,91 @@ export default function AuthPage() {
                                     </label>
                                     <label className="form__field">
                                         <span>이메일</span>
-                                        <input
-                                            type="email"
-                                            placeholder="you@example.com"
-                                            value={signupForm.email}
-                                            onChange={(event) => setSignupForm((prev) => ({ ...prev, email: event.target.value }))}
-                                            required
-                                        />
+                                        <div className="auth__email-row">
+                                            <input
+                                                type="email"
+                                                placeholder="you@example.com"
+                                                value={signupForm.email}
+                                                onChange={(event) => {
+                                                    const nextEmail = event.target.value
+                                                    setSignupForm((prev) => ({ ...prev, email: nextEmail }))
+                                                    // 이메일이 변경되면 인증 상태 초기화
+                                                    setEmailVerification({
+                                                        status: 'idle',
+                                                        errorMessage: '',
+                                                    })
+                                                    setVerificationCode('')
+                                                }}
+                                                required
+                                            />
+                                            <button
+                                                type="button"
+                                                className="auth__email-verify-button"
+                                                onClick={handleSendVerificationEmail}
+                                                disabled={
+                                                    !signupForm.email ||
+                                                    emailVerification.status === 'sending' ||
+                                                    emailVerification.status === 'verifying' ||
+                                                    emailVerification.status === 'verified'
+                                                }
+                                            >
+                                                {emailVerification.status === 'sending'
+                                                    ? '발송 중...'
+                                                    : emailVerification.status === 'sent'
+                                                        ? '재전송'
+                                                        : emailVerification.status === 'verified'
+                                                            ? '인증 완료'
+                                                            : '인증 메일 보내기'}
+                                            </button>
+                                        </div>
+
+                                        {/* 인증 코드 입력 영역 */}
+                                        {(emailVerification.status === 'sent' ||
+                                            emailVerification.status === 'verifying' ||
+                                            emailVerification.status === 'error') && (
+                                            <div className="auth__email-code">
+                                                <span>인증 코드</span>
+                                                <div className="auth__email-code-row">
+                                                    <input
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        maxLength={6}
+                                                        className="auth__email-code-input"
+                                        
+                                                        value={verificationCode}
+                                                        onChange={(event) => {
+                                                            const onlyNumber = event.target.value.replace(/[^0-9]/g, '')
+                                                            setVerificationCode(onlyNumber)
+                                                        }}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        className="auth__email-verify-button auth__email-verify-button--secondary"
+                                                        onClick={handleVerifyEmailCode}
+                                                        disabled={
+                                                            verificationCode.length !== 6 ||
+                                                            emailVerification.status === 'verifying'
+                                                        }
+                                                    >
+                                                        {emailVerification.status === 'verifying'
+                                                            ? '확인 중...'
+                                                            : '코드 확인'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* 상태 메시지 */}
+                                        {emailVerification.status === 'verified' && (
+                                            <p className="auth__hint auth__hint--good">
+                                                해당 이메일로 인증이 완료되었습니다. 계속 진행하실 수 있어요.
+                                            </p>
+                                        )}
+                                        {emailVerification.status === 'error' && emailVerification.errorMessage && (
+                                            <p className="auth__hint">
+                                                {emailVerification.errorMessage}
+                                            </p>
+                                        )}
                                     </label>
                                 </div>
                                 <div className="form__grid">
@@ -304,10 +471,16 @@ export default function AuthPage() {
                                         value={signupForm.jobCategory}
                                         onChange={(event) => {
                                             const newCategory = jobData.find(j => j.id === event.target.value);
+                                            // 직군 변경 시에도 '기타' 직무는 기본값으로 선택되지 않도록 필터링
+                                            const availableRoles = newCategory
+                                                ? newCategory.roles.filter((role) =>
+                                                    newCategory.id === 'other' ? true : role !== '기타'
+                                                )
+                                                : [];
                                             setSignupForm((prev) => ({
                                                 ...prev,
                                                 jobCategory: newCategory.id,
-                                                jobRole: newCategory.roles[0] || ''
+                                                jobRole: availableRoles[0] || ''
                                             }))
                                         }}
                                     >

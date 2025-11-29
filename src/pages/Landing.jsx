@@ -146,9 +146,6 @@ export default function LandingPage() {
             {/* Hero Section */}
             <section className="hero-section">
                 <div className="hero-content">
-                    <div className="hero-badge">
-                        <span>AI 기반 맞춤형 면접 코치 플랫폼</span>
-                    </div>
                     <h1 className="hero-title">
                         <span className="hero-title__line">완벽한 면접 준비를 위한 AI 파트너,</span>
                         <span className="highlight">PrePair</span>
