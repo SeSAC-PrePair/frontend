@@ -3,6 +3,7 @@ import {useNavigate} from 'react-router-dom'
 import {useAppState} from '../context/AppStateContext'
 import {jobData} from '../constants/onboarding'
 import Modal from '../components/Modal'
+import {getUserInfo, updateUserInfo} from '../utils/authApi'
 import '../styles/pages/Settings.css'
 
 const focusAreas = [
@@ -55,6 +56,7 @@ export default function SettingsPage() {
     const [deletePassword, setDeletePassword] = useState('')
     const [deleteError, setDeleteError] = useState('')
     const [isDeleting, setIsDeleting] = useState(false)
+    const [isLoadingUserInfo, setIsLoadingUserInfo] = useState(false)
     const selectedJobCategory = jobData.find((cat) => cat.id === form.jobCategory) ?? defaultJobCategory
     // 선택한 직군이 '기타'가 아닌 경우, 세부 직무 옵션에서 '기타' 항목은 숨김
     const selectedJobRoles = selectedJobCategory
@@ -63,25 +65,100 @@ export default function SettingsPage() {
         )
         : []
 
+    // 페이지 마운트 시 사용자 정보 조회
+    useEffect(() => {
+        const fetchUserInfo = async () => {
+            if (!user?.id) return
+            
+            setIsLoadingUserInfo(true)
+            try {
+                const userInfo = await getUserInfo(user.id)
+                
+                // API 응답 데이터 매핑
+                const apiName = userInfo.name || ''
+                const apiEmail = userInfo.email || ''
+                const apiSettings = userInfo.settings || {}
+                
+                // job_category 매핑 (API 응답의 job_category를 jobData의 id로 변환)
+                const apiJobCategory = apiSettings.job_category || ''
+                const matchedJobCategory = jobData.find((cat) => 
+                    cat.label === apiJobCategory || cat.id === apiJobCategory
+                )
+                const nextJobCategoryId = matchedJobCategory ? matchedJobCategory.id : (user.jobTrackId === 'other' ? 'other' : (user.jobTrackId ?? defaultJobCategory.id))
+                const nextJobCategory = nextJobCategoryId === 'other' ? null : jobData.find((cat) => cat.id === nextJobCategoryId) ?? defaultJobCategory
+                
+                // job_role 매핑
+                const apiJobRole = apiSettings.job_role || ''
+                const nextJobRole = apiJobRole || (user.jobRoleLabel ?? (nextJobCategory ? nextJobCategory.roles[0] : ''))
+                
+                // schedule_type 매핑 (DAILY -> daily 등)
+                const apiScheduleType = apiSettings.schedule_type || ''
+                const scheduleTypeMap = {
+                    'DAILY': 'daily',
+                    'WEEKLY': 'weekly',
+                    'MONTHLY': 'monthly',
+                }
+                const nextQuestionCadence = scheduleTypeMap[apiScheduleType] || (user.questionCadence ?? 'daily')
+                
+                // notification_type 매핑
+                const apiNotificationType = apiSettings.notification_type || 'EMAIL'
+                const notificationChannels = apiNotificationType === 'KAKAO' ? ['kakao'] : []
+                
+                // focusArea는 API 응답에 없으므로 기존 값 유지
+                const nextFocusAreaId = focusAreas.find((area) => area.label === user.focusArea)?.id ?? focusAreas[0]?.id ?? ''
+
+                setForm({
+                    name: apiName || (user.name ?? ''),
+                    email: apiEmail || (user.email ?? ''),
+                    jobCategory: nextJobCategoryId,
+                    jobRole: nextJobRole,
+                    focusAreaId: nextFocusAreaId,
+                    questionCadence: nextQuestionCadence,
+                    notificationChannels: notificationChannels,
+                    jobCategoryOther: nextJobCategoryId === 'other' ? apiJobCategory : (user.customJobLabel ?? ''),
+                })
+            } catch (error) {
+                // 405 Method Not Allowed는 조용히 처리 (서버가 GET 메서드를 지원하지 않을 수 있음)
+                if (error.message === 'GET_METHOD_NOT_ALLOWED' || error.message.includes('405')) {
+                    console.warn('[Settings] GET /api/users/me가 지원되지 않습니다 (405 Method Not Allowed). 기존 사용자 데이터를 사용합니다.')
+                } else {
+                    console.error('[Settings] 사용자 정보 조회 실패:', error)
+                }
+                // 에러 발생 시 기존 user 데이터 사용 (다음 useEffect에서 처리됨)
+            } finally {
+                setIsLoadingUserInfo(false)
+            }
+        }
+        
+        fetchUserInfo()
+    }, [user?.id])
+
+    // API 호출이 실패하거나 user가 변경되었을 때 폴백 데이터 설정
     useEffect(() => {
         if (!user) return
+        // API 호출이 완료되고 form이 비어있을 때만 폴백 데이터 사용
+        if (isLoadingUserInfo) return
+        
         const nextJobCategoryId = user.jobTrackId === 'other' ? 'other' : (user.jobTrackId ?? defaultJobCategory.id)
         const nextJobCategory = nextJobCategoryId === 'other' ? null : jobData.find((cat) => cat.id === nextJobCategoryId) ?? defaultJobCategory
         const nextJobRole = user.jobRoleLabel ?? (nextJobCategory ? nextJobCategory.roles[0] : '')
         const nextFocusAreaId =
             focusAreas.find((area) => area.label === user.focusArea)?.id ?? focusAreas[0]?.id ?? ''
 
-        setForm({
-            name: user.name ?? '',
-            email: user.email ?? '',
-            jobCategory: nextJobCategoryId,
-            jobRole: nextJobRole,
-            focusAreaId: nextFocusAreaId,
-            questionCadence: user.questionCadence ?? 'daily',
-            notificationChannels: user.notificationChannels?.filter((channel) => channel !== 'email') ?? [],
-            jobCategoryOther: user.customJobLabel ?? '',
-        })
-    }, [user])
+        // form이 비어있을 때만 기존 user 데이터 사용
+        if (form.name === '' && form.email === '') {
+            setForm({
+                name: user.name ?? '',
+                email: user.email ?? '',
+                jobCategory: nextJobCategoryId,
+                jobRole: nextJobRole,
+                focusAreaId: nextFocusAreaId,
+                questionCadence: user.questionCadence ?? 'daily',
+                notificationChannels: user.notificationChannels?.filter((channel) => channel !== 'email') ?? [],
+                jobCategoryOther: user.customJobLabel ?? '',
+            })
+        }
+    }, [user, isLoadingUserInfo, form.name, form.email])
 
     const handleJobCategorySelect = (categoryId) => {
         setForm((prev) => {
@@ -110,27 +187,66 @@ export default function SettingsPage() {
         setForm((prev) => ({...prev, focusAreaId: focusId}))
     }
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault()
-        const cadenceMeta = cadencePresets.find((item) => item.id === form.questionCadence)
-        const categoryMeta = jobData.find((cat) => cat.id === form.jobCategory)
-        const focusMeta = focusAreas.find((area) => area.id === form.focusAreaId)
-        const isOther = form.jobCategory === 'other'
-        updateSettings({
-            jobTrackId: isOther ? 'other' : (categoryMeta?.id ?? ''),
-            jobTrackLabel: isOther ? form.jobCategoryOther : (categoryMeta?.label ?? ''),
-            jobRoleId: isOther ? '' : '',
-            jobRoleLabel: isOther ? '' : (form.jobRole ?? ''),
-            desiredField: isOther ? form.jobCategoryOther : (form.jobRole ?? categoryMeta?.label ?? user?.desiredField ?? ''),
-            focusArea: focusMeta?.label ?? '',
-            questionCadence: form.questionCadence,
-            questionCadenceLabel: cadenceMeta?.label,
-            questionSchedule: cadenceMeta?.schedule,
-            notificationChannels: ['email', ...form.notificationChannels],
-            customJobLabel: isOther ? form.jobCategoryOther : '',
-        })
-        setStatus('저장되었습니다!')
-        setTimeout(() => setStatus(''), 2400)
+        
+        if (!user?.id) {
+            setStatus('사용자 정보를 찾을 수 없습니다.')
+            setTimeout(() => setStatus(''), 2400)
+            return
+        }
+        
+        try {
+            const cadenceMeta = cadencePresets.find((item) => item.id === form.questionCadence)
+            const categoryMeta = jobData.find((cat) => cat.id === form.jobCategory)
+            const focusMeta = focusAreas.find((area) => area.id === form.focusAreaId)
+            const isOther = form.jobCategory === 'other'
+            
+            // API 스펙에 맞게 데이터 변환
+            // job_category: 'other'인 경우 직접 입력한 값, 아니면 label
+            const jobCategory = isOther ? form.jobCategoryOther : (categoryMeta?.label ?? '')
+            
+            // job_role: jobRole 값 (기타가 아닌 경우 form.jobRole 사용)
+            const jobRole = isOther ? form.jobCategoryOther : (form.jobRole ?? '')
+            
+            // notification 설정
+            const hasKakao = form.notificationChannels.includes('kakao')
+            
+            // API 호출
+            await updateUserInfo(user.id, {
+                user_name: form.name || '',
+                user_email: form.email || '',
+                job_category: jobCategory,
+                job_role: jobRole,
+                question_frequency: 0, // API 스펙에 따라 기본값 0
+                notification: {
+                    email: true, // 이메일은 항상 true (기본)
+                    kakao: hasKakao,
+                },
+            })
+            
+            // 로컬 상태 업데이트
+            updateSettings({
+                jobTrackId: isOther ? 'other' : (categoryMeta?.id ?? ''),
+                jobTrackLabel: isOther ? form.jobCategoryOther : (categoryMeta?.label ?? ''),
+                jobRoleId: isOther ? '' : '',
+                jobRoleLabel: isOther ? '' : (form.jobRole ?? ''),
+                desiredField: isOther ? form.jobCategoryOther : (form.jobRole ?? categoryMeta?.label ?? user?.desiredField ?? ''),
+                focusArea: focusMeta?.label ?? '',
+                questionCadence: form.questionCadence,
+                questionCadenceLabel: cadenceMeta?.label,
+                questionSchedule: cadenceMeta?.schedule,
+                notificationChannels: ['email', ...form.notificationChannels],
+                customJobLabel: isOther ? form.jobCategoryOther : '',
+            })
+            
+            setStatus('저장되었습니다!')
+            setTimeout(() => setStatus(''), 2400)
+        } catch (error) {
+            console.error('[Settings] 회원 정보 수정 실패:', error)
+            setStatus(error.message || '저장에 실패했습니다. 잠시 후 다시 시도해주세요.')
+            setTimeout(() => setStatus(''), 3000)
+        }
     }
 
     const toggleChannel = (channelId) => {

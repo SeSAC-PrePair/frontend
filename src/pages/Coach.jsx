@@ -317,7 +317,7 @@ export default function CoachPage() {
     const questionContextLabel =
         latestDispatchLocal?.roleLabel || latestDispatchLocal?.jobTrackLabel || user?.desiredField || 'AI 질문'
     
-    // 오늘의 질문 API에서 가져온 데이터를 우선 사용, 없으면 기존 로직 사용
+    // 오늘의 질문 API에서 가져온 데이터만 사용 (목 데이터 폴백 제거)
     const questionDisplay = todayQuestion 
         ? {
             prompt: todayQuestion.question,
@@ -327,7 +327,7 @@ export default function CoachPage() {
             status: todayQuestion.status,
             created_at: todayQuestion.created_at,
         }
-        : (latestDispatchLocal ?? currentQuestion)
+        : null
     
     // 한 번 제출했는지 확인 (result가 있거나 latestDispatch에 answeredAt이 있으면)
     const hasSubmittedOnce = result !== null || latestDispatchLocal?.answeredAt != null
@@ -375,7 +375,6 @@ export default function CoachPage() {
                     console.error('[Coach Today Question] Error name:', error.name)
                     setTodayQuestionError(error.message || '오늘의 질문을 불러오는데 실패했습니다.')
                     setIsLoadingTodayQuestion(false)
-                    // 에러가 발생해도 기존 로직으로 폴백
                     setTodayQuestion(null)
                 })
         } else if (activePanel === 'practice' && !user?.id) {
@@ -470,8 +469,8 @@ export default function CoachPage() {
             setError(`답변을 조금 더 자세히 작성해주세요. (최소 ${minLength}자)`)
             return
         }
-        if (!questionDisplay && !currentQuestion) {
-            setError('질문을 불러오고 있습니다. 잠시 후 다시 시도해주세요.')
+        if (!questionDisplay) {
+            setError('오늘의 질문을 불러오고 있습니다. 잠시 후 다시 시도해주세요.')
             return
         }
         setError('')
@@ -480,8 +479,11 @@ export default function CoachPage() {
         try {
             // API 호출 - historyId를 순차적으로 생성 (001, 002, 003...)
             const historyId = getNextHistoryId()
-            // 오늘의 질문 API에서 가져온 경우 question 필드 사용, 아니면 prompt 사용
-            const questionText = questionDisplay?.question || questionDisplay?.prompt || currentQuestion?.prompt
+            // 오늘의 질문 API에서 가져온 데이터만 사용 (목 데이터 폴백 제거)
+            const questionText = questionDisplay?.question || questionDisplay?.prompt
+            if (!questionText) {
+                throw new Error('오늘의 질문을 불러올 수 없습니다.')
+            }
             const feedbackResponse = await generateFeedback(historyId, {
                 question: questionText,
                 answer: trimmed,
@@ -903,18 +905,10 @@ export default function CoachPage() {
                                 ) : todayQuestionError ? (
                                     <div className="coach__question-body">
                                         <p className="coach__error">{todayQuestionError}</p>
-                                        {questionDisplay?.prompt && questionDisplay !== currentQuestion && (
-                                            <h3 className="coach__question-prompt">Q. {questionDisplay.prompt}</h3>
-                                        )}
-                                    </div>
-                                ) : questionDisplay?.prompt || questionDisplay?.question ? (
-                                    // 폴백: API 데이터가 없을 때만 기존 데이터 사용
-                                    <div className="coach__question-body">
-                                        <h3 className="coach__question-prompt">Q. {questionDisplay.prompt || questionDisplay.question}</h3>
                                     </div>
                                 ) : (
                                     <div className="coach__question-body">
-                                        <p>질문을 불러올 수 없습니다.</p>
+                                        <p>오늘의 질문을 불러올 수 없습니다.</p>
                                     </div>
                                 )}
                                 <div className="coach__question-tips">
@@ -1069,7 +1063,7 @@ export default function CoachPage() {
                                                         setShowFeedbackModal(true)
                                                     }}
                                                 >
-                                                    과거에 받은 피드백 보기
+                                                    피드백 자세히 보기
                                                 </button>
                                                 <button
                                                     type="button"

@@ -15,8 +15,7 @@ export default function RewardsOverview() {
     const [isLoadingTodayQuestion, setIsLoadingTodayQuestion] = useState(false)
     const [todayQuestionError, setTodayQuestionError] = useState('')
 
-    // 기존 latestDispatch는 폴백으로 사용
-    const latestDispatch = sentQuestions[0] ?? null
+    // 목 데이터 폴백 제거 - 오늘의 질문 API만 사용
     const answerCount = (scoreHistory?.length ?? 0).toLocaleString('ko-KR')
     const pointsDisplay = user?.points?.toLocaleString() ?? '0'
     const pointsNumeric = user?.points ?? 0
@@ -121,42 +120,20 @@ export default function RewardsOverview() {
                     </article>
                 </section>
             ) : todayQuestionError && !todayQuestion ? (
-                // API 에러가 있고 폴백 데이터도 없는 경우
+                // API 에러가 있는 경우
                 <section className="rewards__dispatch rewards__dispatch--main">
                     <header>
                         <h2>오늘의 질문</h2>
-                        {latestDispatch ? (
-                            <>
-                                <p className="rewards__error-text" style={{color: '#d32f2f', fontSize: '0.875rem'}}>
-                                    {todayQuestionError} (기존 데이터 표시)
-                                </p>
-                            </>
-                        ) : (
-                            <p>아직 받은 질문이 없습니다. 설정에서 루틴을 시작하세요!</p>
-                        )}
+                        <p className="rewards__error-text" style={{color: '#d32f2f', fontSize: '0.875rem'}}>
+                            {todayQuestionError}
+                        </p>
                     </header>
-                    {latestDispatch ? (
-                        <article className="dispatch-card">
-                            <div className="dispatch-card__row">
-                                <div className="dispatch-card__content">
-                                    <h3>Q. {latestDispatch.prompt}</h3>
-                                    <p>{latestDispatch.subPrompt}</p>
-                                </div>
-                                <div className="dispatch-card__actions">
-                                    <Link to="/coach" className="cta-button cta-button--primary">
-                                        답변하러 가기
-                                    </Link>
-                                </div>
-                            </div>
-                        </article>
-                    ) : (
-                        <article className="dispatch-card dispatch-card--empty">
-                            <p>받은 질문이 없습니다.</p>
-                            <Link to="/settings" className="cta-button cta-button--primary">
-                                루틴 설정하러 가기
-                            </Link>
-                        </article>
-                    )}
+                    <article className="dispatch-card dispatch-card--empty">
+                        <p>오늘의 질문을 불러올 수 없습니다.</p>
+                        <Link to="/settings" className="cta-button cta-button--primary">
+                            루틴 설정하러 가기
+                        </Link>
+                    </article>
                 </section>
             ) : todayQuestion ? (
                 // API에서 가져온 오늘의 질문 표시
@@ -182,35 +159,15 @@ export default function RewardsOverview() {
                         </div>
                     </article>
                 </section>
-            ) : latestDispatch ? (
-                // API 데이터가 없지만 기존 데이터가 있는 경우 (폴백)
-                <section className="rewards__dispatch rewards__dispatch--main">
-                    <header>
-                        <h2>오늘의 질문</h2>
-                    </header>
-                    <article className="dispatch-card">
-                        <div className="dispatch-card__row">
-                            <div className="dispatch-card__content">
-                                <h3>Q. {latestDispatch.prompt}</h3>
-                                <p>{latestDispatch.subPrompt}</p>
-                            </div>
-                            <div className="dispatch-card__actions">
-                                <Link to="/coach" className="cta-button cta-button--primary">
-                                    답변하러 가기
-                                </Link>
-                            </div>
-                        </div>
-                    </article>
-                </section>
             ) : (
-                // API 데이터도 없고 기존 데이터도 없는 경우
+                // API 데이터가 없는 경우
                 <section className="rewards__dispatch rewards__dispatch--main">
                     <header>
                         <h2>오늘의 질문</h2>
                         <p>아직 받은 질문이 없습니다. 설정에서 루틴을 시작하세요!</p>
                     </header>
                     <article className="dispatch-card dispatch-card--empty">
-                        <p>받은 질문이 없습니다.</p>
+                        <p>오늘의 질문을 불러올 수 없습니다.</p>
                         <Link to="/settings" className="cta-button cta-button--primary">
                             루틴 설정하러 가기
                         </Link>

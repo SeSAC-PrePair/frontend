@@ -83,14 +83,31 @@ export default defineConfig({
         changeOrigin: true,
         secure: false, // SSL 인증서 무시 (https 접속 문제 해결)
         ws: true,
+        // 헤더를 명시적으로 전달
+        headers: {
+          'Connection': 'keep-alive',
+        },
         // 디버깅을 위한 로그 강화
         configure: (proxy, _options) => {
           proxy.on('error', (err, _req, _res) => {
             console.error('[PROXY ERROR] 프록시 에러 발생:', err);
           });
           proxy.on('proxyReq', (proxyReq, req, _res) => {
+            // 원본 요청의 모든 헤더를 프록시 요청에 복사
+            const headers = req.headers;
+            if (headers) {
+              Object.keys(headers).forEach((key) => {
+                if (key.toLowerCase() === 'x-user-id' || key.toLowerCase() === 'accept') {
+                  proxyReq.setHeader(key, headers[key]);
+                }
+              });
+            }
+            
             console.log('[PROXY REQ] 요청 보냄:', req.method, req.url, '->', proxyReq.path);
             console.log('[PROXY REQ] Content-Type:', proxyReq.getHeader('content-type'));
+            console.log('[PROXY REQ] X-User-ID:', proxyReq.getHeader('x-user-id'));
+            console.log('[PROXY REQ] 원본 요청 헤더 X-User-ID:', req.headers['x-user-id']);
+            console.log('[PROXY REQ] 모든 헤더:', JSON.stringify(proxyReq.getHeaders(), null, 2));
             
             // POST 요청의 경우 body 로깅
             if (req.method === 'POST' && req.body) {
