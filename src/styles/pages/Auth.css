@@ -546,3 +546,87 @@
         max-width: 100%;
     }
 }
+
+/* 비밀번호 재설정 모달 */
+.auth__password-reset-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+
+.auth__password-reset-content {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 500px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 25px 60px rgba(33, 62, 104, 0.15);
+}
+
+.auth__password-reset-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.auth__password-reset-header h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: rgba(20, 31, 64, 0.9);
+}
+
+.auth__password-reset-close {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    line-height: 1;
+    color: rgba(20, 31, 64, 0.6);
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.auth__password-reset-close:hover {
+    background: rgba(64, 81, 115, 0.1);
+    color: rgba(20, 31, 64, 0.9);
+}
+
+.auth__password-reset-content form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* 모바일에서 비밀번호 재설정 모달 */
+@media (max-width: 900px) {
+    .auth__password-reset-modal {
+        padding: 0.5rem;
+    }
+
+    .auth__password-reset-content {
+        padding: 1.5rem;
+        border-radius: 12px;
+    }
+
+    .auth__password-reset-header h3 {
+        font-size: 1.25rem;
+    }
+}
