@@ -56,13 +56,13 @@ function HexagonChart({scores, size = 200, isMobile = false}) {
     ]
 
     // 모바일에서는 라벨을 위한 여유 공간 추가
-    const padding = isMobile ? 50 : 40
+    const padding = isMobile ? 50 : 30
     const chartSize = size - padding * 2
     const center = size / 2
     const maxRadius = chartSize * 0.35
     const gridLines = [0.2, 0.4, 0.6, 0.8, 1.0]
     const labelRadius = maxRadius + (isMobile ? 25 : 20)
-    const labelFontSize = isMobile ? 14 : 56
+    const labelFontSize = isMobile ? 14 : 86
 
     const getPoint = (angle, radius) => {
         const rad = (angle * Math.PI) / 180
@@ -105,7 +105,7 @@ function HexagonChart({scores, size = 200, isMobile = false}) {
                             .join(' ')}
                         fill="none"
                         stroke="rgba(64, 81, 115, 0.15)"
-                        strokeWidth="7"
+                        strokeWidth="2.7"
                     />
                 ))}
 
@@ -176,7 +176,7 @@ function HexagonChart({scores, size = 200, isMobile = false}) {
                                 y={point.y - 12}
                                 textAnchor="middle"
                                 dominantBaseline="middle"
-                                fontSize={isMobile ? "12" : "34"}
+                                fontSize={isMobile ? "12" : "54"}
                                 fill="rgba(63, 123, 255, 0.9)"
                                 fontWeight="600"
                             >
@@ -1160,7 +1160,7 @@ export default function CoachPage() {
                                         </header>
                                         <div className="coach__summary-content">
                                             <div className="coach__summary-chart">
-                                                <HexagonChart scores={summaryData.scores} size={isMobile ? 360 : 1120} isMobile={isMobile} />
+                                                <HexagonChart scores={summaryData.scores} size={isMobile ? 360 : 1820} isMobile={isMobile} />
                                             </div>
                                             <div className="coach__summary-analysis">
                                                 <div className="coach__summary-section">
