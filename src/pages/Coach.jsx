@@ -5,7 +5,7 @@ import {useAppState} from '../context/AppStateContext'
 import Modal from '../components/Modal'
 import PointsRewardModal from '../components/PointsRewardModal'
 import useMediaQuery from '../hooks/useMediaQuery'
-import {generateFeedback, getSuggestedAnswer} from '../utils/feedbackApi'
+import {generateFeedback, getSuggestedAnswer, getSummaryFeedback} from '../utils/feedbackApi'
 import robotLogo from '../assets/b01fa81ce7a959934e8f78fc6344081972afd0ae.png'
 import '../styles/pages/Coach.css'
 
@@ -62,7 +62,7 @@ function HexagonChart({scores, size = 200, isMobile = false}) {
     const maxRadius = chartSize * 0.35
     const gridLines = [0.2, 0.4, 0.6, 0.8, 1.0]
     const labelRadius = maxRadius + (isMobile ? 25 : 20)
-    const labelFontSize = isMobile ? 10 : 12
+    const labelFontSize = isMobile ? 14 : 56
 
     const getPoint = (angle, radius) => {
         const rad = (angle * Math.PI) / 180
@@ -105,7 +105,7 @@ function HexagonChart({scores, size = 200, isMobile = false}) {
                             .join(' ')}
                         fill="none"
                         stroke="rgba(64, 81, 115, 0.15)"
-                        strokeWidth="1"
+                        strokeWidth="7"
                     />
                 ))}
 
@@ -119,8 +119,8 @@ function HexagonChart({scores, size = 200, isMobile = false}) {
                             y1={center}
                             x2={endPoint.x}
                             y2={endPoint.y}
-                            stroke="rgba(64, 81, 115, 0.2)"
-                            strokeWidth="1"
+                            stroke="rgba(64, 81, 115, 0.4)"
+                            strokeWidth="1.5"
                         />
                     )
                 })}
@@ -176,7 +176,7 @@ function HexagonChart({scores, size = 200, isMobile = false}) {
                                 y={point.y - 12}
                                 textAnchor="middle"
                                 dominantBaseline="middle"
-                                fontSize="10"
+                                fontSize={isMobile ? "12" : "34"}
                                 fill="rgba(63, 123, 255, 0.9)"
                                 fontWeight="600"
                             >
@@ -300,6 +300,9 @@ export default function CoachPage() {
     const [suggestedAnswer, setSuggestedAnswer] = useState(null)
     const [showPointsRewardModal, setShowPointsRewardModal] = useState(false)
     const [earnedPoints, setEarnedPoints] = useState(0)
+    const [summaryData, setSummaryData] = useState(null)
+    const [isLoadingSummary, setIsLoadingSummary] = useState(false)
+    const [summaryError, setSummaryError] = useState('')
     const isMobile = useMediaQuery('(max-width: 720px)')
 
     const minLength = 80
@@ -333,6 +336,67 @@ export default function CoachPage() {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activePanel, rePracticeTarget])
+
+    // 요약 탭에서 API 호출
+    useEffect(() => {
+        if (activePanel === 'summary') {
+            // userId 확인: user.id가 UUID 형식인지 확인, 아니면 테스트용 userId 사용
+            const userId = user?.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id)
+                ? user.id
+                : '3f0a9a32-1c11-4c88-9e61-bb7121b6f9d1' // 테스트용 userId
+            
+            if (!userId) {
+                setSummaryError('사용자 ID를 찾을 수 없습니다. 로그인 후 다시 시도해주세요.')
+                setIsLoadingSummary(false)
+                return
+            }
+            
+            setIsLoadingSummary(true)
+            setSummaryError('')
+            
+            // 디버깅: 사용 중인 userId 로그
+            console.log('[Coach Summary] Using userId:', userId)
+            console.log('[Coach Summary] Original user.id:', user?.id)
+            
+            getSummaryFeedback(userId)
+                .then((data) => {
+                    // 점수 범위 확인 및 변환 (0-5 범위를 0-100 범위로 변환)
+                    const normalizeScore = (score) => {
+                        if (score == null || score === undefined) return 0
+                        // 점수가 5 이하이면 0-5 범위로 간주하고 100점 만점으로 변환
+                        if (score <= 5) {
+                            return (score / 5) * 100
+                        }
+                        // 이미 0-100 범위인 경우 그대로 사용
+                        return Math.min(100, Math.max(0, score))
+                    }
+                    
+                    // API 응답 필드명을 현재 코드에서 사용하는 필드명으로 매핑
+                    const mappedScores = {
+                        proactivity: normalizeScore(data.scores.proactivity),
+                        logicalThinking: normalizeScore(data.scores.logicalThinking),
+                        creativity: normalizeScore(data.scores.creativity),
+                        workEthic: normalizeScore(data.scores.careerValues), // careerValues -> workEthic
+                        collaboration: normalizeScore(data.scores.cooperation), // cooperation -> collaboration
+                        values: normalizeScore(data.scores.coreValues), // coreValues -> values
+                    }
+                    
+                    setSummaryData({
+                        scores: mappedScores,
+                        strengths: data.strengths || '',
+                        improvements: data.improvements || '',
+                        recommendations: data.recommendations || '',
+                    })
+                    setIsLoadingSummary(false)
+                })
+                .catch((error) => {
+                    console.error('요약 피드백 가져오기 오류:', error)
+                    setSummaryError(error.message || '요약 데이터를 불러오는데 실패했습니다.')
+                    setIsLoadingSummary(false)
+                })
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activePanel, user?.id])
 
     const handleEvaluate = async () => {
         const trimmed = answer.trim()
@@ -1073,7 +1137,17 @@ export default function CoachPage() {
                             exit={{opacity: 0, y: -14}}
                             transition={{duration: 0.4, ease: 'easeOut'}}
                         >
-                            {safeScoreHistory.length > 0 ? (
+                            {isLoadingSummary ? (
+                                <div className="coach__empty">
+                                    <strong>요약 데이터를 불러오는 중...</strong>
+                                    <p>잠시만 기다려주세요.</p>
+                                </div>
+                            ) : summaryError ? (
+                                <div className="coach__empty">
+                                    <strong>요약 데이터를 불러올 수 없습니다.</strong>
+                                    <p>{summaryError}</p>
+                                </div>
+                            ) : summaryData ? (
                                 <>
                                     <Motion.article
                                         className="coach__card coach__card--summary"
@@ -1085,70 +1159,35 @@ export default function CoachPage() {
                                             <h2>인터뷰 스킬 요약</h2>
                                         </header>
                                         <div className="coach__summary-content">
-                                            {(() => {
-                                                const categoryScores = calculateCategoryScores(safeScoreHistory)
-                                                const analysis = analyzeStrengthsAndWeaknesses(categoryScores)
-                                                return (
-                                                    <>
-                                                        <div className="coach__summary-chart">
-                                                            <HexagonChart scores={categoryScores} size={isMobile ? 300 : 340} isMobile={isMobile} />
-                                                        </div>
-                                                        <div className="coach__summary-analysis">
-                                                            <div className="coach__summary-section">
-                                                                <h3>강점</h3>
-                                                                <p>
-                                                                    {analysis.strengths.map((s, idx) => (
-                                                                        <span key={s.category}>
-                                                                            <strong>{s.category}</strong> ({s.score}점)
-                                                                            {idx < analysis.strengths.length - 1 ? ', ' : ''}
-                                                                        </span>
-                                                                    ))}
-                                                                    영역에서 뛰어난 역량을 보여주고 있습니다. 특히{' '}
-                                                                    <strong>{analysis.strengths[0]?.category}</strong>에서 높은 점수를 받았으며, 이는
-                                                                    인터뷰에서 본인의 강점을 효과적으로 어필할 수 있는 영역입니다.
-                                                                </p>
-                                                            </div>
-                                                            <div className="coach__summary-section">
-                                                                <h3>개선이 필요한 부분</h3>
-                                                                <p>
-                                                                    {analysis.weaknesses.map((w, idx) => (
-                                                                        <span key={w.category}>
-                                                                            <strong>{w.category}</strong> ({w.score}점)
-                                                                            {idx < analysis.weaknesses.length - 1 ? ', ' : ''}
-                                                                        </span>
-                                                                    ))}
-                                                                    영역에서 추가적인 보완이 필요합니다. 특히{' '}
-                                                                    <strong>{analysis.weaknesses[0]?.category}</strong> 영역을 집중적으로 개선한다면
-                                                                    전체적인 인터뷰 역량이 크게 향상될 것입니다.
-                                                                </p>
-                                                            </div>
-                                                        
-                                                            <div className="coach__summary-section">
-                                                                <h3>추천 학습</h3>
-                                                                <ul>
-                                                                    <li>
-                                                                        <strong>{analysis.weaknesses[0]?.category}</strong> 관련 질문 리스트를 준비하고
-                                                                        매일 한 가지씩 답변 연습하기
-                                                                    </li>
-                                                                    <li>
-                                                                        STAR 구조를 활용한 90초 이내 답변 연습으로{' '}
-                                                                        <strong>{analysis.weaknesses[1]?.category}</strong> 역량 강화
-                                                                    </li>
-                                                                    <li>
-                                                                        과거 프로젝트 경험을{' '}
-                                                                        <strong>{analysis.weaknesses[0]?.category}</strong> 관점에서 재정리하고
-                                                                        정량적 지표와 함께 정리하기
-                                                                    </li>
-                                                                    <li>
-                                                                        <strong>{analysis.strengths[0]?.category}</strong> 강점을 더욱 부각시킬 수 있는
-                                                                        스토리텔링 기법 학습
-                                                                    </li>
-                                                                </ul>
-                                                            </div>
-                                                        </div>
-                                                    </>
-                                                )
-                                            })()}
+                                            <div className="coach__summary-chart">
+                                                <HexagonChart scores={summaryData.scores} size={isMobile ? 360 : 1120} isMobile={isMobile} />
+                                            </div>
+                                            <div className="coach__summary-analysis">
+                                                <div className="coach__summary-section">
+                                                    <h3>강점</h3>
+                                                    <p>{summaryData.strengths || '강점 데이터가 없습니다.'}</p>
+                                                </div>
+                                                <div className="coach__summary-section">
+                                                    <h3>개선이 필요한 부분</h3>
+                                                    <p>{summaryData.improvements || '개선점 데이터가 없습니다.'}</p>
+                                                </div>
+                                                <div className="coach__summary-section">
+                                                    <h3>추천 학습</h3>
+                                                    {summaryData.recommendations ? (
+                                                        <ul>
+                                                            {summaryData.recommendations
+                                                                .split(',')
+                                                                .map((rec, idx) => rec.trim())
+                                                                .filter((rec) => rec.length > 0)
+                                                                .map((rec, idx) => (
+                                                                    <li key={idx}>{rec}</li>
+                                                                ))}
+                                                        </ul>
+                                                    ) : (
+                                                        <p>추천 학습 데이터가 없습니다.</p>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
                                     </Motion.article>
                                 </>

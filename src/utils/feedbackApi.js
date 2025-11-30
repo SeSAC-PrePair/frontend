@@ -411,3 +411,148 @@ export async function getSuggestedAnswer(payload) {
     }
 }
 
+/**
+ * 사용자의 요약 피드백을 가져옵니다.
+ * @param {string} userId - 사용자 ID
+ * @returns {Promise<Object>} 요약 피드백 응답 객체
+ * @property {Object} scores - 6가지 역량 점수
+ * @property {number} scores.proactivity - 적극성
+ * @property {number} scores.logicalThinking - 논리적사고
+ * @property {number} scores.creativity - 창의력
+ * @property {number} scores.careerValues - 직업관
+ * @property {number} scores.cooperation - 협동성
+ * @property {number} scores.coreValues - 가치관
+ * @property {string} strengths - 강점
+ * @property {string} improvements - 개선이 필요한 부분
+ * @property {string} recommendations - 추천 학습
+ * @throws {Error} API 호출 실패 시 에러 발생
+ */
+export async function getSummaryFeedback(userId) {
+    // userId 검증
+    if (!userId || typeof userId !== 'string' || !userId.trim()) {
+        throw new Error('사용자 ID가 필요합니다.')
+    }
+
+    const apiUrl = `/api/evaluation/feedback/${userId.trim()}`
+    
+    try {
+        const requestHeaders = {
+            'Accept': 'application/json',
+        }
+        
+        // 디버깅 로그
+        console.log('[Summary Feedback API] ===== Request Details =====')
+        console.log('[Summary Feedback API] Request URL:', apiUrl)
+        console.log('[Summary Feedback API] Request Method: GET')
+        console.log('[Summary Feedback API] User ID:', userId)
+        console.log('[Summary Feedback API] ===========================')
+        
+        const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: requestHeaders,
+            credentials: 'include', // 쿠키 포함
+        })
+        
+        // 응답이 JSON이 아닐 수 있으므로 먼저 텍스트로 읽기
+        const responseText = await response.text()
+        const contentType = response.headers.get('content-type') || ''
+        
+        // 디버깅 로그
+        console.log('[Summary Feedback API] ===== Response Details =====')
+        console.log('[Summary Feedback API] Response status:', response.status)
+        console.log('[Summary Feedback API] Content-Type:', contentType)
+        console.log('[Summary Feedback API] Response text:', responseText)
+        console.log('[Summary Feedback API] =============================')
+        
+        if (!response.ok) {
+            let errorData
+            try {
+                if (responseText.trim()) {
+                    errorData = JSON.parse(responseText)
+                } else {
+                    errorData = { message: '서버에서 빈 응답을 받았습니다.' }
+                }
+            } catch (parseError) {
+                errorData = { 
+                    message: responseText || `서버 오류가 발생했습니다. (${response.status} ${response.statusText})` 
+                }
+            }
+
+            // 400 Bad Request 에러 처리
+            if (response.status === 400) {
+                const errorMessage = errorData.message || errorData.error || '잘못된 요청입니다.'
+                console.error('[Summary Feedback API] 400 Bad Request:', errorMessage)
+                throw new Error(errorMessage)
+            }
+
+            // 404 Not Found 에러 처리
+            if (response.status === 404) {
+                const errorMessage = errorData.message || errorData.error || '요약 데이터를 찾을 수 없습니다.'
+                console.error('[Summary Feedback API] 404 Not Found:', errorMessage)
+                throw new Error(errorMessage)
+            }
+
+            // 500 Internal Server Error 처리
+            if (response.status === 500) {
+                const errorMessage = errorData.message || errorData.error || '서버 내부 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+                console.error('[Summary Feedback API] 500 Internal Server Error:', errorMessage)
+                console.error('[Summary Feedback API] Full error data:', errorData)
+                throw new Error(errorMessage)
+            }
+
+            throw new Error(
+                errorData.message || 
+                `요약 피드백을 가져오는데 실패했습니다. (${response.status} ${response.statusText})`
+            )
+        }
+
+        // 성공 응답 파싱
+        if (!responseText || !responseText.trim()) {
+            throw new Error('서버에서 빈 응답을 받았습니다.')
+        }
+
+        let data
+        try {
+            data = JSON.parse(responseText)
+        } catch (parseError) {
+            if (!contentType.includes('application/json')) {
+                if (contentType.includes('text/html')) {
+                    throw new Error('API 엔드포인트를 찾을 수 없습니다. 서버 설정을 확인해주세요.')
+                }
+                throw new Error(`서버가 JSON 형식이 아닌 응답을 반환했습니다. (Content-Type: ${contentType})`)
+            }
+            throw new Error(`서버 응답을 파싱할 수 없습니다: ${parseError.message}`)
+        }
+
+        // 응답 형식 검증
+        if (!data.scores || typeof data.scores !== 'object') {
+            throw new Error('서버 응답에 점수 데이터가 포함되어 있지 않습니다.')
+        }
+
+        // 필수 필드 검증
+        const requiredScoreFields = ['proactivity', 'logicalThinking', 'creativity', 'careerValues', 'cooperation', 'coreValues']
+        const missingFields = requiredScoreFields.filter(field => !(field in data.scores))
+        if (missingFields.length > 0) {
+            console.warn('[Summary Feedback API] Missing score fields:', missingFields)
+        }
+
+        // 응답 데이터 로깅
+        console.log('[Summary Feedback API] ===== Parsed Response Data =====')
+        console.log('[Summary Feedback API] Scores:', data.scores)
+        console.log('[Summary Feedback API] Strengths:', data.strengths?.substring(0, 100) + '...')
+        console.log('[Summary Feedback API] Improvements:', data.improvements?.substring(0, 100) + '...')
+        console.log('[Summary Feedback API] Recommendations:', data.recommendations?.substring(0, 100) + '...')
+        console.log('[Summary Feedback API] ======================================')
+
+        return data
+    } catch (error) {
+        // 네트워크 에러 등 기타 에러 처리
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+            throw new Error('네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.')
+        }
+        
+        // 이미 처리된 에러는 그대로 throw
+        throw error
+    }
+}
+
