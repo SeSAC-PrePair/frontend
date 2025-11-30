@@ -7,6 +7,7 @@ import {
     jobData,
     notificationChannels as notificationChannelPresets,
 } from '../constants/onboarding'
+import {deleteUser} from '../utils/authApi'
 
 const AppStateContext = createContext(null)
 
@@ -424,20 +425,91 @@ export function AppProvider({children}) {
     )
 
     const login = useCallback(
-        ({email}) => {
-            const fallback = {...defaultUserProfile, email: email || defaultUserProfile.email}
-            setUser(fallback)
-            setActiveQuestion(null)
-            setSentQuestions([])
-            setLastDispatch(null)
-            sequenceRef.current = 0
-            dispatchQuestion({
-                profile: fallback,
-                channels: fallback.notificationChannels,
-                cadenceId: fallback.questionCadence,
-                sequence: 0,
-            })
-            return fallback
+        async ({email, password}) => {
+            try {
+                // API 요청 데이터 구성
+                const requestData = {
+                    email: email,
+                    password: password,
+                }
+
+                // API 호출
+                const response = await fetch('/api/auth/signin', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData),
+                })
+
+                // 에러 처리
+                if (!response.ok) {
+                    let errorData = {}
+                    let errorText = ''
+                    try {
+                        errorText = await response.text()
+                        if (errorText) {
+                            errorData = JSON.parse(errorText)
+                        }
+                    } catch (e) {
+                        console.error('[Login] Failed to parse error response:', e)
+                        errorData = { raw: errorText }
+                    }
+
+                    if (response.status === 400) {
+                        throw new Error(errorData.message || '이메일과 비밀번호는 필수 입력 항목입니다.')
+                    } else if (response.status === 401) {
+                        throw new Error(errorData.message || '이메일 또는 비밀번호가 올바르지 않습니다.')
+                    } else {
+                        throw new Error(errorData.message || `로그인에 실패했습니다. (${response.status})`)
+                    }
+                }
+
+                // 성공 시 (201 Created 또는 200 OK) 응답 본문에서 user_id 가져오기
+                let responseData = {}
+                try {
+                    // 응답 본문을 JSON으로 파싱
+                    responseData = await response.json()
+                } catch (e) {
+                    console.error('[Login] Failed to parse response JSON:', e)
+                    throw new Error('로그인 응답을 읽을 수 없습니다.')
+                }
+
+                // 응답 본문에서 user_id 추출 (우선순위: 응답 본문 > 헤더)
+                const userId = responseData.user_id || response.headers.get('X-User-ID')
+                
+                if (!userId) {
+                    console.error('[Login] Response data:', responseData)
+                    console.error('[Login] Response headers:', Object.fromEntries(response.headers.entries()))
+                    throw new Error('로그인 응답에서 사용자 ID를 받을 수 없습니다.')
+                }
+
+                // 로그인 성공 후 사용자 정보 설정
+                // 응답 본문에서 받은 정보 사용
+                const userProfile = {
+                    ...defaultUserProfile,
+                    id: userId,
+                    email: responseData.email || email,
+                    name: responseData.name || defaultUserProfile.name,
+                }
+
+                setUser(userProfile)
+                setActiveQuestion(null)
+                setSentQuestions([])
+                setLastDispatch(null)
+                sequenceRef.current = 0
+                dispatchQuestion({
+                    profile: userProfile,
+                    channels: userProfile.notificationChannels,
+                    cadenceId: userProfile.questionCadence,
+                    sequence: 0,
+                })
+                
+                return userProfile
+            } catch (error) {
+                // 에러를 다시 throw하여 호출하는 쪽에서 처리할 수 있도록 함
+                throw error
+            }
         },
         [dispatchQuestion],
     )
@@ -445,23 +517,51 @@ export function AppProvider({children}) {
     const signup = useCallback(
         async (payload) => {
             try {
+                // 기본 필수 필드 검증
+                if (!payload.name || !payload.name.trim()) {
+                    throw new Error('이름을 입력해주세요.')
+                }
+                if (!payload.email || !payload.email.trim()) {
+                    throw new Error('이메일을 입력해주세요.')
+                }
+                if (!payload.password || !payload.password.trim()) {
+                    throw new Error('비밀번호를 입력해주세요.')
+                }
+
                 // API 스펙에 맞게 데이터 변환
-                const cadence = cadenceMap[payload.cadence?.id] ?? cadencePresets[0]
+                const cadenceId = payload.cadence?.id || cadencePresets[0]?.id
+                const cadence = cadenceMap[cadenceId] ?? cadencePresets[0]
+                
+                if (!cadence || !cadence.id) {
+                    throw new Error('질문 주기를 선택해주세요.')
+                }
+                
                 const isOther = payload.jobCategory === 'other'
                 const categoryMeta = jobData.find((cat) => cat.id === payload.jobCategory)
                 
                 // job_category: 'other'인 경우 직접 입력한 값, 아니면 label
                 const jobCategory = isOther ? payload.jobCategoryOther : (categoryMeta?.label ?? '')
                 
-                // job_role: jobRole 값
+                // job_role: jobRole 값 (기타가 아닌 경우 payload.jobRole 사용)
                 const jobRole = isOther ? payload.jobCategoryOther : (payload.jobRole ?? '')
                 
                 // schedule_type: cadence.id를 대문자로 변환 (예: "daily" -> "DAILY")
                 const scheduleType = cadence.id.toUpperCase()
                 
-                // notification_type: API 스펙에 따라 "EMAIL" 또는 카카오톡 포함 시 다른 값
-                // 일단 API 스펙에 명시된 "EMAIL" 사용
+                // notification_type: 백엔드가 카카오 알림도 EMAIL로 처리할 수 있으므로 일단 EMAIL로 전송
+                // 카카오 인증은 별도로 처리
                 const notificationType = 'EMAIL'
+
+                // 필수 필드 검증
+                if (!jobCategory || jobCategory.trim() === '') {
+                    throw new Error('직군을 선택해주세요.')
+                }
+                if (!jobRole || jobRole.trim() === '') {
+                    throw new Error('세부 직무를 선택해주세요.')
+                }
+                if (!scheduleType || scheduleType.trim() === '') {
+                    throw new Error('질문 주기를 선택해주세요.')
+                }
 
                 // API 요청 데이터 구성
                 const requestData = {
@@ -469,12 +569,22 @@ export function AppProvider({children}) {
                     email: payload.email,
                     password: payload.password,
                     settings: {
-                        job_category: jobCategory,
-                        job_role: jobRole,
+                        job_category: jobCategory.trim(),
+                        job_role: jobRole.trim(),
                         schedule_type: scheduleType,
                         notification_type: notificationType,
                     },
                 }
+
+                // 디버깅: 요청 데이터 상세 로깅
+                console.log('[Signup] Request data:', JSON.stringify(requestData, null, 2))
+                console.log('[Signup] Payload:', payload)
+                console.log('[Signup] Category Meta:', categoryMeta)
+                console.log('[Signup] Job Category:', jobCategory)
+                console.log('[Signup] Job Role:', jobRole)
+                console.log('[Signup] Schedule Type:', scheduleType)
+                console.log('[Signup] Notification Kakao:', payload.notificationKakao)
+                console.log('[Signup] Notification Type:', notificationType)
 
                 // API 호출
                 const response = await fetch('/api/auth/signup', {
@@ -487,15 +597,104 @@ export function AppProvider({children}) {
 
                 // 에러 처리
                 if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}))
+                    let errorData = {}
+                    let errorText = ''
+                    try {
+                        errorText = await response.text()
+                        if (errorText) {
+                            try {
+                                errorData = JSON.parse(errorText)
+                            } catch (parseError) {
+                                // JSON 파싱 실패 시 텍스트 그대로 사용
+                                errorData = { message: errorText || '알 수 없는 오류가 발생했습니다.' }
+                            }
+                        }
+                    } catch (e) {
+                        console.error('[Signup] Failed to read error response:', e)
+                        errorData = { message: '서버 응답을 읽을 수 없습니다.' }
+                    }
+                    
+                    // 디버깅: 에러 응답 상세 로깅
+                    console.error('[Signup] ===== Error Response =====')
+                    console.error('[Signup] Status:', response.status, response.statusText)
+                    console.error('[Signup] Error Text:', errorText)
+                    console.error('[Signup] Error Data:', errorData)
+                    console.error('[Signup] Request Data:', JSON.stringify(requestData, null, 2))
+                    console.error('[Signup] Request Headers:', {
+                        'Content-Type': 'application/json',
+                    })
+                    console.error('[Signup] ===========================')
                     
                     if (response.status === 400) {
-                        throw new Error(errorData.message || '이메일과 비밀번호는 필수 입력 항목입니다.')
+                        throw new Error(errorData.message || errorData.error || '입력 정보를 확인해주세요.')
                     } else if (response.status === 409) {
-                        throw new Error('이미 존재하는 이메일입니다.')
+                        throw new Error(errorData.message || '이미 존재하는 이메일입니다.')
+                    } else if (response.status === 500) {
+                        // 500 오류의 경우 더 상세한 정보를 로깅하고 사용자에게 친절한 메시지 제공
+                        const errorMessage = errorData.message || errorData.error || errorData.detail || errorData.raw || '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+                        console.error('[Signup] 500 Internal Server Error - Full Details:', {
+                            errorData,
+                            errorText,
+                            requestData,
+                            payload,
+                        })
+                        throw new Error(`서버 오류가 발생했습니다: ${errorMessage}`)
                     } else {
-                        throw new Error(errorData.message || '회원가입에 실패했습니다. 잠시 후 다시 시도해주세요.')
+                        throw new Error(errorData.message || errorData.error || `회원가입에 실패했습니다. (${response.status})`)
                     }
+                }
+
+                // API 응답에서 user_id 받기
+                const responseData = await response.json()
+                const userId = responseData.user_id
+
+                if (!userId) {
+                    throw new Error('회원가입 응답에서 user_id를 받을 수 없습니다.')
+                }
+
+                // 모든 경우에 첫 인터뷰 질문 발송 (카카오 알림 선택 여부와 관계없이)
+                // 카카오 알림은 나중에 설정에서 인증할 수 있음
+                try {
+                    const firstInterviewResponse = await fetch('/api/interviews/first', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            user_id: userId,
+                        }),
+                    })
+
+                    if (!firstInterviewResponse.ok) {
+                        let errorText = '';
+                        let errorData = {};
+                        try {
+                            errorText = await firstInterviewResponse.text();
+                            if (errorText) {
+                                try {
+                                    errorData = JSON.parse(errorText);
+                                } catch (e) {
+                                    errorData = { raw: errorText };
+                                }
+                            }
+                        } catch (e) {
+                            console.error('[Signup] Failed to read first API error response:', e);
+                        }
+                        
+                        console.error('[Signup] 첫 인터뷰 질문 요청 실패:', {
+                            status: firstInterviewResponse.status,
+                            statusText: firstInterviewResponse.statusText,
+                            errorData,
+                            errorText,
+                            userId,
+                        });
+                        // 에러가 발생해도 회원가입은 성공한 것으로 처리
+                    } else {
+                        console.log('[Signup] 첫 인터뷰 질문 발송 성공');
+                    }
+                } catch (error) {
+                    console.error('[Signup] 첫 인터뷰 질문 요청 중 오류:', error);
+                    // 에러가 발생해도 회원가입은 성공한 것으로 처리
                 }
 
                 // 성공 시 로컬 상태 업데이트
@@ -507,7 +706,7 @@ export function AppProvider({children}) {
                         : defaultChannels
 
                 const newProfile = {
-                    id: `user-${Date.now()}`,
+                    id: userId, // API에서 받은 user_id 사용
                     name: payload.name || 'PrePair 사용자',
                     email: payload.email,
                     desiredField: roleLabel,
@@ -540,7 +739,7 @@ export function AppProvider({children}) {
                     cadenceId: cadence.id,
                     sequence: 0,
                 })
-                return newProfile
+                return { userId, user: newProfile }
             } catch (error) {
                 // 에러를 다시 throw하여 호출하는 쪽에서 처리할 수 있도록 함
                 throw error
@@ -557,16 +756,41 @@ export function AppProvider({children}) {
         sequenceRef.current = 0
     }, [])
 
-    const deleteAccount = useCallback(() => {
-        setUser(null)
-        setActiveQuestion(null)
-        setSentQuestions([])
-        setLastDispatch(null)
-        setScoreHistory([])
-        setActivity(defaultActivity)
-        setPurchases([])
-        sequenceRef.current = 0
-    }, [])
+    const deleteAccount = useCallback(
+        async (password) => {
+            if (!user || !user.id) {
+                throw new Error('사용자 정보를 찾을 수 없습니다.')
+            }
+
+            if (!password || typeof password !== 'string' || !password.trim()) {
+                throw new Error('비밀번호를 입력해주세요.')
+            }
+
+            try {
+                // 디버깅: 사용자 정보 확인
+                console.log('[Delete Account] User object:', user)
+                console.log('[Delete Account] User ID:', user.id)
+                console.log('[Delete Account] User ID type:', typeof user.id)
+                
+                // API 호출
+                await deleteUser(user.id, password)
+
+                // 성공 시 로컬 상태 초기화
+                setUser(null)
+                setActiveQuestion(null)
+                setSentQuestions([])
+                setLastDispatch(null)
+                setScoreHistory([])
+                setActivity(defaultActivity)
+                setPurchases([])
+                sequenceRef.current = 0
+            } catch (error) {
+                // 에러를 다시 throw하여 호출하는 쪽에서 처리할 수 있도록 함
+                throw error
+            }
+        },
+        [user],
+    )
 
     const updateSettings = useCallback((nextSettings) => {
         setUser((prev) => {

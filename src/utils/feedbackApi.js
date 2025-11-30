@@ -556,3 +556,166 @@ export async function getSummaryFeedback(userId) {
     }
 }
 
+/**
+ * 오늘의 질문을 가져옵니다.
+ * @param {string} userId - 사용자 ID
+ * @returns {Promise<Object>} 오늘의 질문 응답 객체
+ * @property {number} question_id - 질문 ID
+ * @property {string} question - 질문 내용
+ * @property {string} created_at - 생성 시간
+ * @property {string} answered_at - 답변 시간 (null일 수 있음)
+ * @property {string} status - 상태 ("UNANSWERED" 또는 "ANSWERED")
+ * @throws {Error} API 호출 실패 시 에러 발생
+ */
+export async function getTodayQuestion(userId) {
+    // userId 검증
+    if (!userId || typeof userId !== 'string' || !userId.trim()) {
+        throw new Error('사용자 ID가 필요합니다.')
+    }
+
+    const apiUrl = `/api/interviews/me/today`
+    
+    try {
+        const requestHeaders = {
+            'X-User-ID': userId.trim(),
+            'Accept': 'application/json',
+        }
+        
+        // 디버깅 로그
+        console.log('[Today Question API] ===== Request Details =====')
+        console.log('[Today Question API] Request URL:', apiUrl)
+        console.log('[Today Question API] Request Method: GET')
+        console.log('[Today Question API] User ID:', userId)
+        console.log('[Today Question API] Request Headers:', JSON.stringify(requestHeaders, null, 2))
+        console.log('[Today Question API] X-User-ID header:', requestHeaders['X-User-ID'])
+        console.log('[Today Question API] ===========================')
+        
+        const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: requestHeaders,
+            credentials: 'include', // 쿠키 포함
+        })
+        
+        // 요청이 실제로 전송되었는지 확인
+        console.log('[Today Question API] Request sent with headers:', requestHeaders)
+        
+        // 응답이 JSON이 아닐 수 있으므로 먼저 텍스트로 읽기
+        const responseText = await response.text()
+        const contentType = response.headers.get('content-type') || ''
+        
+        // 디버깅 로그
+        console.log('[Today Question API] ===== Response Details =====')
+        console.log('[Today Question API] Response status:', response.status)
+        console.log('[Today Question API] Content-Type:', contentType)
+        console.log('[Today Question API] Response text:', responseText)
+        console.log('[Today Question API] =============================')
+        
+        if (!response.ok) {
+            let errorData
+            try {
+                if (responseText.trim()) {
+                    errorData = JSON.parse(responseText)
+                } else {
+                    errorData = { message: '서버에서 빈 응답을 받았습니다.' }
+                }
+            } catch (parseError) {
+                errorData = { 
+                    message: responseText || `서버 오류가 발생했습니다. (${response.status} ${response.statusText})` 
+                }
+            }
+
+            // 상세한 에러 로깅
+            console.error('[Today Question API] ===== Error Details =====')
+            console.error('[Today Question API] Status:', response.status)
+            console.error('[Today Question API] Status Text:', response.statusText)
+            console.error('[Today Question API] Response Text:', responseText)
+            console.error('[Today Question API] Parsed Error Data:', errorData)
+            console.error('[Today Question API] Error Data Keys:', Object.keys(errorData))
+            console.error('[Today Question API] Request Headers Sent:', requestHeaders)
+            console.error('[Today Question API] User ID Used:', userId)
+            console.error('[Today Question API] ===========================')
+
+            // 400 Bad Request 에러 처리
+            if (response.status === 400) {
+                const errorMessage = errorData.message || errorData.error || errorData.errorMessage || '잘못된 요청입니다.'
+                console.error('[Today Question API] 400 Bad Request:', errorMessage)
+                throw new Error(errorMessage)
+            }
+
+            // 404 Not Found 에러 처리
+            if (response.status === 404) {
+                const errorMessage = errorData.message || errorData.error || errorData.errorMessage || '오늘의 질문을 찾을 수 없습니다.'
+                console.error('[Today Question API] 404 Not Found:', errorMessage)
+                throw new Error(errorMessage)
+            }
+
+            // 500 Internal Server Error 처리
+            if (response.status === 500) {
+                // 에러 메시지 추출 시도 (다양한 필드명 확인)
+                const errorMessage = errorData.message 
+                    || errorData.error 
+                    || errorData.errorMessage 
+                    || errorData.detail
+                    || errorData.msg
+                    || (typeof errorData === 'string' ? errorData : '서버 내부 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')
+                
+                console.error('[Today Question API] 500 Internal Server Error:', errorMessage)
+                console.error('[Today Question API] Full error data:', JSON.stringify(errorData, null, 2))
+                console.error('[Today Question API] Error data type:', typeof errorData)
+                console.error('[Today Question API] Raw response text:', responseText)
+                
+                throw new Error(errorMessage)
+            }
+
+            throw new Error(
+                errorData.message || 
+                errorData.error ||
+                errorData.errorMessage ||
+                `오늘의 질문을 가져오는데 실패했습니다. (${response.status} ${response.statusText})`
+            )
+        }
+
+        // 성공 응답 파싱
+        if (!responseText || !responseText.trim()) {
+            throw new Error('서버에서 빈 응답을 받았습니다.')
+        }
+
+        let data
+        try {
+            data = JSON.parse(responseText)
+        } catch (parseError) {
+            if (!contentType.includes('application/json')) {
+                if (contentType.includes('text/html')) {
+                    throw new Error('API 엔드포인트를 찾을 수 없습니다. 서버 설정을 확인해주세요.')
+                }
+                throw new Error(`서버가 JSON 형식이 아닌 응답을 반환했습니다. (Content-Type: ${contentType})`)
+            }
+            throw new Error(`서버 응답을 파싱할 수 없습니다: ${parseError.message}`)
+        }
+
+        // 응답 형식 검증
+        if (!data.question_id && !data.question) {
+            throw new Error('서버 응답에 질문 데이터가 포함되어 있지 않습니다.')
+        }
+
+        // 응답 데이터 로깅
+        console.log('[Today Question API] ===== Parsed Response Data =====')
+        console.log('[Today Question API] Question ID:', data.question_id)
+        console.log('[Today Question API] Question:', data.question?.substring(0, 100) + '...')
+        console.log('[Today Question API] Status:', data.status)
+        console.log('[Today Question API] Created At:', data.created_at)
+        console.log('[Today Question API] Answered At:', data.answered_at)
+        console.log('[Today Question API] ======================================')
+
+        return data
+    } catch (error) {
+        // 네트워크 에러 등 기타 에러 처리
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+            throw new Error('네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.')
+        }
+        
+        // 이미 처리된 에러는 그대로 throw
+        throw error
+    }
+}
+

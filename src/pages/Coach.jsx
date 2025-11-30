@@ -5,7 +5,7 @@ import {useAppState} from '../context/AppStateContext'
 import Modal from '../components/Modal'
 import PointsRewardModal from '../components/PointsRewardModal'
 import useMediaQuery from '../hooks/useMediaQuery'
-import {generateFeedback, getSuggestedAnswer, getSummaryFeedback} from '../utils/feedbackApi'
+import {generateFeedback, getSuggestedAnswer, getSummaryFeedback, getTodayQuestion} from '../utils/feedbackApi'
 import robotLogo from '../assets/b01fa81ce7a959934e8f78fc6344081972afd0ae.png'
 import '../styles/pages/Coach.css'
 
@@ -303,6 +303,9 @@ export default function CoachPage() {
     const [summaryData, setSummaryData] = useState(null)
     const [isLoadingSummary, setIsLoadingSummary] = useState(false)
     const [summaryError, setSummaryError] = useState('')
+    const [todayQuestion, setTodayQuestion] = useState(null)
+    const [isLoadingTodayQuestion, setIsLoadingTodayQuestion] = useState(false)
+    const [todayQuestionError, setTodayQuestionError] = useState('')
     const isMobile = useMediaQuery('(max-width: 720px)')
 
     const minLength = 80
@@ -313,13 +316,76 @@ export default function CoachPage() {
     const latestDispatchLocal = latestDispatch
     const questionContextLabel =
         latestDispatchLocal?.roleLabel || latestDispatchLocal?.jobTrackLabel || user?.desiredField || 'AI 질문'
-    const questionDisplay = latestDispatchLocal ?? currentQuestion
+    
+    // 오늘의 질문 API에서 가져온 데이터를 우선 사용, 없으면 기존 로직 사용
+    const questionDisplay = todayQuestion 
+        ? {
+            prompt: todayQuestion.question,
+            question: todayQuestion.question,
+            question_id: todayQuestion.question_id,
+            answeredAt: todayQuestion.answered_at,
+            status: todayQuestion.status,
+            created_at: todayQuestion.created_at,
+        }
+        : (latestDispatchLocal ?? currentQuestion)
     
     // 한 번 제출했는지 확인 (result가 있거나 latestDispatch에 answeredAt이 있으면)
     const hasSubmittedOnce = result !== null || latestDispatchLocal?.answeredAt != null
     const canGetAISuggestion = hasSubmittedOnce && (user?.points ?? 0) >= 10
     // 재피드백 받기에서는 포인트 차감 없이 사용 가능
     const canGetRePracticeAISuggestion = rePracticeTarget !== null
+
+    // 오늘의 질문 API 호출
+    useEffect(() => {
+        if (activePanel === 'practice' && user?.id) {
+            // userId 확인: user.id가 UUID 형식인지 확인, 아니면 테스트용 userId 사용
+            // API 스펙에 따르면 X-User-ID는 "u_edjks134n" 형식이므로, user.id를 그대로 사용하거나 폴백
+            let userId = user.id
+            
+            // user.id가 없거나 빈 문자열인 경우에만 테스트용 ID 사용
+            if (!userId || userId.trim() === '') {
+                userId = 'u_edjks134n' // 테스트용 userId
+                console.warn('[Coach] User ID가 없어 테스트용 ID를 사용합니다:', userId)
+            }
+            
+            // 디버깅: 사용 중인 userId 로그
+            console.log('[Coach Today Question] Using userId:', userId)
+            console.log('[Coach Today Question] Original user.id:', user?.id)
+            console.log('[Coach Today Question] User object:', user)
+            
+            setIsLoadingTodayQuestion(true)
+            setTodayQuestionError('')
+            
+            getTodayQuestion(userId)
+                .then((data) => {
+                    console.log('[Coach Today Question] Success:', data)
+                    setTodayQuestion(data)
+                    setIsLoadingTodayQuestion(false)
+                    
+                    // answered_at이 있으면 이미 답변한 것으로 간주하고 답변 필드에 설정
+                    if (data.answered_at && data.status === 'ANSWERED') {
+                        // 이미 답변한 경우, 답변 내용은 API에서 가져와야 하지만
+                        // 현재 API 응답에 answer 필드가 없으므로 일단 빈 문자열로 처리
+                        // 필요시 별도 API 호출로 답변 내용을 가져올 수 있음
+                    }
+                })
+                .catch((error) => {
+                    console.error('[Coach Today Question] 오늘의 질문 가져오기 오류:', error)
+                    console.error('[Coach Today Question] Error stack:', error.stack)
+                    console.error('[Coach Today Question] Error name:', error.name)
+                    setTodayQuestionError(error.message || '오늘의 질문을 불러오는데 실패했습니다.')
+                    setIsLoadingTodayQuestion(false)
+                    // 에러가 발생해도 기존 로직으로 폴백
+                    setTodayQuestion(null)
+                })
+        } else if (activePanel === 'practice' && !user?.id) {
+            // user.id가 없는 경우 에러 메시지 설정
+            console.warn('[Coach Today Question] User ID가 없습니다.')
+            setTodayQuestionError('로그인이 필요합니다.')
+            setIsLoadingTodayQuestion(false)
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activePanel, user?.id])
 
     useEffect(() => {
         // 최신 질문에 저장된 답변이 있으면 작성란에 미리 채움 (가장 최근 답변으로 갱신)
@@ -404,7 +470,7 @@ export default function CoachPage() {
             setError(`답변을 조금 더 자세히 작성해주세요. (최소 ${minLength}자)`)
             return
         }
-        if (!currentQuestion) {
+        if (!questionDisplay && !currentQuestion) {
             setError('질문을 불러오고 있습니다. 잠시 후 다시 시도해주세요.')
             return
         }
@@ -414,8 +480,10 @@ export default function CoachPage() {
         try {
             // API 호출 - historyId를 순차적으로 생성 (001, 002, 003...)
             const historyId = getNextHistoryId()
+            // 오늘의 질문 API에서 가져온 경우 question 필드 사용, 아니면 prompt 사용
+            const questionText = questionDisplay?.question || questionDisplay?.prompt || currentQuestion?.prompt
             const feedbackResponse = await generateFeedback(historyId, {
-                question: currentQuestion.prompt,
+                question: questionText,
                 answer: trimmed,
             })
 
@@ -490,7 +558,7 @@ export default function CoachPage() {
                 ? feedbackResponse.focusTags
                 : pickRandom(focusTagPool, 2)
             
-            const summary = feedbackResponse.summary || feedbackData.summary || `구체적인 사례를 중심으로 ${currentQuestion.tags?.[0] || '핵심 역량'}을 잘 드러냈어요.`
+            const summary = feedbackResponse.summary || feedbackData.summary || `구체적인 사례를 중심으로 ${questionDisplay?.tags?.[0] || currentQuestion?.tags?.[0] || '핵심 역량'}을 잘 드러냈어요.`
 
             const computed = {
                 score: baseScore,
@@ -512,7 +580,7 @@ export default function CoachPage() {
                 highlights: computed.highlights,
                 breakdown: computed.breakdown,
                 focusTags: computed.focusTags,
-                question: currentQuestion.prompt,
+                question: questionText,
                 strengths: computed.strengths,
                 gaps: computed.gaps,
                 recommendations: computed.recommendations,
@@ -823,9 +891,32 @@ export default function CoachPage() {
                                 <header className="coach__question-header">
                                     <h2>오늘의 질문</h2>
                                 </header>
-                                <div className="coach__question-body">
-                                    <h3 className="coach__question-prompt">Q. {questionDisplay?.prompt}</h3>
-                                </div>
+                                {isLoadingTodayQuestion ? (
+                                    <div className="coach__question-body">
+                                        <p>오늘의 질문을 불러오는 중...</p>
+                                    </div>
+                                ) : todayQuestion ? (
+                                    // API에서 가져온 질문 표시
+                                    <div className="coach__question-body">
+                                        <h3 className="coach__question-prompt">Q. {todayQuestion.question}</h3>
+                                    </div>
+                                ) : todayQuestionError ? (
+                                    <div className="coach__question-body">
+                                        <p className="coach__error">{todayQuestionError}</p>
+                                        {questionDisplay?.prompt && questionDisplay !== currentQuestion && (
+                                            <h3 className="coach__question-prompt">Q. {questionDisplay.prompt}</h3>
+                                        )}
+                                    </div>
+                                ) : questionDisplay?.prompt || questionDisplay?.question ? (
+                                    // 폴백: API 데이터가 없을 때만 기존 데이터 사용
+                                    <div className="coach__question-body">
+                                        <h3 className="coach__question-prompt">Q. {questionDisplay.prompt || questionDisplay.question}</h3>
+                                    </div>
+                                ) : (
+                                    <div className="coach__question-body">
+                                        <p>질문을 불러올 수 없습니다.</p>
+                                    </div>
+                                )}
                                 <div className="coach__question-tips">
                                     <strong className="coach__question-tips-title">해결 팁</strong>
                                     <ul>

@@ -47,7 +47,9 @@ export default function AuthPage() {
         status: 'idle', // idle | sending | sent | verifying | verified | error
         errorMessage: '',
     })
-    const [verificationCode, setVerificationCode] = useState('')
+    const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', '']) // 6자리 인증번호
+    const [timeRemaining, setTimeRemaining] = useState(0) // 남은 시간 (초)
+    const timerRef = useRef(null)
 
     useEffect(() => {
         const paramMode = searchParams.get('mode')
@@ -57,6 +59,24 @@ export default function AuthPage() {
             setMode('signup')
         }
     }, [searchParams])
+
+    // 타이머 관리
+    useEffect(() => {
+        if (timeRemaining > 0) {
+            timerRef.current = setTimeout(() => {
+                setTimeRemaining((prev) => prev - 1)
+            }, 1000)
+        } else if (timeRemaining === 0 && timerRef.current) {
+            clearTimeout(timerRef.current)
+            timerRef.current = null
+        }
+
+        return () => {
+            if (timerRef.current) {
+                clearTimeout(timerRef.current)
+            }
+        }
+    }, [timeRemaining])
 
     const loginDisabled = !loginForm.email || !loginForm.password
 
@@ -73,12 +93,19 @@ export default function AuthPage() {
         !passwordSpecialCharValid ||
         !passwordMatchValid;
 
-    const handleLogin = (event) => {
+    const handleLogin = async (event) => {
         event.preventDefault()
         if (loginDisabled) return
 
-        login(loginForm.email, loginForm.password)
-        navigate(redirectFrom || '/rewards', { replace: true })
+        try {
+            await login({
+                email: loginForm.email,
+                password: loginForm.password,
+            })
+            navigate(redirectFrom || '/rewards', { replace: true })
+        } catch (error) {
+            alert(error.message || '로그인에 실패했습니다. 잠시 후 다시 시도해주세요.')
+        }
     }
 
     const handleSignup = async (event) => {
@@ -90,10 +117,21 @@ export default function AuthPage() {
         }
 
         try {
-            await signup(signupForm)
-            navigate('/signup-success', { replace: true })
+            const result = await signup(signupForm)
+            
+            // 회원가입 성공 - 카카오 인증은 성공 페이지에서 안내
+            // 카카오 알림을 선택한 경우, 성공 페이지에서 카카오 인증을 안내하도록 상태 전달
+            navigate('/signup-success', { 
+                replace: true,
+                state: { 
+                    needsKakaoAuth: signupForm.notificationKakao && result?.userId,
+                    userId: result?.userId
+                }
+            })
         } catch (error) {
-            alert(error.message || '회원가입에 실패했습니다. 잠시 후 다시 시도해주세요.')
+            console.error('[Auth] Signup error:', error)
+            const errorMessage = error.message || '회원가입에 실패했습니다. 잠시 후 다시 시도해주세요.'
+            alert(errorMessage)
         }
     }
 
@@ -135,6 +173,7 @@ export default function AuthPage() {
                 status: 'sent',
                 errorMessage: '',
             })
+            setTimeRemaining(300) // 5분 = 300초
             alert('인증 코드가 입력하신 이메일로 발송되었습니다.')
         } catch (error) {
             console.error(error)
@@ -145,9 +184,15 @@ export default function AuthPage() {
         }
     }
 
+    // 재요청 핸들러
+    const handleResendVerificationEmail = async () => {
+        await handleSendVerificationEmail()
+    }
+
     // 이메일 인증 코드 검증
     const handleVerifyEmailCode = async () => {
-        if (!verificationCode || verificationCode.length !== 6) {
+        const codeString = verificationCode.join('')
+        if (!codeString || codeString.length !== 6) {
             alert('이메일로 받은 6자리 인증 코드를 입력해주세요.')
             return
         }
@@ -159,34 +204,45 @@ export default function AuthPage() {
         }))
 
         try {
-            // 실제 API 엔드포인트에 맞게 URL을 수정해서 사용하시면 됩니다.
-            const response = await fetch('/api/auth/email/verify-code', {
+            // 엔드포인트를 /api/auth/email/verify로 수정
+            const response = await fetch('/api/auth/email/verify', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     email: signupForm.email,
-                    code: verificationCode,
+                    code: verificationCode.join(''),
                 }),
             })
 
-            const data = await response.json().catch(() => ({}))
-
-            if (!response.ok || !data?.success) {
-                throw new Error('invalid code')
+            // 응답 처리 - API 스펙에 따라 200이면 성공, 400이면 에러
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}))
+                
+                if (response.status === 400) {
+                    throw new Error(errorData.message || '유효하지 않은 인증 코드입니다.')
+                } else {
+                    throw new Error(errorData.message || '인증 확인 중 오류가 발생했습니다.')
+                }
             }
 
+            // 성공 시 (200 OK)
             setEmailVerification({
                 status: 'verified',
                 errorMessage: '',
             })
+            setTimeRemaining(0)
+            if (timerRef.current) {
+                clearTimeout(timerRef.current)
+                timerRef.current = null
+            }
             alert('이메일 인증이 완료되었습니다.')
         } catch (error) {
-            console.error(error)
+            console.error('이메일 인증 오류:', error)
             setEmailVerification({
                 status: 'error',
-                errorMessage: '인증 코드가 올바르지 않습니다. 다시 확인해주세요.',
+                errorMessage: error.message || '인증 코드가 올바르지 않습니다. 다시 확인해주세요.',
             })
         }
     }
@@ -351,7 +407,12 @@ export default function AuthPage() {
                                                         status: 'idle',
                                                         errorMessage: '',
                                                     })
-                                                    setVerificationCode('')
+                                                    setVerificationCode(['', '', '', '', '', ''])
+                                                    setTimeRemaining(0)
+                                                    if (timerRef.current) {
+                                                        clearTimeout(timerRef.current)
+                                                        timerRef.current = null
+                                                    }
                                                 }}
                                                 required
                                             />
@@ -363,16 +424,15 @@ export default function AuthPage() {
                                                     !signupForm.email ||
                                                     emailVerification.status === 'sending' ||
                                                     emailVerification.status === 'verifying' ||
+                                                    emailVerification.status === 'sent' ||
                                                     emailVerification.status === 'verified'
                                                 }
                                             >
                                                 {emailVerification.status === 'sending'
                                                     ? '발송 중...'
-                                                    : emailVerification.status === 'sent'
-                                                        ? '재전송'
-                                                        : emailVerification.status === 'verified'
-                                                            ? '인증 완료'
-                                                            : '인증 메일 보내기'}
+                                                    : emailVerification.status === 'verified'
+                                                        ? '인증 완료'
+                                                        : '인증 메일 보내기'}
                                             </button>
                                         </div>
 
@@ -381,33 +441,82 @@ export default function AuthPage() {
                                             emailVerification.status === 'verifying' ||
                                             emailVerification.status === 'error') && (
                                             <div className="auth__email-code">
-                                                <span>인증 코드</span>
+                                                <div className="auth__email-code-header">
+                                                    <span>인증 코드</span>
+                                                    {timeRemaining > 0 && (
+                                                        <span className="auth__email-timer">
+                                                            {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <div className="auth__email-code-row">
-                                                    <input
-                                                        type="text"
-                                                        inputMode="numeric"
-                                                        maxLength={6}
-                                                        className="auth__email-code-input"
-                                        
-                                                        value={verificationCode}
-                                                        onChange={(event) => {
-                                                            const onlyNumber = event.target.value.replace(/[^0-9]/g, '')
-                                                            setVerificationCode(onlyNumber)
-                                                        }}
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        className="auth__email-verify-button auth__email-verify-button--secondary"
-                                                        onClick={handleVerifyEmailCode}
-                                                        disabled={
-                                                            verificationCode.length !== 6 ||
-                                                            emailVerification.status === 'verifying'
-                                                        }
-                                                    >
-                                                        {emailVerification.status === 'verifying'
-                                                            ? '확인 중...'
-                                                            : '코드 확인'}
-                                                    </button>
+                                                    <div className="auth__email-code-inputs">
+                                                        {[0, 1, 2, 3, 4, 5].map((index) => (
+                                                            <input
+                                                                key={index}
+                                                                type="text"
+                                                                inputMode="numeric"
+                                                                maxLength={1}
+                                                                className="auth__email-code-input-single"
+                                                                value={verificationCode[index] || ''}
+                                                                onChange={(event) => {
+                                                                    const value = event.target.value.replace(/[^0-9]/g, '')
+                                                                    if (value.length <= 1) {
+                                                                        const newCode = [...verificationCode]
+                                                                        newCode[index] = value
+                                                                        setVerificationCode(newCode)
+                                                                        
+                                                                        // 자동으로 다음 input으로 포커스 이동
+                                                                        if (value && index < 5) {
+                                                                            const nextInput = event.target.parentElement.children[index + 1]
+                                                                            if (nextInput) nextInput.focus()
+                                                                        }
+                                                                    }
+                                                                }}
+                                                                onKeyDown={(event) => {
+                                                                    // 백스페이스 키 처리
+                                                                    if (event.key === 'Backspace' && !verificationCode[index] && index > 0) {
+                                                                        const prevInput = event.target.parentElement.children[index - 1]
+                                                                        if (prevInput) prevInput.focus()
+                                                                    }
+                                                                }}
+                                                                onPaste={(event) => {
+                                                                    event.preventDefault()
+                                                                    const pastedData = event.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, 6)
+                                                                    const newCode = [...verificationCode]
+                                                                    for (let i = 0; i < 6; i++) {
+                                                                        newCode[i] = pastedData[i] || ''
+                                                                    }
+                                                                    setVerificationCode(newCode)
+                                                                }}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                    <div className="auth__email-code-actions">
+                                                        <button
+                                                            type="button"
+                                                            className="auth__email-verify-button auth__email-verify-button--secondary"
+                                                            onClick={handleVerifyEmailCode}
+                                                            disabled={
+                                                                verificationCode.join('').length !== 6 ||
+                                                                emailVerification.status === 'verifying'
+                                                            }
+                                                        >
+                                                            {emailVerification.status === 'verifying'
+                                                                ? '확인 중...'
+                                                                : '코드 확인'}
+                                                        </button>
+                                                        {timeRemaining > 0 && (
+                                                            <button
+                                                                type="button"
+                                                                className="auth__email-resend-button"
+                                                                onClick={handleResendVerificationEmail}
+                                                                disabled={emailVerification.status === 'sending'}
+                                                            >
+                                                                {emailVerification.status === 'sending' ? '재요청 중...' : '재요청'}
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}
@@ -582,6 +691,13 @@ export default function AuthPage() {
                                             카카오톡으로도 알림 받기 (선택)
                                         </span>
                                     </label>
+                                    {/* 카카오 알림 설정 시 안내 문구 */}
+                                    {signupForm.notificationKakao && (
+                                        <p className="auth__hint auth__hint--info" style={{ marginTop: '8px', fontSize: '13px', color: '#666' }}>
+                                            <span role="img" aria-label="info icon" style={{ marginRight: '4px' }}>ℹ️</span>
+                                            카카오톡 알림을 사용하시려면 회원가입 후 카카오 인증이 필요합니다.
+                                        </p>
+                                    )}
                                 </div>
 
 
@@ -602,7 +718,10 @@ export default function AuthPage() {
                                             onClick={() => setActiveStep(1)}>
                                         이전
                                     </button>
-                                    <button type="submit" className="cta-button cta-button--primary">
+                                    <button 
+                                        type="submit" 
+                                        className="cta-button cta-button--primary"
+                                    >
                                         회원가입 완료
                                     </button>
                                 </div>

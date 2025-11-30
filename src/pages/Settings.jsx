@@ -2,6 +2,7 @@ import {useEffect, useState} from 'react'
 import {useNavigate} from 'react-router-dom'
 import {useAppState} from '../context/AppStateContext'
 import {jobData} from '../constants/onboarding'
+import Modal from '../components/Modal'
 import '../styles/pages/Settings.css'
 
 const focusAreas = [
@@ -50,6 +51,10 @@ export default function SettingsPage() {
         jobCategoryOther: user?.customJobLabel ?? '',
     })
     const [status, setStatus] = useState('')
+    const [showDeleteModal, setShowDeleteModal] = useState(false)
+    const [deletePassword, setDeletePassword] = useState('')
+    const [deleteError, setDeleteError] = useState('')
+    const [isDeleting, setIsDeleting] = useState(false)
     const selectedJobCategory = jobData.find((cat) => cat.id === form.jobCategory) ?? defaultJobCategory
     // 선택한 직군이 '기타'가 아닌 경우, 세부 직무 옵션에서 '기타' 항목은 숨김
     const selectedJobRoles = selectedJobCategory
@@ -141,13 +146,41 @@ export default function SettingsPage() {
     }
 
     const handleDeleteAccount = () => {
-        const confirmed = window.confirm(
-            '정말 회원 탈퇴를 하시겠습니까?\n탈퇴 시 모든 데이터가 삭제되며 복구할 수 없습니다.'
-        )
-        if (confirmed) {
-            deleteAccount()
-            navigate('/', {replace: true})
+        setShowDeleteModal(true)
+        setDeletePassword('')
+        setDeleteError('')
+    }
+
+    const handleDeleteConfirm = async () => {
+        if (!deletePassword || !deletePassword.trim()) {
+            setDeleteError('비밀번호를 입력해주세요.')
+            return
         }
+
+        if (!user || !user.id) {
+            setDeleteError('사용자 정보를 찾을 수 없습니다.')
+            return
+        }
+
+        setIsDeleting(true)
+        setDeleteError('')
+
+        try {
+            await deleteAccount(deletePassword)
+            setShowDeleteModal(false)
+            navigate('/', {replace: true})
+        } catch (error) {
+            console.error('회원 탈퇴 오류:', error)
+            setDeleteError(error.message || '회원 탈퇴에 실패했습니다. 잠시 후 다시 시도해주세요.')
+        } finally {
+            setIsDeleting(false)
+        }
+    }
+
+    const handleDeleteCancel = () => {
+        setShowDeleteModal(false)
+        setDeletePassword('')
+        setDeleteError('')
     }
 
     return (
@@ -334,6 +367,74 @@ export default function SettingsPage() {
                     회원 탈퇴
                 </button>
             </div>
+
+            <Modal
+                open={showDeleteModal}
+                onClose={handleDeleteCancel}
+                title="회원 탈퇴"
+                size="md"
+            >
+                <div style={{ padding: '20px 0' }}>
+                    <p style={{ marginBottom: '20px', color: '#666', lineHeight: '1.6' }}>
+                        정말 회원 탈퇴를 하시겠습니까?<br />
+                        탈퇴 시 모든 데이터가 삭제되며 복구할 수 없습니다.
+                    </p>
+                    <div style={{ marginBottom: '20px' }}>
+                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                            가입 시 사용한 비밀번호
+                        </label>
+                        <input
+                            type="password"
+                            value={deletePassword}
+                            onChange={(e) => {
+                                setDeletePassword(e.target.value)
+                                setDeleteError('')
+                            }}
+                            placeholder="비밀번호를 입력해주세요"
+                            style={{
+                                width: '100%',
+                                padding: '12px',
+                                border: deleteError ? '1px solid #e74c3c' : '1px solid #ddd',
+                                borderRadius: '4px',
+                                fontSize: '15px',
+                            }}
+                            disabled={isDeleting}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !isDeleting) {
+                                    handleDeleteConfirm()
+                                }
+                            }}
+                        />
+                        {deleteError && (
+                            <p style={{ marginTop: '8px', color: '#e74c3c', fontSize: '14px' }}>
+                                {deleteError}
+                            </p>
+                        )}
+                    </div>
+                </div>
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                    <button
+                        type="button"
+                        onClick={handleDeleteCancel}
+                        className="cta-button cta-button--ghost"
+                        disabled={isDeleting}
+                    >
+                        취소
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleDeleteConfirm}
+                        className="cta-button cta-button--primary"
+                        disabled={isDeleting || !deletePassword.trim()}
+                        style={{ 
+                            backgroundColor: isDeleting ? '#ccc' : '#e74c3c',
+                            minWidth: '120px'
+                        }}
+                    >
+                        {isDeleting ? '처리 중...' : '탈퇴하기'}
+                    </button>
+                </div>
+            </Modal>
         </div>
     )
 }

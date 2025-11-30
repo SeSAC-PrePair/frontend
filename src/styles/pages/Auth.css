@@ -395,10 +395,82 @@
     gap: 0.4rem;
 }
 
+.auth__email-code-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.auth__email-timer {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: rgba(197, 90, 106, 0.9);
+}
+
 .auth__email-code-row {
     display: flex;
     gap: 0.5rem;
-    align-items: center;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.auth__email-code-inputs {
+    display: flex;
+    gap: 0.4rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.auth__email-code-input-single {
+    flex: 1;
+    min-width: 0;
+    max-width: 50px;
+    padding: 0.6rem 0.4rem;
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(64, 81, 115, 0.28);
+    background: #ffffff;
+    transition: all 0.2s ease;
+}
+
+.auth__email-code-input-single:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 4px rgba(102, 153, 255, 0.1);
+}
+
+.auth__email-code-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 100px;
+}
+
+.auth__email-resend-button {
+    white-space: nowrap;
+    padding: 0.5rem 0.8rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(64, 81, 115, 0.32);
+    background: #ffffff;
+    color: rgba(20, 31, 64, 0.8);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.auth__email-resend-button:hover:not(:disabled) {
+    background: #f3f4ff;
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+.auth__email-resend-button:disabled {
+    opacity: 0.6;
+    cursor: default;
 }
 
 .auth__email-code-input {
@@ -450,9 +522,24 @@
     }
 
     .auth__email-verify-button,
-    .auth__email-verify-button--secondary {
+    .auth__email-verify-button--secondary,
+    .auth__email-resend-button {
         width: 100%;
         text-align: center;
+    }
+
+    .auth__email-code-inputs {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .auth__email-code-input-single {
+        max-width: calc(16.666% - 0.33rem);
+    }
+
+    .auth__email-code-actions {
+        width: 100%;
+        flex-direction: row;
     }
 
     .auth__email-code-input {

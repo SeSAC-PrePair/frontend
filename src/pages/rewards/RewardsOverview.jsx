@@ -2,6 +2,7 @@ import {useEffect, useRef, useState} from 'react'
 import {Link, useLocation, useNavigate} from 'react-router-dom'
 import ContributionHeatmap from '../../components/ContributionHeatmap'
 import {useAppState} from '../../context/AppStateContext'
+import {getTodayQuestion} from '../../utils/feedbackApi'
 import '../../styles/pages/Rewards.css'
 import useMediaQuery from '../../hooks/useMediaQuery'
 
@@ -10,6 +11,11 @@ export default function RewardsOverview() {
     const navigate = useNavigate()
     const {user, activity, sentQuestions, scoreHistory} = useAppState()
 
+    const [todayQuestion, setTodayQuestion] = useState(null)
+    const [isLoadingTodayQuestion, setIsLoadingTodayQuestion] = useState(false)
+    const [todayQuestionError, setTodayQuestionError] = useState('')
+
+    // 기존 latestDispatch는 폴백으로 사용
     const latestDispatch = sentQuestions[0] ?? null
     const answerCount = (scoreHistory?.length ?? 0).toLocaleString('ko-KR')
     const pointsDisplay = user?.points?.toLocaleString() ?? '0'
@@ -62,6 +68,41 @@ export default function RewardsOverview() {
         }
     }, [navigate, redirectSource, location.pathname])
 
+    // 오늘의 질문 API 호출
+    useEffect(() => {
+        if (user?.id) {
+            // userId 확인: user.id가 없으면 테스트용 userId 사용
+            let userId = user.id
+            
+            // user.id가 없거나 빈 문자열인 경우에만 테스트용 ID 사용
+            if (!userId || userId.trim() === '') {
+                userId = 'u_edjks134n' // 테스트용 userId
+                console.warn('[RewardsOverview] User ID가 없어 테스트용 ID를 사용합니다:', userId)
+            }
+            
+            setIsLoadingTodayQuestion(true)
+            setTodayQuestionError('')
+            
+            getTodayQuestion(userId)
+                .then((data) => {
+                    console.log('[RewardsOverview Today Question] Success:', data)
+                    setTodayQuestion(data)
+                    setIsLoadingTodayQuestion(false)
+                })
+                .catch((error) => {
+                    console.error('[RewardsOverview Today Question] 오늘의 질문 가져오기 오류:', error)
+                    setTodayQuestionError(error.message || '오늘의 질문을 불러오는데 실패했습니다.')
+                    setIsLoadingTodayQuestion(false)
+                    // 에러가 발생해도 기존 로직으로 폴백
+                    setTodayQuestion(null)
+                })
+        } else {
+            setIsLoadingTodayQuestion(false)
+            setTodayQuestion(null)
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id])
+
     return (
         <div className="rewards">
             <header className="rewards__header">
@@ -70,7 +111,79 @@ export default function RewardsOverview() {
                 </div>
             </header>
 
-            {latestDispatch ? (
+            {isLoadingTodayQuestion ? (
+                <section className="rewards__dispatch rewards__dispatch--main">
+                    <header>
+                        <h2>오늘의 질문</h2>
+                    </header>
+                    <article className="dispatch-card dispatch-card--empty">
+                        <p>오늘의 질문을 불러오는 중...</p>
+                    </article>
+                </section>
+            ) : todayQuestionError && !todayQuestion ? (
+                // API 에러가 있고 폴백 데이터도 없는 경우
+                <section className="rewards__dispatch rewards__dispatch--main">
+                    <header>
+                        <h2>오늘의 질문</h2>
+                        {latestDispatch ? (
+                            <>
+                                <p className="rewards__error-text" style={{color: '#d32f2f', fontSize: '0.875rem'}}>
+                                    {todayQuestionError} (기존 데이터 표시)
+                                </p>
+                            </>
+                        ) : (
+                            <p>아직 받은 질문이 없습니다. 설정에서 루틴을 시작하세요!</p>
+                        )}
+                    </header>
+                    {latestDispatch ? (
+                        <article className="dispatch-card">
+                            <div className="dispatch-card__row">
+                                <div className="dispatch-card__content">
+                                    <h3>Q. {latestDispatch.prompt}</h3>
+                                    <p>{latestDispatch.subPrompt}</p>
+                                </div>
+                                <div className="dispatch-card__actions">
+                                    <Link to="/coach" className="cta-button cta-button--primary">
+                                        답변하러 가기
+                                    </Link>
+                                </div>
+                            </div>
+                        </article>
+                    ) : (
+                        <article className="dispatch-card dispatch-card--empty">
+                            <p>받은 질문이 없습니다.</p>
+                            <Link to="/settings" className="cta-button cta-button--primary">
+                                루틴 설정하러 가기
+                            </Link>
+                        </article>
+                    )}
+                </section>
+            ) : todayQuestion ? (
+                // API에서 가져온 오늘의 질문 표시
+                <section className="rewards__dispatch rewards__dispatch--main">
+                    <header>
+                        <h2>오늘의 질문</h2>
+                    </header>
+                    <article className="dispatch-card">
+                        <div className="dispatch-card__row">
+                            <div className="dispatch-card__content">
+                                <h3>Q. {todayQuestion.question}</h3>
+                                {todayQuestion.status === 'ANSWERED' && todayQuestion.answered_at && (
+                                    <p style={{color: '#666', fontSize: '0.875rem', marginTop: '0.5rem'}}>
+                                        답변 완료 ({new Date(todayQuestion.answered_at).toLocaleDateString('ko-KR')})
+                                    </p>
+                                )}
+                            </div>
+                            <div className="dispatch-card__actions">
+                                <Link to="/coach" className="cta-button cta-button--primary">
+                                    {todayQuestion.status === 'ANSWERED' ? '답변 보기' : '답변하러 가기'}
+                                </Link>
+                            </div>
+                        </div>
+                    </article>
+                </section>
+            ) : latestDispatch ? (
+                // API 데이터가 없지만 기존 데이터가 있는 경우 (폴백)
                 <section className="rewards__dispatch rewards__dispatch--main">
                     <header>
                         <h2>오늘의 질문</h2>
@@ -90,6 +203,7 @@ export default function RewardsOverview() {
                     </article>
                 </section>
             ) : (
+                // API 데이터도 없고 기존 데이터도 없는 경우
                 <section className="rewards__dispatch rewards__dispatch--main">
                     <header>
                         <h2>오늘의 질문</h2>
