@@ -13,26 +13,26 @@ import AppLayout from './layouts/AppLayout'
 import './index.css'
 import SignupSuccessPage from "./pages/SignupSuccessPage.jsx";
 
-function ProtectedRoute({ children }) {
-  const { user } = useAppState()
-  const location = useLocation()
+function AppRoutes() {
+  function ProtectedRoute({ children }) {
+    const { user } = useAppState()
+    const location = useLocation()
 
-  if (!user) {
-    return <Navigate to="/auth" replace state={{ from: location.pathname }} />
+    if (!user) {
+      return <Navigate to="/auth" replace state={{ from: location.pathname }} />
+    }
+
+    return children
   }
 
-  return children
-}
+  function ProtectedOutlet() {
+    return (
+      <ProtectedRoute>
+        <Outlet />
+      </ProtectedRoute>
+    )
+  }
 
-function ProtectedOutlet() {
-  return (
-    <ProtectedRoute>
-      <Outlet />
-    </ProtectedRoute>
-  )
-}
-
-function AppRoutes() {
   return (
     <Routes>
       <Route element={<AppLayout />}>

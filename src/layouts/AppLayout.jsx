@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion as Motion } from 'framer-motion'
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAppState } from '../context/AppStateContext'
 import '../styles/layouts/AppLayout.css'
 import brandLogo from '/src/assets/b01fa81ce7a959934e8f78fc6344081972afd0ae.png' // 1. 로고 파일 import
@@ -16,13 +16,28 @@ const activeLinkClass = ({ isActive }) => (isActive ? 'nav__link nav__link--acti
 
 export default function AppLayout() {
     const location = useLocation()
-    const { user } = useAppState()
+    const navigate = useNavigate()
+    const { user, logout } = useAppState()
     const [isNavOpen, setIsNavOpen] = useState(false)
 
     const isLanding = location.pathname === '/'
     const isAuth = location.pathname.startsWith('/auth')
     const showNavElements = !isLanding && !isAuth && user
     const showAuthCtas = isLanding || !user
+
+    const handleLogout = () => {
+        logout()
+        navigate('/auth?mode=login', { replace: true })
+    }
+
+    const handleLogoClick = (e) => {
+        e.preventDefault()
+        if (user) {
+            navigate('/rewards', { replace: true })
+        } else {
+            navigate('/', { replace: true })
+        }
+    }
 
     useEffect(() => {
         setIsNavOpen(false)
@@ -34,12 +49,12 @@ export default function AppLayout() {
 
             <header className={`shell__header ${isLanding ? 'is-transparent' : ''}`}>
                 <div className="shell__brand">
-                    <Link to="/" className="brand">
+                    <a href={user ? '/rewards' : '/'} onClick={handleLogoClick} className="brand">
                         <img src={brandLogo} alt="PrePair 로고" className="brand__symbol" />
                         <span className="brand__meta">
               <strong>PrePair</strong>
             </span>
-                    </Link>
+                    </a>
                 </div>
 
                 <nav
@@ -87,6 +102,16 @@ export default function AppLayout() {
                                 회원가입
                             </Link>
                         </>
+                    )}
+                    {showNavElements && (
+                        <button
+                            type="button"
+                            onClick={handleLogout}
+                            className="cta-button cta-button--ghost"
+                            style={{ marginLeft: '0.5rem' }}
+                        >
+                            로그아웃
+                        </button>
                     )}
                 </div>
             </header>

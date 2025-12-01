@@ -21,6 +21,14 @@ export default function AuthPage() {
 
     const { user, login, signup, jobTracks, cadencePresets } = useAppState()
 
+    // 이미 로그인한 사용자는 리다이렉트
+    useEffect(() => {
+        if (user) {
+            const redirectFrom = location.state?.from
+            navigate(redirectFrom || '/rewards', { replace: true })
+        }
+    }, [user, navigate, location.state])
+
     const redirectFrom = location.state?.from
     const redirectState = redirectFrom ? { from: redirectFrom } : undefined
 

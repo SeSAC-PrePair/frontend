@@ -1,4 +1,4 @@
-import {createContext, useCallback, useContext, useMemo, useRef, useState} from 'react'
+import {createContext, useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react'
 import {
     cadenceMap,
     cadencePresets,
@@ -229,8 +229,22 @@ function appendToHeatmap(activity) {
     return clone
 }
 
+const USER_STORAGE_KEY = 'prepair_user'
+
 export function AppProvider({children}) {
-    const [user, setUser] = useState(null)
+    // localStorage에서 사용자 정보 복원
+    const [user, setUser] = useState(() => {
+        try {
+            const storedUser = localStorage.getItem(USER_STORAGE_KEY)
+            if (storedUser) {
+                return JSON.parse(storedUser)
+            }
+        } catch (error) {
+            console.error('[AppStateContext] Failed to restore user from localStorage:', error)
+            localStorage.removeItem(USER_STORAGE_KEY)
+        }
+        return null
+    })
     const [scoreHistory, setScoreHistory] = useState([])
     const [activity, setActivity] = useState(defaultActivity)
     const [purchases, setPurchases] = useState(defaultPurchases)
@@ -238,6 +252,19 @@ export function AppProvider({children}) {
     const [activeQuestion, setActiveQuestion] = useState(null)
     const [lastDispatch, setLastDispatch] = useState(null)
     const sequenceRef = useRef(0)
+
+    // user 상태가 변경될 때마다 localStorage에 저장
+    useEffect(() => {
+        if (user) {
+            try {
+                localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user))
+            } catch (error) {
+                console.error('[AppStateContext] Failed to save user to localStorage:', error)
+            }
+        } else {
+            localStorage.removeItem(USER_STORAGE_KEY)
+        }
+    }, [user])
 
     const questionDispatchCount = sentQuestions.length
 
@@ -635,6 +662,8 @@ export function AppProvider({children}) {
         setSentQuestions([])
         setLastDispatch(null)
         sequenceRef.current = 0
+        // localStorage에서도 제거 (useEffect에서 처리되지만 명시적으로 제거)
+        localStorage.removeItem(USER_STORAGE_KEY)
     }, [])
 
     const deleteAccount = useCallback(
