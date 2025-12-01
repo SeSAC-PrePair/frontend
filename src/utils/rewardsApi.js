@@ -73,6 +73,14 @@ export async function getUserRewards() {
                 throw new Error(errorMessage)
             }
 
+            // 405 Method Not Allowed 에러 처리 (서버가 GET 메서드를 지원하지 않는 경우)
+            if (response.status === 405) {
+                const errorMessage = errorData.message || errorData.error || 'GET 메서드가 지원되지 않습니다.'
+                console.warn('[Rewards API] 405 Method Not Allowed:', errorMessage)
+                console.warn('[Rewards API] 백엔드 서버가 /api/users/me/rewards 엔드포인트에서 GET 메서드를 지원하지 않을 수 있습니다.')
+                throw new Error('GET_METHOD_NOT_ALLOWED')
+            }
+
             // 500 Internal Server Error 처리
             if (response.status === 500) {
                 const errorMessage = errorData.message || errorData.error || '서버 내부 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'

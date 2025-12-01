@@ -487,3 +487,111 @@ export async function resetPassword(email, password) {
     }
 }
 
+/**
+ * 사용자 요약 정보를 조회합니다.
+ * @param {string} userId - 사용자 ID
+ * @returns {Promise<{answered_count: string, today_score: string, points: string}>}
+ * @throws {Error} API 호출 실패 시 에러 발생
+ */
+export async function getUserSummary(userId) {
+    // userId 검증
+    if (!userId || typeof userId !== 'string' || !userId.trim()) {
+        throw new Error('사용자 ID가 필요합니다.')
+    }
+
+    const apiUrl = `/api/users/me/summary`
+    
+    try {
+        const requestHeaders = {
+            'X-User-ID': userId.trim(),
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        }
+        
+        // 디버깅 로그
+        console.log('[Get User Summary API] ===== Request Details =====')
+        console.log('[Get User Summary API] Request URL:', apiUrl)
+        console.log('[Get User Summary API] Full URL:', window.location.origin + apiUrl)
+        console.log('[Get User Summary API] Request Method: GET')
+        console.log('[Get User Summary API] User ID:', userId)
+        console.log('[Get User Summary API] Request Headers:', JSON.stringify(requestHeaders, null, 2))
+        console.log('[Get User Summary API] ===========================')
+        
+        const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: requestHeaders,
+            credentials: 'include', // 쿠키 포함
+        })
+        
+        // 응답이 JSON이 아닐 수 있으므로 먼저 텍스트로 읽기
+        const responseText = await response.text()
+        const contentType = response.headers.get('content-type') || ''
+        
+        // 디버깅 로그
+        console.log('[Get User Summary API] ===== Response Details =====')
+        console.log('[Get User Summary API] Response status:', response.status)
+        console.log('[Get User Summary API] Content-Type:', contentType)
+        console.log('[Get User Summary API] Response text:', responseText)
+        console.log('[Get User Summary API] =============================')
+        
+        if (!response.ok) {
+            let errorData
+            try {
+                if (responseText.trim()) {
+                    errorData = JSON.parse(responseText)
+                } else {
+                    errorData = { message: '서버에서 빈 응답을 받았습니다.' }
+                }
+            } catch (parseError) {
+                errorData = { 
+                    message: responseText || `서버 오류가 발생했습니다. (${response.status} ${response.statusText})` 
+                }
+            }
+
+            // 400 Bad Request 에러 처리
+            if (response.status === 400) {
+                const errorMessage = errorData.message || errorData.error || '잘못된 요청입니다.'
+                console.error('[Get User Summary API] 400 Bad Request:', errorMessage)
+                throw new Error(errorMessage)
+            }
+
+            // 401 Unauthorized 에러 처리
+            if (response.status === 401) {
+                const errorMessage = errorData.message || errorData.error || '인증이 필요합니다.'
+                console.error('[Get User Summary API] 401 Unauthorized:', errorMessage)
+                throw new Error(errorMessage)
+            }
+
+            // 404 Not Found 에러 처리
+            if (response.status === 404) {
+                const errorMessage = errorData.message || errorData.error || '요약 정보를 찾을 수 없습니다.'
+                console.error('[Get User Summary API] 404 Not Found:', errorMessage)
+                throw new Error(errorMessage)
+            }
+
+            throw new Error(
+                errorData.message || 
+                `사용자 요약 정보 조회에 실패했습니다. (${response.status} ${response.statusText})`
+            )
+        }
+
+        // 성공 응답 (200 OK)
+        let responseData
+        try {
+            responseData = JSON.parse(responseText)
+        } catch (parseError) {
+            throw new Error('서버 응답을 파싱할 수 없습니다.')
+        }
+
+        console.log('[Get User Summary API] 사용자 요약 정보 조회가 성공적으로 완료되었습니다.')
+        return responseData
+    } catch (error) {
+        // 네트워크 에러 등 기타 에러 처리
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+            throw new Error('네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.')
+        }
+        
+        // 이미 처리된 에러는 그대로 throw
+        throw error
+    }
+}

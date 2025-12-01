@@ -1,9 +1,10 @@
-import {useMemo, useState} from "react";
+import {useEffect, useMemo, useState} from "react";
 import {Link, useNavigate} from "react-router-dom";
 import Modal from "../../components/Modal";
 import RecentPurchases from "../../components/RecentPurchases";
 import {useAppState} from "../../context/AppStateContext";
 import {getDateTimeParts, normalizeDeliveryStatus} from "./purchaseUtils";
+import {getUserRewards} from "../../utils/rewardsApi";
 import "../../styles/pages/Rewards.css";
 import "../../styles/pages/RewardShop.css";
 
@@ -193,6 +194,22 @@ export default function RewardShop() {
         setBarcodeModalOpen(false);
         setActivePurchase(null);
     };
+
+    // 컴포넌트 마운트 시 리워드 정보 조회
+    useEffect(() => {
+        const fetchRewards = async () => {
+            try {
+                const rewardsData = await getUserRewards();
+                console.log('[RewardShop] 리워드 정보 조회 성공:', rewardsData);
+                // 필요에 따라 리워드 정보를 상태로 저장하거나 처리할 수 있습니다
+            } catch (error) {
+                console.error('[RewardShop] 리워드 정보 조회 실패:', error);
+                // 에러 처리 (예: 사용자에게 알림 표시)
+            }
+        };
+
+        fetchRewards();
+    }, []);
 
     return (
         <div className="reward-shop">

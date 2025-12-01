@@ -5,7 +5,8 @@ import {useAppState} from '../context/AppStateContext'
 import Modal from '../components/Modal'
 import PointsRewardModal from '../components/PointsRewardModal'
 import useMediaQuery from '../hooks/useMediaQuery'
-import {generateFeedback, getSuggestedAnswer, getSummaryFeedback, getTodayQuestion} from '../utils/feedbackApi'
+import {generateFeedback, getSuggestedAnswer, getSummaryFeedback, getTodayQuestion, getInterviewHistories, getInterviewHistoryDetail} from '../utils/feedbackApi'
+import {getUserSummary} from '../utils/authApi'
 import robotLogo from '../assets/b01fa81ce7a959934e8f78fc6344081972afd0ae.png'
 import '../styles/pages/Coach.css'
 
@@ -284,7 +285,9 @@ export default function CoachPage() {
     } = useAppState()
     const location = useLocation()
     const latestDispatch = sentQuestions?.[0] ?? null
-    const [answer, setAnswer] = useState(latestDispatch?.answer ?? '')
+    // answer state는 사용자가 입력한 답변이므로 빈 문자열로 초기화
+    // latestDispatch?.answer는 질문일 수 있으므로 사용하지 않음
+    const [answer, setAnswer] = useState('')
     const [rePracticeAnswer, setRePracticeAnswer] = useState('')
     const [isEvaluating, setIsEvaluating] = useState(false)
     const [result, setResult] = useState(null)
@@ -303,16 +306,53 @@ export default function CoachPage() {
     const [summaryData, setSummaryData] = useState(null)
     const [isLoadingSummary, setIsLoadingSummary] = useState(false)
     const [summaryError, setSummaryError] = useState('')
+    const [userSummary, setUserSummary] = useState(null)
+    const [isLoadingUserSummary, setIsLoadingUserSummary] = useState(false)
     const [todayQuestion, setTodayQuestion] = useState(null)
     const [isLoadingTodayQuestion, setIsLoadingTodayQuestion] = useState(false)
     const [todayQuestionError, setTodayQuestionError] = useState('')
+    const [interviewHistories, setInterviewHistories] = useState([])
+    const [isLoadingHistories, setIsLoadingHistories] = useState(false)
+    const [historiesError, setHistoriesError] = useState('')
+    const [selectedHistoryId, setSelectedHistoryId] = useState(null)
+    const [historyDetail, setHistoryDetail] = useState(null)
+    const [isLoadingDetail, setIsLoadingDetail] = useState(false)
     const isMobile = useMediaQuery('(max-width: 720px)')
 
-    const minLength = 80
+    const minLength = 10
 
     const safeScoreHistory = Array.isArray(scoreHistory) ? scoreHistory : []
     const formattedPoints = user?.points != null ? user.points.toLocaleString() : '0'
     const activeInsight = result ?? lastFeedback ?? null
+    
+    // 과거 질문 목록 API 호출
+    useEffect(() => {
+        if (activePanel === 'history' && user?.id) {
+            let userId = user.id
+            
+            if (!userId || userId.trim() === '') {
+                userId = 'u_edjks134n'
+                console.warn('[Coach Histories] User ID가 없어 테스트용 ID를 사용합니다:', userId)
+            }
+            
+            setIsLoadingHistories(true)
+            setHistoriesError('')
+            
+            getInterviewHistories(userId)
+                .then((data) => {
+                    console.log('[Coach Histories] Success:', data)
+                    setInterviewHistories(data)
+                    setIsLoadingHistories(false)
+                })
+                .catch((error) => {
+                    console.error('[Coach Histories] 오류:', error)
+                    setHistoriesError(error.message || '과거 질문을 불러오는데 실패했습니다.')
+                    setIsLoadingHistories(false)
+                    setInterviewHistories([])
+                })
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activePanel, user?.id])
     const latestDispatchLocal = latestDispatch
     const questionContextLabel =
         latestDispatchLocal?.roleLabel || latestDispatchLocal?.jobTrackLabel || user?.desiredField || 'AI 질문'
@@ -323,6 +363,7 @@ export default function CoachPage() {
             prompt: todayQuestion.question,
             question: todayQuestion.question,
             question_id: todayQuestion.question_id,
+            history_id: todayQuestion.history_id || todayQuestion.historyId, // 서버에서 제공하는 historyId
             answeredAt: todayQuestion.answered_at,
             status: todayQuestion.status,
             created_at: todayQuestion.created_at,
@@ -388,11 +429,16 @@ export default function CoachPage() {
 
     useEffect(() => {
         // 최신 질문에 저장된 답변이 있으면 작성란에 미리 채움 (가장 최근 답변으로 갱신)
+        // 단, answer가 질문과 같지 않은 경우에만 설정 (질문이 answer로 잘못 들어간 경우 방지)
         if (latestDispatchLocal?.answer) {
-            setAnswer(latestDispatchLocal.answer)
+            const questionText = questionDisplay?.question || questionDisplay?.prompt || ''
+            // answer가 질문과 다르고, 실제 답변인 경우에만 설정
+            if (latestDispatchLocal.answer !== questionText && latestDispatchLocal.answer.trim().length > 0) {
+                setAnswer(latestDispatchLocal.answer)
+            }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [latestDispatchLocal?.answer])
+    }, [latestDispatchLocal?.answer, questionDisplay])
 
     useEffect(() => {
         // 재피드백 받기 탭으로 이동할 때, rePracticeTarget이 없으면 답변 초기화
@@ -402,15 +448,41 @@ export default function CoachPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activePanel, rePracticeTarget])
 
+    // 사용자 요약 정보 API 호출 (페이지 로드 시)
+    useEffect(() => {
+        if (user?.id) {
+            let userId = user.id
+            
+            // user.id가 없거나 빈 문자열인 경우에만 테스트용 ID 사용
+            if (!userId || userId.trim() === '') {
+                userId = 'u_edjks134n' // 테스트용 userId
+                console.warn('[Coach User Summary] User ID가 없어 테스트용 ID를 사용합니다:', userId)
+            }
+            
+            setIsLoadingUserSummary(true)
+            
+            getUserSummary(userId)
+                .then((data) => {
+                    console.log('[Coach User Summary] Success:', data)
+                    setUserSummary(data)
+                    setIsLoadingUserSummary(false)
+                })
+                .catch((error) => {
+                    console.error('[Coach User Summary] 오류:', error)
+                    setIsLoadingUserSummary(false)
+                    // 에러가 발생해도 계속 진행
+                })
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id])
+
     // 요약 탭에서 API 호출
     useEffect(() => {
         if (activePanel === 'summary') {
-            // userId 확인: user.id가 UUID 형식인지 확인, 아니면 테스트용 userId 사용
-            const userId = user?.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id)
-                ? user.id
-                : '3f0a9a32-1c11-4c88-9e61-bb7121b6f9d1' // 테스트용 userId
+            // userId 확인: user.id를 직접 사용
+            const userId = user?.id
             
-            if (!userId) {
+            if (!userId || typeof userId !== 'string' || !userId.trim()) {
                 setSummaryError('사용자 ID를 찾을 수 없습니다. 로그인 후 다시 시도해주세요.')
                 setIsLoadingSummary(false)
                 return
@@ -422,6 +494,7 @@ export default function CoachPage() {
             // 디버깅: 사용 중인 userId 로그
             console.log('[Coach Summary] Using userId:', userId)
             console.log('[Coach Summary] Original user.id:', user?.id)
+            console.log('[Coach Summary] User object:', user)
             
             getSummaryFeedback(userId)
                 .then((data) => {
@@ -464,7 +537,22 @@ export default function CoachPage() {
     }, [activePanel, user?.id])
 
     const handleEvaluate = async () => {
+        // 디버깅: answer state 확인
+        console.log('[Coach] ===== Answer State Check =====')
+        console.log('[Coach] answer state:', answer)
+        console.log('[Coach] answer type:', typeof answer)
+        console.log('[Coach] answer length:', answer?.length)
+        console.log('[Coach] =============================')
+        
         const trimmed = answer.trim()
+        
+        // 디버깅: trimmed 확인
+        console.log('[Coach] ===== Trimmed Answer Check =====')
+        console.log('[Coach] trimmed:', trimmed)
+        console.log('[Coach] trimmed length:', trimmed?.length)
+        console.log('[Coach] minLength:', minLength)
+        console.log('[Coach] ================================')
+        
         if (trimmed.length < minLength) {
             setError(`답변을 조금 더 자세히 작성해주세요. (최소 ${minLength}자)`)
             return
@@ -477,17 +565,50 @@ export default function CoachPage() {
         setIsEvaluating(true)
 
         try {
-            // API 호출 - historyId를 순차적으로 생성 (001, 002, 003...)
-            const historyId = getNextHistoryId()
+            // 서버에서 제공하는 historyId 사용
+            const historyId = questionDisplay?.history_id || questionDisplay?.historyId
+            if (!historyId) {
+                throw new Error('히스토리 ID를 찾을 수 없습니다. 오늘의 질문을 다시 불러와주세요.')
+            }
             // 오늘의 질문 API에서 가져온 데이터만 사용 (목 데이터 폴백 제거)
             const questionText = questionDisplay?.question || questionDisplay?.prompt
-            if (!questionText) {
+            
+            // 디버깅: questionDisplay와 questionText 확인
+            console.log('[Coach] ===== Question Debug =====')
+            console.log('[Coach] questionDisplay:', questionDisplay)
+            console.log('[Coach] questionDisplay?.question:', questionDisplay?.question)
+            console.log('[Coach] questionDisplay?.prompt:', questionDisplay?.prompt)
+            console.log('[Coach] questionText:', questionText)
+            console.log('[Coach] questionText type:', typeof questionText)
+            console.log('[Coach] questionText length:', questionText?.length)
+            console.log('[Coach] ===========================')
+            
+            if (!questionText || !questionText.trim()) {
+                console.error('[Coach] Question is missing or empty!')
+                console.error('[Coach] questionDisplay:', JSON.stringify(questionDisplay, null, 2))
                 throw new Error('오늘의 질문을 불러올 수 없습니다.')
             }
-            const feedbackResponse = await generateFeedback(historyId, {
-                question: questionText,
+            
+            const payload = {
+                question: questionText.trim(),
                 answer: trimmed,
-            })
+            }
+            
+            // 디버깅: 전송할 payload 확인
+            console.log('[Coach] ===== Payload Before API Call =====')
+            console.log('[Coach] historyId:', historyId)
+            console.log('[Coach] payload:', payload)
+            console.log('[Coach] payload.question:', payload.question)
+            console.log('[Coach] payload.question length:', payload.question?.length)
+            console.log('[Coach] payload.answer:', payload.answer)
+            console.log('[Coach] payload.answer length:', payload.answer?.length)
+            console.log('[Coach] payload.answer === payload.question:', payload.answer === payload.question)
+            console.log('[Coach] =====================================')
+            
+            const feedbackResponse = await generateFeedback(historyId, payload)
+
+            // API 응답에서 historyId 확인 (응답에 포함되어 있을 수 있음)
+            const responseHistoryId = feedbackResponse.history_id || feedbackResponse.historyId || historyId
 
             // API 응답을 기존 형식으로 변환
             const baseScore = feedbackResponse.score || 0
@@ -571,7 +692,6 @@ export default function CoachPage() {
                 recommendations,
                 highlights,
                 focusTags,
-                earnedPoints: Math.max(40, Math.round(baseScore * 0.6)),
                 answer: trimmed,
             }
 
@@ -587,15 +707,27 @@ export default function CoachPage() {
                 gaps: computed.gaps,
                 recommendations: computed.recommendations,
                 answer: trimmed,
+                historyId: responseHistoryId, // API 응답 또는 요청 시 사용한 historyId 저장
             })
             setIsEvaluating(false)
             // 답변은 유지 (최신 답변으로 갱신됨)
             setModalFeedbackData(computed)
             
-            // 포인트가 적립된 경우 팝업 표시
-            if (rewardInfo && rewardInfo.earnedPoints > 0 && rewardInfo.isFirstToday) {
+            // 포인트가 적립된 경우 팝업 표시 (오늘의 질문에 최초로 답변한 경우)
+            if (rewardInfo && rewardInfo.isFirstToday && rewardInfo.earnedPoints > 0) {
+                console.log('[Coach] 포인트 모달 표시:', {
+                    earnedPoints: rewardInfo.earnedPoints,
+                    isFirstToday: rewardInfo.isFirstToday,
+                    score: computed.score,
+                })
                 setEarnedPoints(rewardInfo.earnedPoints)
                 setShowPointsRewardModal(true)
+            } else {
+                console.log('[Coach] 포인트 모달 표시 안 함:', {
+                    rewardInfo,
+                    earnedPoints: rewardInfo?.earnedPoints,
+                    isFirstToday: rewardInfo?.isFirstToday,
+                })
             }
             
             setShowFeedbackModal(true)
@@ -714,14 +846,21 @@ export default function CoachPage() {
         setIsEvaluating(true)
 
         try {
-            // API 호출 - historyId를 순차적으로 생성 (001, 002, 003...)
-            const historyId = getNextHistoryId()
+            // 서버에서 제공하는 historyId 사용 (rePracticeTarget에서 추출)
+            // historyId를 우선적으로 사용하고, 없으면 하위 호환성을 위해 id 사용
+            const historyId = rePracticeTarget?.historyId || rePracticeTarget?.history_id || null
+            if (!historyId) {
+                console.error('[RePractice] historyId를 찾을 수 없습니다. rePracticeTarget:', rePracticeTarget)
+                throw new Error('히스토리 ID를 찾을 수 없습니다. 다시 선택해주세요.')
+            }
             
             // 질문 필드 검증 및 추출
             const questionValue = rePracticeTarget?.question
             
             // 디버깅: 전송할 데이터 확인
             console.log('[RePractice] rePracticeTarget:', rePracticeTarget)
+            console.log('[RePractice] historyId (from rePracticeTarget):', historyId)
+            console.log('[RePractice] historyId type:', typeof historyId)
             console.log('[RePractice] question:', questionValue)
             console.log('[RePractice] question type:', typeof questionValue)
             console.log('[RePractice] question length:', questionValue?.length)
@@ -993,7 +1132,17 @@ export default function CoachPage() {
                             exit={{opacity: 0, y: -14}}
                             transition={{duration: 0.4, ease: 'easeOut'}}
                         >
-                            {safeScoreHistory.length > 0 ? (
+                            {isLoadingHistories ? (
+                                <div className="coach__empty">
+                                    <strong>과거 질문을 불러오는 중...</strong>
+                                    <p>잠시만 기다려주세요.</p>
+                                </div>
+                            ) : historiesError ? (
+                                <div className="coach__empty">
+                                    <strong>과거 질문을 불러올 수 없습니다.</strong>
+                                    <p>{historiesError}</p>
+                                </div>
+                            ) : interviewHistories.length > 0 ? (
                                 <>
                                     <div className="coach__history-search">
                                         <div className="coach__history-search-wrapper">
@@ -1020,79 +1169,164 @@ export default function CoachPage() {
                                         </div>
                                     </div>
                                     <div className="coach__history">
-                                        {safeScoreHistory
+                                        {interviewHistories
                                             .filter((entry) => {
                                                 if (!searchTerm.trim()) return true
                                                 const keyword = searchTerm.trim().toLowerCase()
-                                                return (
-                                                    entry.question?.toLowerCase().includes(keyword) ||
-                                                    entry.answer?.toLowerCase().includes(keyword)
-                                                )
+                                                return entry.question?.toLowerCase().includes(keyword)
                                             })
-                                            .map((entry) => (
-                                        <article
-                                            key={entry.id}
-                                            className="history-card"
-                                        >
-                                            <header>
-                                                <span>{new Date(entry.submittedAt).toLocaleDateString('ko-KR')}</span>
-                                                <strong>{entry.score != null ? `${entry.score}점` : '-'}</strong>
-                                            </header>
-                                            <p>{entry.question}</p>
-                                            {entry.highlights?.length > 0 && (
-                                                <ul>
-                                                    {entry.highlights.slice(0, 2).map((highlight) => (
-                                                        <li key={highlight}>{highlight}</li>
-                                                    ))}
-                                                </ul>
-                                            )}
-                                            <div className="history-card__actions">
-                                                <button
-                                                    type="button"
-                                                    className="cta-button cta-button--ghost history-card__view-feedback"
-                                                    onClick={() => {
-                                                        setModalFeedbackData({
-                                                            score: entry.score ?? 0,
-                                                            strengths: entry.strengths ?? entry.highlights ?? [],
-                                                            gaps: entry.gaps ?? [],
-                                                            recommendations: entry.recommendations ?? entry.focusTags ?? [],
-                                                            answer: entry.answer ?? '',
-                                                            earnedPoints: entry.earnedPoints ?? 0,
-                                                            isPractice: false,
-                                                        })
-                                                        setShowFeedbackModal(true)
-                                                    }}
-                                                >
-                                                    피드백 자세히 보기
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className="cta-button cta-button--primary history-card__repractice"
-                                                    onClick={() => {
-                                                        // 질문 필드가 있는지 확인
-                                                        if (!entry?.question || typeof entry.question !== 'string' || !entry.question.trim()) {
-                                                            setError('질문 정보가 없는 항목입니다. 다른 질문을 선택해주세요.')
-                                                            return
-                                                        }
-                                                        setRePracticeTarget(entry)
-                                                        setRePracticeResult(null)
-                                                        setRePracticeAnswer('')
-                                                        setError('')
-                                                        setActivePanel('repractice')
-                                                    }}
-                                                >
-                                                    재피드백 받기
-                                                </button>
-                                            </div>
-                                        </article>
-                                        ))}
+                                            .map((entry) => {
+                                                // historyId 추출: history_id가 우선, 없으면 question_id를 사용
+                                                // API 응답에 따라 history_id가 없을 수 있으므로 question_id를 fallback으로 사용
+                                                const historyId = entry.history_id || (entry.question_id != null ? `q_${entry.question_id}` : null) || null
+                                                const dateStr = entry.created_at || entry.date || entry.answered_at
+                                                
+                                                
+                                                return (
+                                                    <article
+                                                        key={entry.question_id || entry.history_id || `history-${entry.created_at}`}
+                                                        className="history-card"
+                                                    >
+                                                        <header>
+                                                            <span>{dateStr ? new Date(dateStr).toLocaleDateString('ko-KR') : '-'}</span>
+                                                            <strong>{entry.score != null ? `${entry.score}점` : '-'}</strong>
+                                                        </header>
+                                                        <p>{entry.question}</p>
+                                                        {entry.tags?.length > 0 && (
+                                                            <ul>
+                                                                {entry.tags.slice(0, 2).map((tag, idx) => (
+                                                                    <li key={idx}>{tag}</li>
+                                                                ))}
+                                                            </ul>
+                                                        )}
+                                                        <div className="history-card__actions">
+                                                            <button
+                                                                type="button"
+                                                                className="cta-button cta-button--ghost history-card__view-feedback"
+                                                                onClick={async () => {
+                                                                    console.log('[Coach History Detail] Button clicked, entry:', entry)
+                                                                    console.log('[Coach History Detail] historyId:', historyId)
+                                                                    
+                                                                    if (!historyId) {
+                                                                        console.error('[Coach History Detail] historyId is missing')
+                                                                        setError('히스토리 ID를 찾을 수 없습니다.')
+                                                                        return
+                                                                    }
+                                                                    
+                                                                    if (!user?.id) {
+                                                                        console.error('[Coach History Detail] user.id is missing')
+                                                                        setError('사용자 ID를 찾을 수 없습니다.')
+                                                                        return
+                                                                    }
+                                                                    
+                                                                    setIsLoadingDetail(true)
+                                                                    setSelectedHistoryId(historyId)
+                                                                    setError('') // 이전 에러 초기화
+                                                                    
+                                                                    try {
+                                                                        let userId = user.id
+                                                                        if (!userId || userId.trim() === '') {
+                                                                            userId = 'u_edjks134n'
+                                                                        }
+                                                                        
+                                                                        console.log('[Coach History Detail] Calling API with userId:', userId, 'historyId:', historyId)
+                                                                        const detail = await getInterviewHistoryDetail(userId, historyId)
+                                                                        console.log('[Coach History Detail] API response:', detail)
+                                                                        
+                                                                        setHistoryDetail(detail)
+                                                                        
+                                                                        // 모달에 표시할 데이터 구성
+                                                                        const feedbackData = detail.feedback || {}
+                                                                        console.log('[Coach History Detail] feedbackData:', feedbackData)
+                                                                        
+                                                                        // feedback 필드가 문자열인 경우와 객체인 경우 모두 처리
+                                                                        let strengths = []
+                                                                        let gaps = []
+                                                                        let recommendations = []
+                                                                        
+                                                                        if (typeof feedbackData === 'string') {
+                                                                            // feedback이 문자열인 경우
+                                                                            gaps = [feedbackData]
+                                                                        } else if (typeof feedbackData === 'object') {
+                                                                            // feedback이 객체인 경우
+                                                                            if (feedbackData.good) {
+                                                                                strengths = Array.isArray(feedbackData.good) 
+                                                                                    ? feedbackData.good 
+                                                                                    : [feedbackData.good]
+                                                                            }
+                                                                            if (feedbackData.improvement) {
+                                                                                gaps = Array.isArray(feedbackData.improvement) 
+                                                                                    ? feedbackData.improvement 
+                                                                                    : [feedbackData.improvement]
+                                                                            }
+                                                                            if (feedbackData.recommendation) {
+                                                                                recommendations = Array.isArray(feedbackData.recommendation) 
+                                                                                    ? feedbackData.recommendation 
+                                                                                    : [feedbackData.recommendation]
+                                                                            }
+                                                                        }
+                                                                        
+                                                                        const modalData = {
+                                                                            question: detail.question || entry.question,
+                                                                            answer: detail.answer || '',
+                                                                            score: detail.score ?? 0,
+                                                                            strengths,
+                                                                            gaps,
+                                                                            recommendations,
+                                                                            isPractice: false,
+                                                                        }
+                                                                        
+                                                                        console.log('[Coach History Detail] Setting modal data:', modalData)
+                                                                        // 모달 데이터와 모달 열기 상태를 함께 업데이트
+                                                                        setModalFeedbackData(modalData)
+                                                                        setShowFeedbackModal(true)
+                                                                        console.log('[Coach History Detail] Modal opened, showFeedbackModal set to true')
+                                                                    } catch (error) {
+                                                                        console.error('[Coach History Detail] 오류:', error)
+                                                                        console.error('[Coach History Detail] Error stack:', error.stack)
+                                                                        setError(error.message || '상세 피드백을 불러오는데 실패했습니다.')
+                                                                        // 에러 발생 시에도 모달은 닫지 않음 (이전 상태 유지)
+                                                                    } finally {
+                                                                        setIsLoadingDetail(false)
+                                                                    }
+                                                                }}
+                                                                disabled={isLoadingDetail}
+                                                            >
+                                                                {isLoadingDetail && selectedHistoryId === (entry.history_id || entry.question_id?.toString()) ? '불러오는 중...' : '피드백 자세히 보기'}
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className="cta-button cta-button--primary history-card__repractice"
+                                                                onClick={() => {
+                                                                    // 질문 필드가 있는지 확인
+                                                                    if (!entry?.question || typeof entry.question !== 'string' || !entry.question.trim()) {
+                                                                        setError('질문 정보가 없는 항목입니다. 다른 질문을 선택해주세요.')
+                                                                        return
+                                                                    }
+                                                                    // historyId를 포함하여 rePracticeTarget 설정
+                                                                    setRePracticeTarget({
+                                                                        ...entry,
+                                                                        historyId: entry.history_id || entry.question_id?.toString() || null,
+                                                                    })
+                                                                    setRePracticeResult(null)
+                                                                    setRePracticeAnswer('')
+                                                                    setError('')
+                                                                    setActivePanel('repractice')
+                                                                }}
+                                                            >
+                                                                재피드백 받기
+                                                            </button>
+                                                        </div>
+                                                    </article>
+                                                )
+                                            })}
                                     </div>
                                 </>
                             ) : (
-                                  <div className="coach__empty">
-                                      <strong>기록된 세션이 없어요.</strong>
-                                      <p>첫 인터뷰 세션을 완료하면 여기서 과거의 질문과 답변을 확인할 수 있어요.</p>
-                                  </div>
+                                <div className="coach__empty">
+                                    <strong>기록된 세션이 없어요.</strong>
+                                    <p>첫 인터뷰 세션을 완료하면 여기서 과거의 질문과 답변을 확인할 수 있어요.</p>
+                                </div>
                             )}
                         </Motion.section>
                     )}
@@ -1234,6 +1468,33 @@ export default function CoachPage() {
                                 </div>
                             ) : summaryData ? (
                                 <>
+                                    {/* 사용자 요약 정보 표시 */}
+                                    {userSummary && (
+                                        <Motion.article
+                                            className="coach__card coach__card--stats"
+                                            initial={{opacity: 0, y: 12}}
+                                            animate={{opacity: 1, y: 0}}
+                                            transition={{delay: 0.02, duration: 0.4, ease: 'easeOut'}}
+                                        >
+                                            <header className="coach__question-header">
+                                                <h2>나의 활동</h2>
+                                            </header>
+                                            <div className="coach__summary-stats">
+                                                <div className="coach__stat-item">
+                                                    <span className="coach__stat-label">답변한 질문</span>
+                                                    <span className="coach__stat-value">{userSummary.answered_count || '0'}</span>
+                                                </div>
+                                                <div className="coach__stat-item">
+                                                    <span className="coach__stat-label">오늘의 점수</span>
+                                                    <span className="coach__stat-value">{userSummary.today_score || '-'}</span>
+                                                </div>
+                                                <div className="coach__stat-item">
+                                                    <span className="coach__stat-label">포인트</span>
+                                                    <span className="coach__stat-value">{userSummary.points || '0'}</span>
+                                                </div>
+                                            </div>
+                                        </Motion.article>
+                                    )}
                                     <Motion.article
                                         className="coach__card coach__card--summary"
                                         initial={{opacity: 0, y: 12}}
@@ -1292,6 +1553,8 @@ export default function CoachPage() {
                 onClose={() => {
                     setShowFeedbackModal(false)
                     setModalFeedbackData(null)
+                    setHistoryDetail(null)
+                    setSelectedHistoryId(null)
                 }}
                 title={modalFeedbackData?.isPractice ? '연습용 AI 평가' : 'AI 평가'}
                 size="lg"
@@ -1302,9 +1565,15 @@ export default function CoachPage() {
                             <span>{modalFeedbackData.isPractice ? '연습용 AI 평가' : 'AI 평가'}</span>
                             <strong>{modalFeedbackData.score != null && modalFeedbackData.score > 0 ? `${modalFeedbackData.score} 점` : '-'}</strong>
                         </div>
+                        {modalFeedbackData.question && (
+                            <div className="coach__submitted-answer coach__submitted-answer--scrollable">
+                                <strong>질문</strong>
+                                <p>{modalFeedbackData.question}</p>
+                            </div>
+                        )}
                         {modalFeedbackData.answer && (
                             <div className="coach__submitted-answer coach__submitted-answer--scrollable">
-                                <strong>{modalFeedbackData.isPractice ? '이번에 작성한 연습 답변' : '제출한 답변'}</strong>
+                                <strong>{modalFeedbackData.isPractice ? '이번에 작성한 연습 답변' : '답변'}</strong>
                                 <p>{modalFeedbackData.answer}</p>
                             </div>
                         )}

@@ -53,15 +53,9 @@ export default function PointsRewardModal({ open, onClose, points }) {
     }
 
     document.addEventListener('keydown', handleKeyPress)
-    
-    // 3초 후 자동으로 닫기
-    const timer = setTimeout(() => {
-      onClose?.()
-    }, 3000)
 
     return () => {
       document.removeEventListener('keydown', handleKeyPress)
-      clearTimeout(timer)
     }
   }, [open, onClose])
 

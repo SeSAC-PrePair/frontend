@@ -381,7 +381,7 @@ function appendToHeatmap(activity) {
 
 export function AppProvider({children}) {
     const [user, setUser] = useState(null)
-    const [scoreHistory, setScoreHistory] = useState(mockScoreHistory)
+    const [scoreHistory, setScoreHistory] = useState([])
     const [activity, setActivity] = useState(defaultActivity)
     const [purchases, setPurchases] = useState(defaultPurchases)
     const [sentQuestions, setSentQuestions] = useState([])
@@ -536,28 +536,18 @@ export function AppProvider({children}) {
                     throw new Error('질문 주기를 선택해주세요.')
                 }
                 
-                const isOther = payload.jobCategory === 'other'
-                const categoryMeta = jobData.find((cat) => cat.id === payload.jobCategory)
-                
-                // job_category: 'other'인 경우 직접 입력한 값, 아니면 label
-                const jobCategory = isOther ? payload.jobCategoryOther : (categoryMeta?.label ?? '')
-                
-                // job_role: jobRole 값 (기타가 아닌 경우 payload.jobRole 사용)
-                const jobRole = isOther ? payload.jobCategoryOther : (payload.jobRole ?? '')
+                // job: 목표 직무 값 사용
+                const job = payload.jobRole?.trim() || ''
                 
                 // schedule_type: cadence.id를 대문자로 변환 (예: "daily" -> "DAILY")
                 const scheduleType = cadence.id.toUpperCase()
                 
-                // notification_type: 백엔드가 카카오 알림도 EMAIL로 처리할 수 있으므로 일단 EMAIL로 전송
-                // 카카오 인증은 별도로 처리
-                const notificationType = 'EMAIL'
+                // notification_type: 카카오톡 선택 시 "BOTH", 아니면 "EMAIL"
+                const notificationType = payload.notificationKakao ? 'BOTH' : 'EMAIL'
 
                 // 필수 필드 검증
-                if (!jobCategory || jobCategory.trim() === '') {
-                    throw new Error('직군을 선택해주세요.')
-                }
-                if (!jobRole || jobRole.trim() === '') {
-                    throw new Error('세부 직무를 선택해주세요.')
+                if (!job) {
+                    throw new Error('목표 직무를 입력해주세요.')
                 }
                 if (!scheduleType || scheduleType.trim() === '') {
                     throw new Error('질문 주기를 선택해주세요.')
@@ -569,8 +559,7 @@ export function AppProvider({children}) {
                     email: payload.email,
                     password: payload.password,
                     settings: {
-                        job_category: jobCategory.trim(),
-                        job_role: jobRole.trim(),
+                        job: job,
                         schedule_type: scheduleType,
                         notification_type: notificationType,
                     },
@@ -579,9 +568,7 @@ export function AppProvider({children}) {
                 // 디버깅: 요청 데이터 상세 로깅
                 console.log('[Signup] Request data:', JSON.stringify(requestData, null, 2))
                 console.log('[Signup] Payload:', payload)
-                console.log('[Signup] Category Meta:', categoryMeta)
-                console.log('[Signup] Job Category:', jobCategory)
-                console.log('[Signup] Job Role:', jobRole)
+                console.log('[Signup] Job:', job)
                 console.log('[Signup] Schedule Type:', scheduleType)
                 console.log('[Signup] Notification Kakao:', payload.notificationKakao)
                 console.log('[Signup] Notification Type:', notificationType)
@@ -699,8 +686,6 @@ export function AppProvider({children}) {
                 }
 
                 // 성공 시 로컬 상태 업데이트
-                const trackLabel = isOther ? payload.jobCategoryOther : (categoryMeta?.label ?? '')
-                const roleLabel = isOther ? payload.jobCategoryOther : (payload.jobRole ?? trackLabel)
                 const mergedChannels =
                     payload.notificationKakao
                         ? Array.from(new Set([...defaultChannels, 'kakao']))
@@ -710,12 +695,12 @@ export function AppProvider({children}) {
                     id: userId, // API에서 받은 user_id 사용
                     name: payload.name || 'PrePair 사용자',
                     email: payload.email,
-                    desiredField: roleLabel,
-                    jobTrackId: isOther ? 'other' : (payload.jobCategory ?? ''),
-                    jobTrackLabel: trackLabel,
+                    desiredField: job,
+                    jobTrackId: '',
+                    jobTrackLabel: job,
                     jobRoleId: '',
-                    jobRoleLabel: roleLabel,
-                    customJobLabel: isOther ? payload.jobCategoryOther : '',
+                    jobRoleLabel: job,
+                    customJobLabel: job,
                     goal: payload.goal,
                     focusArea: payload.focusArea || '',
                     questionCadence: cadence.id,
@@ -825,6 +810,7 @@ export function AppProvider({children}) {
              gaps = [],
              recommendations = [],
              answer = '',
+             historyId = null, // 서버에서 제공하는 실제 historyId
          }) => {
             const submittedAt = new Date().toISOString()
             
@@ -847,8 +833,8 @@ export function AppProvider({children}) {
             }
 
             const isFirstToday = isFirstSubmissionToday()
-            const bonus = Math.max(40, Math.round(score * 0.6))
-            const earnedPoints = isFirstToday ? bonus : 0
+            // 오늘의 질문에 최초로 답변해서 얻은 점수 == 획득 포인트
+            const earnedPoints = isFirstToday ? score : 0
 
             setSentQuestions((prev) => {
                 if (prev.length === 0) return prev
@@ -865,7 +851,8 @@ export function AppProvider({children}) {
 
             setScoreHistory((prev) => [
                 {
-                    id: `session-${Date.now()}`,
+                    id: `session-${Date.now()}`, // 클라이언트 ID (하위 호환성 유지)
+                    historyId: historyId || null, // 서버에서 제공하는 실제 historyId
                     question,
                     score,
                     submittedAt,

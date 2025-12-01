@@ -1,14 +1,13 @@
 import { useEffect, useState, useRef } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAppState } from '../context/AppStateContext'
-import { jobData } from '../constants/onboarding'
 import { resetPassword } from '../utils/authApi'
 import robotLogo from '../assets/b01fa81ce7a959934e8f78fc6344081972afd0ae.png'
 import '../styles/pages/Auth.css'
 
 const steps = [
     { id: 'account', label: '기본 정보' },
-    { id: 'job', label: '직업/관심 선택' },
+    { id: 'job', label: '목표 직무' },
     // 모바일에서 줄 바꿈이 일어나지 않도록 조금 더 짧은 라벨 사용
     { id: 'cadence', label: '질문/알림' },
 ]
@@ -25,7 +24,6 @@ export default function AuthPage() {
     const redirectState = redirectFrom ? { from: redirectFrom } : undefined
 
     const defaultCadence = cadencePresets?.[0] || null
-    const defaultJobCategory = jobData?.[0] || { id: 'service', roles: ['CS'] };
 
     const [mode, setMode] = useState('signup')
     const [activeStep, setActiveStep] = useState(0)
@@ -41,12 +39,14 @@ export default function AuthPage() {
         email: '',
         password: '',
         passwordConfirm: '',
-        jobCategory: defaultJobCategory.id,
-        jobRole: defaultJobCategory.roles[0] || '',
-        jobCategoryOther: '',
+        jobCategory: '',
+        jobRole: '',
         cadence: defaultCadence,
         notificationKakao: false,
     })
+
+    // 회원가입 및 질문 전송 로딩 상태
+    const [isSigningUp, setIsSigningUp] = useState(false)
 
     // 이메일 인증 관련 상태
     const [emailVerification, setEmailVerification] = useState({
@@ -151,10 +151,12 @@ export default function AuthPage() {
     const handleSignup = async (event) => {
         event.preventDefault()
 
-        if (signupForm.jobCategory === 'other' && !signupForm.jobCategoryOther) {
-            alert('기타 직군을 입력해주세요.');
+        if (!signupForm.jobRole || !signupForm.jobRole.trim()) {
+            alert('목표 직무를 입력해주세요.');
             return;
         }
+
+        setIsSigningUp(true)
 
         try {
             const result = await signup(signupForm)
@@ -183,6 +185,7 @@ export default function AuthPage() {
             console.error('[Auth] Signup error:', error)
             const errorMessage = error.message || '회원가입에 실패했습니다. 잠시 후 다시 시도해주세요.'
             alert(errorMessage)
+            setIsSigningUp(false)
         }
     }
 
@@ -298,14 +301,6 @@ export default function AuthPage() {
         }
     }
 
-    const selectedJobCategory = jobData.find(j => j.id === signupForm.jobCategory);
-    // 선택한 직군이 '기타'가 아닌 경우, 세부 직무 옵션에서 '기타' 항목은 숨김
-    const selectedJobRoles = selectedJobCategory
-        ? selectedJobCategory.roles.filter((role) =>
-            selectedJobCategory.id === 'other' ? true : role !== '기타'
-        )
-        : [];
-
     const notificationSummary = signupForm.notificationKakao
         ? '이메일 및 카카오톡'
         : '이메일';
@@ -371,6 +366,19 @@ export default function AuthPage() {
 
     return (
         <div className="auth">
+            {/* 회원가입 로딩 오버레이 */}
+            {isSigningUp && (
+                <div className="auth__loading-overlay">
+                    <div className="auth__loading-content">
+                        <div className="auth__loading-robot">
+                            <img src={robotLogo} alt="PrePair 로봇" />
+                        </div>
+                        <div className="auth__loading-spinner"></div>
+                        <p className="auth__loading-text">질문을 준비하고 있어요...</p>
+                    </div>
+                </div>
+            )}
+            
             {/* 로봇 마스코트 */}
             <div className="auth__robot-section">
                 <div className="auth__robot" ref={robotRef}>
@@ -637,59 +645,18 @@ export default function AuthPage() {
                         {activeStep === 1 && (
                             <>
                                 <label className="form__field">
-                                    <span>직군 (Job Category)</span>
-                                    <select
-                                        value={signupForm.jobCategory}
-                                        onChange={(event) => {
-                                            const newCategory = jobData.find(j => j.id === event.target.value);
-                                            // 직군 변경 시에도 '기타' 직무는 기본값으로 선택되지 않도록 필터링
-                                            const availableRoles = newCategory
-                                                ? newCategory.roles.filter((role) =>
-                                                    newCategory.id === 'other' ? true : role !== '기타'
-                                                )
-                                                : [];
-                                            setSignupForm((prev) => ({
-                                                ...prev,
-                                                jobCategory: newCategory.id,
-                                                jobRole: availableRoles[0] || ''
-                                            }))
-                                        }}
-                                    >
-                                        {jobData.map((cat) => (
-                                            <option key={cat.id} value={cat.id}>{cat.label}</option>
-                                        ))}
-                                    </select>
+                                    <span>목표 직무</span>
+                                    <input
+                                        type="text"
+                                        placeholder="목표 직무를 입력하세요 (예: 프론트엔드 개발자, 마케팅 매니저 등)"
+                                        value={signupForm.jobRole}
+                                        onChange={(event) => setSignupForm((prev) => ({
+                                            ...prev,
+                                            jobRole: event.target.value
+                                        }))}
+                                        required
+                                    />
                                 </label>
-
-                                {selectedJobRoles.length > 0 && (
-                                    <label className="form__field">
-                                        <span>세부 직무 (Job Role)</span>
-                                        <select
-                                            value={signupForm.jobRole}
-                                            onChange={(event) => setSignupForm((prev) => ({
-                                                ...prev,
-                                                jobRole: event.target.value
-                                            }))}
-                                        >
-                                            {selectedJobRoles.map((role) => (
-                                                <option key={role} value={role}>{role}</option>
-                                            ))}
-                                        </select>
-                                    </label>
-                                )}
-
-                                {signupForm.jobCategory === 'other' && (
-                                    <label className="form__field">
-                                        <span>기타 직군 (직접 입력)</span>
-                                        <input
-                                            type="text"
-                                            placeholder="직군을 입력하세요"
-                                            value={signupForm.jobCategoryOther}
-                                            onChange={(event) => setSignupForm((prev) => ({ ...prev, jobCategoryOther: event.target.value }))}
-                                            required
-                                        />
-                                    </label>
-                                )}
 
                                 <div className="auth__actions">
                                     <button type="button" className="cta-button cta-button--ghost"
@@ -755,11 +722,7 @@ export default function AuthPage() {
                                 <div className="auth__summary-card">
                                     <p>
                                         <strong>{signupForm.cadence?.label}</strong>, <strong>{notificationSummary}</strong>(으)로
-                                        <strong> {
-                                            signupForm.jobCategory === 'other'
-                                                ? signupForm.jobCategoryOther
-                                                : signupForm.jobRole
-                                        }</strong> ({selectedJobCategory?.label}) 역할에 대한
+                                        <strong> {signupForm.jobRole}</strong> 역할에 대한
                                         AI 면접 질문을 보내드립니다.
                                     </p>
                                 </div>

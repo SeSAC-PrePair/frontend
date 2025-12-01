@@ -8,7 +8,7 @@
  * @param {Object} payload - 요청 페이로드
  * @param {string} payload.question - 질문 내용
  * @param {string} payload.answer - 답변 내용
- * @returns {Promise<Object>} 피드백 응답 객체
+ * @returns {Promise<Object>} 피드백 응답 객체 (응답에서 user-id 포함)
  * @throws {Error} API 호출 실패 시 에러 발생
  */
 export async function generateFeedback(historyId, payload) {
@@ -67,8 +67,26 @@ export async function generateFeedback(historyId, payload) {
             answer: String(trimmedAnswer),
         }
         
+        // 디버깅: 요청 본문 생성 직후 확인
+        console.log('[Feedback API] ===== Request Body Creation =====')
+        console.log('[Feedback API] trimmedQuestion:', trimmedQuestion)
+        console.log('[Feedback API] trimmedQuestion type:', typeof trimmedQuestion)
+        console.log('[Feedback API] trimmedQuestion length:', trimmedQuestion?.length)
+        console.log('[Feedback API] trimmedAnswer length:', trimmedAnswer?.length)
+        console.log('[Feedback API] requestBody before stringify:', requestBody)
+        console.log('[Feedback API] requestBody.question:', requestBody.question)
+        console.log('[Feedback API] requestBody.question type:', typeof requestBody.question)
+        console.log('[Feedback API] requestBody.question length:', requestBody.question?.length)
+        console.log('[Feedback API] ==================================')
+        
         // JSON 직렬화 (서버가 기대하는 형식과 정확히 일치하도록)
         const requestBodyString = JSON.stringify(requestBody, null, 0)
+        
+        // 디버깅: JSON 직렬화 후 확인
+        console.log('[Feedback API] ===== After JSON Stringify =====')
+        console.log('[Feedback API] requestBodyString:', requestBodyString)
+        console.log('[Feedback API] Parsed back:', JSON.parse(requestBodyString))
+        console.log('[Feedback API] ================================')
         
         // 최종 요청 본문 검증
         let parsedBody
@@ -130,11 +148,20 @@ export async function generateFeedback(historyId, payload) {
         }
         
         // 실제 fetch 요청 직전에 최종 확인
+        console.log('[Feedback API] ===== Final Check Before Fetch =====')
         console.log('[Feedback API] About to send fetch request to:', apiUrl)
         console.log('[Feedback API] Method: POST')
         console.log('[Feedback API] Headers:', JSON.stringify(requestHeaders, null, 2))
         console.log('[Feedback API] Body length:', requestBodyString.length)
         console.log('[Feedback API] Body (full):', requestBodyString)
+        
+        // 최종 body 파싱 확인
+        const finalCheck = JSON.parse(requestBodyString)
+        console.log('[Feedback API] Final body parsed:', finalCheck)
+        console.log('[Feedback API] Final body.question:', finalCheck.question)
+        console.log('[Feedback API] Final body.question length:', finalCheck.question?.length)
+        console.log('[Feedback API] Final body.answer length:', finalCheck.answer?.length)
+        console.log('[Feedback API] =====================================')
         
         const response = await fetch(apiUrl, {
             method: 'POST',
@@ -246,6 +273,15 @@ export async function generateFeedback(historyId, payload) {
             
             console.log('[Feedback API] Score:', data.score)
             console.log('[Feedback API] Status:', data.status)
+            
+            // 응답에서 user-id 추출 및 로깅
+            const userId = data.user_id || data['user-id']
+            if (userId) {
+                console.log('[Feedback API] User ID from response:', userId)
+            } else {
+                console.warn('[Feedback API] ⚠️ WARNING: user-id not found in response')
+            }
+            
             console.log('[Feedback API] ======================================')
             
         } catch (parseError) {
@@ -433,11 +469,10 @@ export async function getSummaryFeedback(userId) {
         throw new Error('사용자 ID가 필요합니다.')
     }
 
-    const apiUrl = `/api/evaluation/feedback`
+    const apiUrl = `/api/evaluation/feedback/${userId.trim()}`
     
     try {
         const requestHeaders = {
-            'X-User-ID': userId.trim(),
             'Accept': 'application/json',
         }
         
@@ -708,6 +743,292 @@ export async function getTodayQuestion(userId) {
         console.log('[Today Question API] Created At:', data.created_at)
         console.log('[Today Question API] Answered At:', data.answered_at)
         console.log('[Today Question API] ======================================')
+
+        return data
+    } catch (error) {
+        // 네트워크 에러 등 기타 에러 처리
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+            throw new Error('네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.')
+        }
+        
+        // 이미 처리된 에러는 그대로 throw
+        throw error
+    }
+}
+
+/**
+ * 과거 질문 목록을 가져옵니다.
+ * @param {string} userId - 사용자 ID
+ * @returns {Promise<Array>} 과거 질문 목록 배열
+ * @property {number} question_id - 질문 ID
+ * @property {string} question - 질문 내용
+ * @property {string} created_at - 생성 시간
+ * @property {string} answered_at - 답변 시간 (null일 수 있음)
+ * @property {string} status - 상태 ("UNANSWERED" 또는 "ANSWERED")
+ * @property {number} score - 점수 (null일 수 있음)
+ * @throws {Error} API 호출 실패 시 에러 발생
+ */
+export async function getInterviewHistories(userId) {
+    // userId 검증
+    if (!userId || typeof userId !== 'string' || !userId.trim()) {
+        throw new Error('사용자 ID가 필요합니다.')
+    }
+
+    const apiUrl = `/api/interviews/me/histories`
+    
+    try {
+        const requestHeaders = {
+            'X-User-ID': userId.trim(),
+            'Accept': 'application/json',
+        }
+        
+        // 디버깅 로그
+        console.log('[Interview Histories API] ===== Request Details =====')
+        console.log('[Interview Histories API] Request URL:', apiUrl)
+        console.log('[Interview Histories API] Request Method: GET')
+        console.log('[Interview Histories API] User ID:', userId)
+        console.log('[Interview Histories API] Request Headers:', JSON.stringify(requestHeaders, null, 2))
+        console.log('[Interview Histories API] ===========================')
+        
+        const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: requestHeaders,
+            credentials: 'include', // 쿠키 포함
+        })
+        
+        // 응답이 JSON이 아닐 수 있으므로 먼저 텍스트로 읽기
+        const responseText = await response.text()
+        const contentType = response.headers.get('content-type') || ''
+        
+        // 디버깅 로그
+        console.log('[Interview Histories API] ===== Response Details =====')
+        console.log('[Interview Histories API] Response status:', response.status)
+        console.log('[Interview Histories API] Content-Type:', contentType)
+        console.log('[Interview Histories API] Response text:', responseText)
+        console.log('[Interview Histories API] =============================')
+        
+        if (!response.ok) {
+            let errorData
+            try {
+                if (responseText.trim()) {
+                    errorData = JSON.parse(responseText)
+                } else {
+                    errorData = { message: '서버에서 빈 응답을 받았습니다.' }
+                }
+            } catch (parseError) {
+                errorData = { 
+                    message: responseText || `서버 오류가 발생했습니다. (${response.status} ${response.statusText})` 
+                }
+            }
+
+            // 400 Bad Request 에러 처리
+            if (response.status === 400) {
+                const errorMessage = errorData.message || errorData.error || '잘못된 요청입니다.'
+                console.error('[Interview Histories API] 400 Bad Request:', errorMessage)
+                throw new Error(errorMessage)
+            }
+
+            // 404 Not Found 에러 처리
+            if (response.status === 404) {
+                const errorMessage = errorData.message || errorData.error || '과거 질문을 찾을 수 없습니다.'
+                console.error('[Interview Histories API] 404 Not Found:', errorMessage)
+                throw new Error(errorMessage)
+            }
+
+            // 500 Internal Server Error 처리
+            if (response.status === 500) {
+                const errorMessage = errorData.message || errorData.error || '서버 내부 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+                console.error('[Interview Histories API] 500 Internal Server Error:', errorMessage)
+                console.error('[Interview Histories API] Full error data:', errorData)
+                throw new Error(errorMessage)
+            }
+
+            throw new Error(
+                errorData.message || 
+                `과거 질문 목록을 가져오는데 실패했습니다. (${response.status} ${response.statusText})`
+            )
+        }
+
+        // 성공 응답 파싱
+        if (!responseText || !responseText.trim()) {
+            // 빈 배열 반환 (과거 질문이 없는 경우)
+            return []
+        }
+
+        let data
+        try {
+            data = JSON.parse(responseText)
+        } catch (parseError) {
+            if (!contentType.includes('application/json')) {
+                if (contentType.includes('text/html')) {
+                    throw new Error('API 엔드포인트를 찾을 수 없습니다. 서버 설정을 확인해주세요.')
+                }
+                throw new Error(`서버가 JSON 형식이 아닌 응답을 반환했습니다. (Content-Type: ${contentType})`)
+            }
+            throw new Error(`서버 응답을 파싱할 수 없습니다: ${parseError.message}`)
+        }
+
+        // 응답이 배열인지 확인
+        if (!Array.isArray(data)) {
+            console.warn('[Interview Histories API] Response is not an array, converting to array')
+            return Array.isArray(data) ? data : []
+        }
+
+        // 응답 데이터 로깅
+        console.log('[Interview Histories API] ===== Parsed Response Data =====')
+        console.log('[Interview Histories API] Histories count:', data.length)
+        console.log('[Interview Histories API] First history:', data[0])
+        console.log('[Interview Histories API] ======================================')
+
+        return data
+    } catch (error) {
+        // 네트워크 에러 등 기타 에러 처리
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+            throw new Error('네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.')
+        }
+        
+        // 이미 처리된 에러는 그대로 throw
+        throw error
+    }
+}
+
+/**
+ * 특정 질문의 상세 피드백을 가져옵니다.
+ * @param {string} userId - 사용자 ID
+ * @param {string} historyId - 히스토리 ID (예: "q_1226")
+ * @returns {Promise<Object>} 상세 피드백 응답 객체
+ * @property {string} history_id - 히스토리 ID
+ * @property {string} question_id - 질문 ID
+ * @property {string} question - 질문 내용
+ * @property {string} date - 날짜
+ * @property {string} answer - 답변 내용
+ * @property {number} score - 점수
+ * @property {Object} feedback - 피드백 객체
+ * @property {string} feedback.good - 잘한 점
+ * @property {string} feedback.improvement - 개선이 필요한 점
+ * @property {string} feedback.recommendation - 추천 학습
+ * @property {number} point - 획득 포인트 (null일 수 있음)
+ * @throws {Error} API 호출 실패 시 에러 발생
+ */
+export async function getInterviewHistoryDetail(userId, historyId) {
+    // userId 검증
+    if (!userId || typeof userId !== 'string' || !userId.trim()) {
+        throw new Error('사용자 ID가 필요합니다.')
+    }
+
+    // historyId 검증
+    if (!historyId || typeof historyId !== 'string' || !historyId.trim()) {
+        throw new Error('히스토리 ID가 필요합니다.')
+    }
+
+    const apiUrl = `/api/interviews/me/histories?historyId=${encodeURIComponent(historyId.trim())}`
+    
+    try {
+        const requestHeaders = {
+            'X-User-ID': userId.trim(),
+            'Accept': 'application/json',
+        }
+        
+        // 디버깅 로그
+        console.log('[Interview History Detail API] ===== Request Details =====')
+        console.log('[Interview History Detail API] Request URL:', apiUrl)
+        console.log('[Interview History Detail API] Request Method: GET')
+        console.log('[Interview History Detail API] User ID:', userId)
+        console.log('[Interview History Detail API] History ID:', historyId)
+        console.log('[Interview History Detail API] Request Headers:', JSON.stringify(requestHeaders, null, 2))
+        console.log('[Interview History Detail API] ===========================')
+        
+        const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: requestHeaders,
+            credentials: 'include', // 쿠키 포함
+        })
+        
+        // 응답이 JSON이 아닐 수 있으므로 먼저 텍스트로 읽기
+        const responseText = await response.text()
+        const contentType = response.headers.get('content-type') || ''
+        
+        // 디버깅 로그
+        console.log('[Interview History Detail API] ===== Response Details =====')
+        console.log('[Interview History Detail API] Response status:', response.status)
+        console.log('[Interview History Detail API] Content-Type:', contentType)
+        console.log('[Interview History Detail API] Response text:', responseText)
+        console.log('[Interview History Detail API] =============================')
+        
+        if (!response.ok) {
+            let errorData
+            try {
+                if (responseText.trim()) {
+                    errorData = JSON.parse(responseText)
+                } else {
+                    errorData = { message: '서버에서 빈 응답을 받았습니다.' }
+                }
+            } catch (parseError) {
+                errorData = { 
+                    message: responseText || `서버 오류가 발생했습니다. (${response.status} ${response.statusText})` 
+                }
+            }
+
+            // 400 Bad Request 에러 처리
+            if (response.status === 400) {
+                const errorMessage = errorData.message || errorData.error || '잘못된 요청입니다.'
+                console.error('[Interview History Detail API] 400 Bad Request:', errorMessage)
+                throw new Error(errorMessage)
+            }
+
+            // 404 Not Found 에러 처리
+            if (response.status === 404) {
+                const errorMessage = errorData.message || errorData.error || '상세 피드백을 찾을 수 없습니다.'
+                console.error('[Interview History Detail API] 404 Not Found:', errorMessage)
+                throw new Error(errorMessage)
+            }
+
+            // 500 Internal Server Error 처리
+            if (response.status === 500) {
+                const errorMessage = errorData.message || errorData.error || '서버 내부 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+                console.error('[Interview History Detail API] 500 Internal Server Error:', errorMessage)
+                console.error('[Interview History Detail API] Full error data:', errorData)
+                throw new Error(errorMessage)
+            }
+
+            throw new Error(
+                errorData.message || 
+                `상세 피드백을 가져오는데 실패했습니다. (${response.status} ${response.statusText})`
+            )
+        }
+
+        // 성공 응답 파싱
+        if (!responseText || !responseText.trim()) {
+            throw new Error('서버에서 빈 응답을 받았습니다.')
+        }
+
+        let data
+        try {
+            data = JSON.parse(responseText)
+        } catch (parseError) {
+            if (!contentType.includes('application/json')) {
+                if (contentType.includes('text/html')) {
+                    throw new Error('API 엔드포인트를 찾을 수 없습니다. 서버 설정을 확인해주세요.')
+                }
+                throw new Error(`서버가 JSON 형식이 아닌 응답을 반환했습니다. (Content-Type: ${contentType})`)
+            }
+            throw new Error(`서버 응답을 파싱할 수 없습니다: ${parseError.message}`)
+        }
+
+        // 응답 형식 검증
+        if (!data.question && !data.question_id) {
+            throw new Error('서버 응답에 질문 데이터가 포함되어 있지 않습니다.')
+        }
+
+        // 응답 데이터 로깅
+        console.log('[Interview History Detail API] ===== Parsed Response Data =====')
+        console.log('[Interview History Detail API] History ID:', data.history_id)
+        console.log('[Interview History Detail API] Question ID:', data.question_id)
+        console.log('[Interview History Detail API] Question:', data.question?.substring(0, 100) + '...')
+        console.log('[Interview History Detail API] Answer:', data.answer?.substring(0, 100) + '...')
+        console.log('[Interview History Detail API] Score:', data.score)
+        console.log('[Interview History Detail API] Feedback:', data.feedback)
+        console.log('[Interview History Detail API] ======================================')
 
         return data
     } catch (error) {
