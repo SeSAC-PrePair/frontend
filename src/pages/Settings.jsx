@@ -122,14 +122,52 @@ export default function SettingsPage() {
         const searchParams = new URLSearchParams(location.search)
         const kakaoSuccess = searchParams.get('kakao') === 'success'
         const email = searchParams.get('email')
-        
-        if (kakaoSuccess && email && user?.email === email) {
-            console.log('[Settings] 카카오 인증 완료 확인')
-            setKakaoAuthCompleted(true)
-            // URL에서 파라미터 제거
-            navigate('/settings', { replace: true })
+
+        if (kakaoSuccess) {
+            // 이메일 체크를 느슨하게 (email 파라미터가 없거나 일치하면 OK)
+            const emailMatch = !email || email === user?.email
+            if (emailMatch && user?.id) {
+                console.log('[Settings] 카카오 인증 완료 확인 - notification_type을 BOTH로 업데이트')
+                setKakaoAuthCompleted(true)
+                // 카카오 알림 채널 추가
+                setForm(prev => ({
+                    ...prev,
+                    notificationChannels: prev.notificationChannels.includes('kakao')
+                        ? prev.notificationChannels
+                        : [...prev.notificationChannels, 'kakao']
+                }))
+
+                // 먼저 사용자 정보를 가져온 후 notification_type만 BOTH로 업데이트
+                getUserInfo(user.id)
+                    .then((userInfo) => {
+                        console.log('[Settings] 카카오 인증 후 사용자 정보 조회:', userInfo)
+                        const currentJob = userInfo.job || ''
+                        const currentScheduleType = userInfo.schedule_type || 'DAILY'
+
+                        return updateUserInfo(user.id, {
+                            job: currentJob,
+                            schedule_type: currentScheduleType,
+                            notification_type: 'BOTH',
+                        })
+                    })
+                    .then(() => {
+                        console.log('[Settings] notification_type BOTH로 업데이트 성공')
+                        setStatus('카카오톡 알림 설정이 완료되었습니다!')
+                        setTimeout(() => setStatus(''), 3000)
+                        // 업데이트 후 사용자 정보 다시 가져오기
+                        return fetchUserInfo()
+                    })
+                    .catch((error) => {
+                        console.error('[Settings] notification_type 업데이트 실패:', error)
+                        setStatus('카카오톡 알림 설정이 완료되었습니다!')
+                        setTimeout(() => setStatus(''), 3000)
+                    })
+
+                // URL에서 파라미터 제거
+                navigate('/settings', { replace: true })
+            }
         }
-    }, [location.search, user?.email, navigate])
+    }, [location.search, user?.email, user?.id, navigate])
 
     // 이전 알림 채널 상태 추적 (카카오 알림을 새로 선택했는지 확인하기 위해)
     useEffect(() => {
@@ -250,19 +288,14 @@ export default function SettingsPage() {
     const toggleChannel = (channelId) => {
         setForm((prev) => {
             if (prev.notificationChannels.includes(channelId)) {
-                // 카카오 알림 해제 시 인증 상태도 초기화
-                if (channelId === 'kakao') {
-                    setKakaoAuthCompleted(false)
-                }
+                // 카카오 알림 해제 (인증 상태는 유지 - 나중에 다시 체크하면 재인증 없이 사용 가능)
                 return {
                     ...prev,
                     notificationChannels: prev.notificationChannels.filter((id) => id !== channelId),
                 }
             }
-            // 카카오 알림 선택 시 인증 상태 초기화 (새로 인증 필요)
-            if (channelId === 'kakao') {
-                setKakaoAuthCompleted(false)
-            }
+            // 카카오 알림 선택 시 - 이미 인증된 상태면 그대로 유지
+            // kakaoAuthCompleted가 false일 때만 인증 필요
             return {...prev, notificationChannels: [...prev.notificationChannels, channelId]}
         })
     }
@@ -427,6 +460,9 @@ export default function SettingsPage() {
                         })}
                     </div>
                     
+                    {/* 디버깅 로그 */}
+                    {console.log('[Settings Render] kakaoAuthCompleted:', kakaoAuthCompleted, 'notificationChannels:', form.notificationChannels)}
+
                     {/* 카카오 알림 선택 시: 인증하기 버튼 또는 완료 메시지 */}
                     {form.notificationChannels.includes('kakao') && !kakaoAuthCompleted && (
                         <div className="settings__kakao-auth-container">
@@ -436,24 +472,24 @@ export default function SettingsPage() {
                                     // 카카오 인증 페이지로 리다이렉트
                                     console.log('[Settings] 카카오 인증하기 버튼 클릭')
                                     console.log('[Settings] 카카오 인증 페이지로 리다이렉트')
-                                    
+
                                     const email = form.email || user?.email || ''
-                                    
+
                                     // localStorage에 Settings에서 왔다는 정보 저장
                                     localStorage.setItem('pendingKakaoAuth', JSON.stringify({
                                         from: 'settings',
                                         email: email,
                                         timestamp: Date.now()
                                     }))
-                                    
-                                    const redirectUri = `${window.location.origin}/settings?kakao=success&email=${encodeURIComponent(email)}`
-                                    
-                                    // redirect_uri와 from 파라미터 모두 전달 (백엔드 지원 여부에 따라)
-                                    window.location.href = `https://prepair.wisoft.dev/api/auth/kakao?email=${encodeURIComponent(email)}&redirect_uri=${encodeURIComponent(redirectUri)}&from=settings`
+
+                                    const redirectUri = `${window.location.origin}/signup-success?kakao=success&email=${encodeURIComponent(email)}`
+
+                                    // 카카오 인증 요청 (force_reauth로 실제 카카오 인증 페이지로 이동)
+                                    window.location.href = `https://prepair.wisoft.dev/api/auth/kakao?email=${encodeURIComponent(email)}&force_reauth=true&redirect_uri=${encodeURIComponent(redirectUri)}`
                                 }}
                                 className="settings__kakao-auth-button"
                             >
-                                🔐 카카오 인증하기
+                                카카오 인증하기
                             </button>
                             <p className="settings__kakao-auth-hint">
                                 <span role="img" aria-label="info icon" style={{ marginRight: '4px' }}>ℹ️</span>
@@ -461,7 +497,7 @@ export default function SettingsPage() {
                             </p>
                         </div>
                     )}
-                    
+
                     {/* 카카오 인증 완료 */}
                     {form.notificationChannels.includes('kakao') && kakaoAuthCompleted && (
                         <div className="settings__kakao-auth-success">
