@@ -32,15 +32,16 @@
   width: 14px;
   height: 14px;
   border-radius: 5px;
-  background: #e9f0ff; /* base for level-0 */
+  background: #f0f0f0; /* base for level-0 */
+  border: 1px solid rgba(0, 0, 0, 0.06);
   opacity: 0.85;
   transition: transform 0.2s ease, opacity 0.2s ease;
   position: relative;
   z-index: 0;
 }
 
-.heatmap-level-0 { background: #edf2ff; } /* 답변 안함 */
-.heatmap-level-1 { background: #779dff; } /* 답변함 */
+.heatmap-level-0 { background: #f0f0f0; border: 1px solid rgba(0, 0, 0, 0.06); } /* 답변 안함 - 옅은 회색 */
+.heatmap-level-1 { background: #779dff; border: none; } /* 답변함 - 파란색 */
 .heatmap-level-2 { background: #bbd2ff; }
 .heatmap-level-3 { background: #97b8ff; }
 .heatmap-level-4 { background: #779dff; }
@@ -73,7 +74,8 @@
 }
 
 .heatmap-widget__cell:hover::after,
-.heatmap-widget__cell:focus-visible::after {
+.heatmap-widget__cell:focus-visible::after,
+.heatmap-widget__cell.active::after {
   opacity: 1;
 }
 
@@ -116,16 +118,16 @@
   .heatmap-widget__cell {
     width: 10px;
     height: 10px;
+    position: relative; /* 모바일 툴팁을 위한 relative 포지셔닝 */
   }
 
   /* On mobile, always render tooltip below to avoid clipping */
   .heatmap-widget__cell::after {
-    position: absolute; /* 모바일에서는 absolute 유지 */
-    top: calc(100% + 8px);
-    bottom: auto;
-    left: 50%; /* 모바일에서는 기본 위치 사용 */
-    transform: translate(-50%, -6px);
-    z-index: 999;
+    position: fixed; /* 모바일에서는 fixed로 변경하여 뷰포트 기준으로 위치 */
+    left: var(--tooltip-x, 50%);
+    top: var(--tooltip-y, auto);
+    transform: translate(-50%, 0);
+    z-index: 1000;
     max-width: calc(100vw - 40px); /* prevent off-screen overflow */
     white-space: normal;           /* allow wrapping if needed */
     word-break: keep-all;          /* avoid breaking every Korean character */
@@ -134,7 +136,14 @@
   }
 
   .heatmap-widget__cell:hover::after,
-  .heatmap-widget__cell:focus-visible::after {
-    transform: translate(-50%, 0);
+  .heatmap-widget__cell:focus-visible::after,
+  .heatmap-widget__cell.active::after {
+    opacity: 1;
+  }
+  
+  .heatmap-widget__cell.active {
+    transform: scale(1.35);
+    opacity: 0.98;
+    z-index: 5;
   }
 }

@@ -1,19 +1,45 @@
 import { useEffect, useRef } from 'react'
 import './ContributionHeatmap.css'
 
-export default function ContributionHeatmap({data}) {
+export default function ContributionHeatmap({data, scoreMap = new Map(), startDate, startDateOffset = 0}) {
     const gridRef = useRef(null)
 
+    console.log('[ContributionHeatmap] Props:', {
+        dataLength: data?.length,
+        scoreMapSize: scoreMap?.size,
+        startDate,
+        startDateOffset
+    })
+    console.log('[ContributionHeatmap] Data sample (first week):', data?.[0])
+    console.log('[ContributionHeatmap] ScoreMap keys (first 10):', scoreMap ? Array.from(scoreMap.keys()).slice(0, 10) : [])
+
     if (!data || data.length === 0) {
+        console.warn('[ContributionHeatmap] No data provided')
         return null
     }
 
     const columns = data.length
     const days = ['일', '월', '화', '수', '목', '금', '토']
     const totalDays = columns * 7
-    const startDate = new Date()
-    startDate.setHours(0, 0, 0, 0)
-    startDate.setDate(startDate.getDate() - (totalDays - 1))
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    // 오늘이 속한 주의 시작일(일요일) 계산
+    const todayDayOfWeek = today.getDay() // 0=일요일, 6=토요일
+    
+    // 시작 날짜: 상위에서 계산된 startDate가 있으면 사용, 없으면 기존 로직 사용
+    let effectiveStartDate
+    if (startDate instanceof Date && !isNaN(startDate.getTime())) {
+        effectiveStartDate = new Date(startDate.getTime())
+        effectiveStartDate.setDate(effectiveStartDate.getDate() + startDateOffset)
+        effectiveStartDate.setHours(0, 0, 0, 0)
+    } else {
+        // generateActivityHeatmap과 동일한 로직 사용
+        effectiveStartDate = new Date(today)
+        effectiveStartDate.setDate(effectiveStartDate.getDate() - (totalDays - 1) - todayDayOfWeek + startDateOffset)
+        effectiveStartDate.setHours(0, 0, 0, 0)
+    }
+    
     const dayMs = 24 * 60 * 60 * 1000
     const formatter = new Intl.DateTimeFormat('ko-KR', {month: 'long', day: 'numeric', weekday: 'short'})
 
@@ -22,9 +48,6 @@ export default function ContributionHeatmap({data}) {
 
         const cells = gridRef.current.querySelectorAll('.heatmap-widget__cell')
         const isMobile = window.matchMedia('(max-width: 480px)').matches
-
-        // 모바일 환경에서는 건들지 않음
-        if (isMobile) return
 
         const adjustTooltip = (cell) => {
             const tooltip = cell.getAttribute('data-tooltip')
@@ -88,16 +111,65 @@ export default function ContributionHeatmap({data}) {
             adjustTooltip(e.target)
         }
 
+        // 모바일 클릭 이벤트 핸들러
+        const handleClick = (e) => {
+            if (isMobile) {
+                const cell = e.currentTarget
+                const currentlyActive = gridRef.current?.querySelector('.heatmap-widget__cell.active')
+                
+                // 다른 셀의 active 클래스 제거
+                if (currentlyActive && currentlyActive !== cell) {
+                    currentlyActive.classList.remove('active')
+                }
+                
+                // 현재 셀 토글
+                if (cell.classList.contains('active')) {
+                    cell.classList.remove('active')
+                } else {
+                    // 모바일에서는 툴팁을 셀 아래에 표시
+                    const cellRect = cell.getBoundingClientRect()
+                    const tooltipY = cellRect.bottom + 8
+                    const tooltipX = cellRect.left + cellRect.width / 2
+                    cell.style.setProperty('--tooltip-x', `${tooltipX}px`)
+                    cell.style.setProperty('--tooltip-y', `${tooltipY}px`)
+                    cell.classList.add('active')
+                }
+            }
+        }
+
+        // 외부 클릭 시 툴팁 닫기 (모바일)
+        const handleDocumentClick = (e) => {
+            if (isMobile && !e.target.closest('.heatmap-widget__cell')) {
+                const activeCell = gridRef.current?.querySelector('.heatmap-widget__cell.active')
+                if (activeCell) {
+                    activeCell.classList.remove('active')
+                }
+            }
+        }
+
         cells.forEach((cell) => {
             cell.addEventListener('mouseenter', handleMouseEnter)
             cell.addEventListener('mousemove', handleMouseMove)
+            if (isMobile) {
+                cell.addEventListener('click', handleClick)
+            }
         })
+
+        if (isMobile) {
+            document.addEventListener('click', handleDocumentClick)
+        }
 
         return () => {
             cells.forEach((cell) => {
                 cell.removeEventListener('mouseenter', handleMouseEnter)
                 cell.removeEventListener('mousemove', handleMouseMove)
+                if (isMobile) {
+                    cell.removeEventListener('click', handleClick)
+                }
             })
+            if (isMobile) {
+                document.removeEventListener('click', handleDocumentClick)
+            }
         }
     }, [data])
 
@@ -108,12 +180,41 @@ export default function ContributionHeatmap({data}) {
                     <div key={weekIndex} className="heatmap-widget__column" role="row">
                         {week.map((value, dayIndex) => {
                             const offset = weekIndex * 7 + dayIndex
-                            const cellDate = new Date(startDate.getTime() + offset * dayMs)
+                            const cellDate = new Date(effectiveStartDate.getTime() + offset * dayMs)
+                            cellDate.setHours(0, 0, 0, 0)
                             const dateLabel = formatter.format(cellDate)
-                            // 답변 여부: 0 = 답변 안함, 1 = 답변함
-                            const hasAnswered = Number(value) > 0 ? 1 : 0
+                            
+                            // 점수 정보 가져오기
+                            // 키는 로컬 날짜 문자열(RewardsOverview의 getLocalDateKey와 동일한 규칙 사용)
+                            const dateKey = `${cellDate.getFullYear()}-${cellDate.getMonth() + 1}-${cellDate.getDate()}`
+                            const scoreInfo = scoreMap.get(dateKey)
+                            const score = scoreInfo?.score ?? null
+                            
+                            // 답변 여부: value가 1이거나 scoreMap에 데이터가 있으면 답변함
+                            const hasAnswered = Number(value) > 0 || scoreInfo !== undefined ? 1 : 0
                             const level = hasAnswered
-                            const tooltip = hasAnswered ? `${dateLabel} · 답변함` : `${dateLabel} · 답변 안함`
+                            
+                            // 디버깅: 첫 번째 주의 첫 번째 날짜만 로그
+                            if (weekIndex === 0 && dayIndex === 0) {
+                                console.log('[ContributionHeatmap] First cell debug:', {
+                                    value,
+                                    dateKey,
+                                    scoreInfo,
+                                    hasAnswered,
+                                    level
+                                })
+                            }
+                            
+                            // 툴팁 텍스트 생성
+                            let tooltip
+                            if (hasAnswered && score !== null) {
+                                tooltip = `${dateLabel} · ${score}점`
+                            } else if (hasAnswered) {
+                                tooltip = `${dateLabel} · 답변함`
+                            } else {
+                                tooltip = `${dateLabel} · 답변 안함`
+                            }
+                            
                             const isTopRow = dayIndex <= 1
 
                             return (

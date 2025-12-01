@@ -1103,8 +1103,8 @@ export default function CoachPage() {
                                                         <span />
                                                     </div>
                                                 </div>
-                                                <p>AI가 {questionContextLabel} 인터뷰 답변을 분석 중이에요.</p>
-                                                <small>AI가 당신의 답변을 정밀하게 살펴보고 있습니다.</small>
+                                                <p>AI가 답변을 분석하고 있습니다.</p>
+                                                <small>시간이 다소 소요될 수 있습니다.</small>
                                             </Motion.div>
                                         )}
                                     </AnimatePresence>
@@ -1467,13 +1467,13 @@ export default function CoachPage() {
                                         onChange={(event) => setRePracticeAnswer(event.target.value)}
                                         placeholder="이전 답변에서 아쉬웠던 부분을 보완해 보세요."
                                         rows={10}
-                                        disabled={isEvaluating}
+                                        disabled={isEvaluating || isLoadingSuggestion}
                                     />
                                     <AnimatePresence>
-                                        {isEvaluating && (
+                                        {(isEvaluating || isLoadingSuggestion) && (
                                             <Motion.div
-                                                key="repractice-analyzing-overlay"
-                                                className="coach__analyzing"
+                                                key={isEvaluating ? "repractice-analyzing-overlay" : "repractice-suggestion-overlay"}
+                                                className="coach__analyzing coach__analyzing--compact"
                                                 initial={{opacity: 0}}
                                                 animate={{opacity: 1}}
                                                 exit={{opacity: 0}}
@@ -1491,8 +1491,8 @@ export default function CoachPage() {
                                                         <span />
                                                     </div>
                                                 </div>
-                                                <p>AI가 선택한 과거 질문에 대한 연습 답변을 분석 중이에요.</p>
-                                                <small>기존 피드백을 참고해 구조와 깊이를 다시 살펴보고 있습니다.</small>
+                                                <p>{isEvaluating ? 'AI가 답변을 분석하고 있습니다.' : 'AI가 추천 답안을 제시해주고 있습니다.'}</p>
+                                                <small>시간이 다소 소요될 수 있습니다.</small>
                                             </Motion.div>
                                         )}
                                     </AnimatePresence>
@@ -1503,7 +1503,7 @@ export default function CoachPage() {
                                         type="button"
                                         className="cta-button cta-button--primary"
                                         onClick={handleRePracticeEvaluate}
-                                        disabled={isEvaluating || rePracticeAnswer.trim().length < minLength || !rePracticeTarget}
+                                        disabled={isEvaluating || isLoadingSuggestion || rePracticeAnswer.trim().length < minLength || !rePracticeTarget}
                                     >
                                         {isEvaluating ? 'AI가 분석 중...' : 'AI 피드백 받기'}
                                     </button>
@@ -1512,7 +1512,7 @@ export default function CoachPage() {
                                             type="button"
                                             className="coach__ai-suggestion-icon-btn"
                                             onClick={handleRequestRePracticeAISuggestion}
-                                            disabled={!canGetRePracticeAISuggestion || isEvaluating || isLoadingSuggestion}
+                                            disabled={!canGetRePracticeAISuggestion || isEvaluating || isLoadingSuggestion || rePracticeAnswer.trim().length < minLength}
                                             title="AI 답변 제안 받기"
                                             aria-label="AI 답변 제안 받기"
                                         >

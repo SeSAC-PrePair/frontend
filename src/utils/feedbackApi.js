@@ -921,7 +921,8 @@ export async function getInterviewHistoryDetail(userId, historyId) {
         throw new Error('히스토리 ID가 필요합니다.')
     }
 
-    const apiUrl = `/api/interviews/me/histories?historyId=${encodeURIComponent(historyId.trim())}`
+    // 서버 스펙: /api/interviews/me/histories/{historyId} 형태의 path parameter 사용
+    const apiUrl = `/api/interviews/me/histories/${encodeURIComponent(historyId.trim())}`
     
     try {
         const requestHeaders = {

@@ -1,9 +1,160 @@
 /**
- * 리워드 조회 API 유틸리티
+ * 리워드 관련 API 유틸리티
  */
 
 /**
- * 사용자의 리워드를 조회합니다.
+ * 리워드를 교환합니다. (포인트 차감)
+ * @param {string} userId - 사용자 ID
+ * @param {number} points - 차감할 포인트 (1이상 필수)
+ * @returns {Promise<Object>} { used_points, remaining_points, message }
+ * @throws {Error} API 호출 실패 시 에러 발생
+ */
+export async function redeemReward(userId, points) {
+    // userId 검증
+    if (!userId || typeof userId !== 'string' || !userId.trim()) {
+        throw new Error('사용자 ID가 필요합니다.')
+    }
+
+    // points 검증
+    if (!points || typeof points !== 'number' || points < 1 || !Number.isInteger(points)) {
+        throw new Error('1 이상의 포인트를 입력해주세요.')
+    }
+
+    const apiUrl = `/api/users/me/rewards`
+    
+    try {
+        const requestBody = {
+            points: points,
+        }
+        
+        const requestBodyString = JSON.stringify(requestBody)
+        
+        const requestHeaders = {
+            'X-User-ID': userId.trim(),
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        }
+        
+        // 디버깅 로그
+        console.log('[Redeem Reward API] ===== Request Details =====')
+        console.log('[Redeem Reward API] Request URL:', apiUrl)
+        console.log('[Redeem Reward API] Full URL:', window.location.origin + apiUrl)
+        console.log('[Redeem Reward API] Request Method: POST')
+        console.log('[Redeem Reward API] User ID:', userId)
+        console.log('[Redeem Reward API] Request Headers:', JSON.stringify(requestHeaders, null, 2))
+        console.log('[Redeem Reward API] Request Body:', requestBodyString)
+        console.log('[Redeem Reward API] ===========================')
+        
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: requestHeaders,
+            body: requestBodyString,
+            credentials: 'include', // 쿠키 포함
+        })
+        
+        // 응답이 JSON이 아닐 수 있으므로 먼저 텍스트로 읽기
+        const responseText = await response.text()
+        const contentType = response.headers.get('content-type') || ''
+        
+        // 디버깅 로그
+        console.log('[Redeem Reward API] ===== Response Details =====')
+        console.log('[Redeem Reward API] Response status:', response.status)
+        console.log('[Redeem Reward API] Content-Type:', contentType)
+        console.log('[Redeem Reward API] Response text:', responseText)
+        console.log('[Redeem Reward API] =============================')
+        
+        if (!response.ok) {
+            let errorData
+            try {
+                if (responseText.trim()) {
+                    errorData = JSON.parse(responseText)
+                } else {
+                    errorData = { message: '서버에서 빈 응답을 받았습니다.' }
+                }
+            } catch (parseError) {
+                errorData = { 
+                    message: responseText || `서버 오류가 발생했습니다. (${response.status} ${response.statusText})` 
+                }
+            }
+
+            // 400 Bad Request 에러 처리
+            if (response.status === 400) {
+                const errorMessage = errorData.message || errorData.error || '잘못된 요청입니다. 포인트를 확인해주세요.'
+                console.error('[Redeem Reward API] 400 Bad Request:', errorMessage)
+                throw new Error(errorMessage)
+            }
+
+            // 401 Unauthorized 에러 처리
+            if (response.status === 401) {
+                const errorMessage = errorData.message || errorData.error || '인증이 필요합니다. 다시 로그인해주세요.'
+                console.error('[Redeem Reward API] 401 Unauthorized:', errorMessage)
+                throw new Error(errorMessage)
+            }
+
+            // 500 Internal Server Error 처리
+            if (response.status === 500) {
+                const errorMessage = errorData.message || errorData.error || '서버 내부 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+                console.error('[Redeem Reward API] 500 Internal Server Error:', errorMessage)
+                console.error('[Redeem Reward API] Full error data:', errorData)
+                throw new Error(errorMessage)
+            }
+
+            throw new Error(
+                errorData.message || 
+                `리워드 교환에 실패했습니다. (${response.status} ${response.statusText})`
+            )
+        }
+
+        // 성공 응답 파싱
+        if (!responseText || !responseText.trim()) {
+            throw new Error('서버에서 빈 응답을 받았습니다.')
+        }
+
+        let data
+        try {
+            data = JSON.parse(responseText)
+            
+            // 서버 응답 구조 확인 및 로깅
+            console.log('[Redeem Reward API] ===== Parsed Response Data =====')
+            console.log('[Redeem Reward API] Full response object:', data)
+            console.log('[Redeem Reward API] Used points:', data.used_points)
+            console.log('[Redeem Reward API] Remaining points:', data.remaining_points)
+            console.log('[Redeem Reward API] Message:', data.message)
+            console.log('[Redeem Reward API] ======================================')
+            
+        } catch (parseError) {
+            console.error('[Redeem Reward API] JSON parse error:', parseError)
+            console.error('[Redeem Reward API] Response text:', responseText)
+            console.error('[Redeem Reward API] Content-Type:', contentType)
+            
+            // Content-Type이 JSON이 아닌 경우 (HTML이 반환된 경우 - API 엔드포인트가 없거나 프록시 문제)
+            if (!contentType.includes('application/json')) {
+                if (contentType.includes('text/html')) {
+                    console.error('[Redeem Reward API] HTML 응답이 반환되었습니다. API 엔드포인트가 존재하지 않거나 프록시 설정을 확인해주세요.')
+                    console.error('[Redeem Reward API] 요청 URL:', apiUrl)
+                    throw new Error('API 엔드포인트를 찾을 수 없습니다. 서버 설정을 확인해주세요.')
+                }
+                throw new Error(`서버가 JSON 형식이 아닌 응답을 반환했습니다. (Content-Type: ${contentType})`)
+            }
+            
+            throw new Error(`서버 응답을 파싱할 수 없습니다: ${parseError.message}`)
+        }
+
+        return data
+    } catch (error) {
+        // 네트워크 에러 등 기타 에러 처리
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+            throw new Error('네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.')
+        }
+        
+        // 이미 처리된 에러는 그대로 throw
+        throw error
+    }
+}
+
+/**
+ * 사용자의 리워드를 조회합니다. (더 이상 사용하지 않음 - GET 메서드 지원 안 함)
+ * @deprecated 리워드 조회 API는 제공되지 않습니다.
  * @returns {Promise<Object>} 리워드 응답 객체
  * @throws {Error} API 호출 실패 시 에러 발생
  */

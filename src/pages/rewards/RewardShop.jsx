@@ -4,7 +4,7 @@ import Modal from "../../components/Modal";
 import RecentPurchases from "../../components/RecentPurchases";
 import {useAppState} from "../../context/AppStateContext";
 import {getDateTimeParts, normalizeDeliveryStatus} from "./purchaseUtils";
-import {getUserRewards} from "../../utils/rewardsApi";
+import {getUserSummary} from "../../utils/authApi";
 import "../../styles/pages/Rewards.css";
 import "../../styles/pages/RewardShop.css";
 
@@ -19,7 +19,7 @@ const rewardCatalog = [
             {
                 id: "gs25-night-pack",
                 name: "GS25 야식 리셋팩",
-                cost: 450,
+                cost: 1,
                 description:
                     "삼각김밥 + 에너지바 + 아메리카노 구성으로 밤샘 준비에 단짠 보상.",
                 badge: "즉시 발급",
@@ -29,7 +29,7 @@ const rewardCatalog = [
             {
                 id: "cu-morning-coffee",
                 name: "CU 모닝 브루 세트",
-                cost: 620,
+                cost: 1,
                 description: "프리미엄 원두 커피 1잔과 초콜릿 바 1개 구성.",
                 badge: "출근 추천",
                 gradient: "linear-gradient(135deg, #f6f3ff, #e0f5ff)",
@@ -38,7 +38,7 @@ const rewardCatalog = [
             {
                 id: "seven-eleven-fresh",
                 name: "세븐일레븐 프레시 보틀",
-                cost: 380,
+                cost: 1,
                 description: "탄산수/이온음료/프로틴 드링크 중 택 1.",
                 badge: "탑픽",
                 gradient: "linear-gradient(135deg, #e7f8ff, #d8f2e5)",
@@ -56,7 +56,7 @@ const rewardCatalog = [
             {
                 id: "stationery-kit",
                 name: "모노 스테이셔너리 키트",
-                cost: 1800,
+                cost: 1,
                 description: "하프문 노트 + 젤펜 3종 + 스터디 스티커 세트.",
                 badge: "신규",
                 gradient: "linear-gradient(135deg, #fff1e6, #ffdada)",
@@ -65,7 +65,7 @@ const rewardCatalog = [
             {
                 id: "olive-young",
                 name: "올리브영 5만원권",
-                cost: 2400,
+                cost: 1,
                 description: "올리브영 5만원권.",
                 badge: "위클리 베스트",
                 gradient: "linear-gradient(135deg, #e4f1ff, #d6e4ff)",
@@ -74,7 +74,7 @@ const rewardCatalog = [
             {
                 id: "premium-coffee-card",
                 name: "스페셜티 커피 카드 (3잔)",
-                cost: 3200,
+                cost: 1,
                 description: "서울 주요 로스터리 제휴, 매장 선택 후 사용.",
                 badge: "핫픽",
                 gradient: "linear-gradient(135deg, #fdf2ff, #fce8f2)",
@@ -92,7 +92,7 @@ const rewardCatalog = [
             {
                 id: "book-culture-10k",
                 name: "메가 스터디 배송비 무료 쿠폰",
-                cost: 1000,
+                cost: 1,
                 description: "메가 스터디의 교재 배송비 무료 쿠폰",
                 badge: "학습 필수",
                 gradient: "linear-gradient(135deg, #e7f3ff, #c3dfff)",
@@ -101,7 +101,7 @@ const rewardCatalog = [
             {
                 id: "app-store-5k",
                 name: "인프런 강의 1년 수강권",
-                cost: 700,
+                cost: 1,
                 description: "인프런에서 필요한 강의를 1년 간 무제한으로 들어요.",
                 badge: "디지털",
                 gradient: "linear-gradient(135deg, #eef8ff, #ddf0ff)",
@@ -110,7 +110,7 @@ const rewardCatalog = [
             {
                 id: "netflix-1month",
                 name: "해커스 1개월 패스",
-                cost: 2300,
+                cost: 1,
                 description: "해커스에서 필요한 강의를 1개월 간 무제한으로 들어요.",
                 badge: "휴식 모드",
                 gradient: "linear-gradient(135deg, #ffe7ef, #ffd7d7)",
@@ -121,7 +121,7 @@ const rewardCatalog = [
 ];
 
 export default function RewardShop() {
-    const {user, redeemReward, purchases} = useAppState();
+    const {user, redeemReward, purchases, updateUserPoints} = useAppState();
     const navigate = useNavigate();
     const [selectedReward, setSelectedReward] = useState(null);
     const [isModalOpen, setModalOpen] = useState(false);
@@ -164,18 +164,24 @@ export default function RewardShop() {
         setModalOpen(true);
     };
 
-    const handleConfirmRedeem = () => {
+    const handleConfirmRedeem = async () => {
         if (!selectedReward) return;
-        const response = redeemReward(selectedReward);
-        if (!response.success) {
-            setModalError(response.reason);
-            return;
+        
+        try {
+            const response = await redeemReward(selectedReward);
+            if (!response.success) {
+                setModalError(response.reason);
+                return;
+            }
+            setModalOpen(false);
+            navigate("/rewards/complete", {
+                state: {purchase: response.record, item: selectedReward},
+            });
+            setSelectedReward(null);
+        } catch (error) {
+            console.error('[RewardShop] 리워드 교환 중 오류:', error);
+            setModalError(error.message || '리워드 교환에 실패했습니다. 잠시 후 다시 시도해주세요.');
         }
-        setModalOpen(false);
-        navigate("/rewards/complete", {
-            state: {purchase: response.record, item: selectedReward},
-        });
-        setSelectedReward(null);
     };
 
     const handleCloseModal = () => {
@@ -195,21 +201,34 @@ export default function RewardShop() {
         setActivePurchase(null);
     };
 
-    // 컴포넌트 마운트 시 리워드 정보 조회
+    // 컴포넌트 마운트 시 사용자 포인트 정보 조회 및 업데이트
     useEffect(() => {
-        const fetchRewards = async () => {
+        const fetchUserPoints = async () => {
+            if (!user?.id) {
+                console.log('[RewardShop] 사용자 ID가 없어 포인트를 가져올 수 없습니다.');
+                return;
+            }
+
             try {
-                const rewardsData = await getUserRewards();
-                console.log('[RewardShop] 리워드 정보 조회 성공:', rewardsData);
-                // 필요에 따라 리워드 정보를 상태로 저장하거나 처리할 수 있습니다
+                console.log('[RewardShop] 사용자 포인트 정보 조회 시작');
+                const summaryData = await getUserSummary(user.id);
+                console.log('[RewardShop] 사용자 요약 정보 조회 성공:', summaryData);
+                
+                // 포인트 정보가 있으면 업데이트
+                if (summaryData?.points !== undefined && summaryData.points !== null) {
+                    console.log('[RewardShop] 포인트 정보 업데이트:', summaryData.points);
+                    updateUserPoints(summaryData.points);
+                } else {
+                    console.warn('[RewardShop] 응답에 포인트 정보가 없습니다.');
+                }
             } catch (error) {
-                console.error('[RewardShop] 리워드 정보 조회 실패:', error);
-                // 에러 처리 (예: 사용자에게 알림 표시)
+                console.error('[RewardShop] 사용자 포인트 정보 조회 실패:', error);
+                // 에러 발생 시에도 페이지는 계속 동작하도록 함
             }
         };
 
-        fetchRewards();
-    }, []);
+        fetchUserPoints();
+    }, [user?.id, updateUserPoints]);
 
     return (
         <div className="reward-shop">

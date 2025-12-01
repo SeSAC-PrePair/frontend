@@ -8,6 +8,7 @@ import {
     notificationChannels as notificationChannelPresets,
 } from '../constants/onboarding'
 import {deleteUser} from '../utils/authApi'
+import {redeemReward as redeemRewardApi} from '../utils/rewardsApi'
 
 const AppStateContext = createContext(null)
 
@@ -295,7 +296,7 @@ const defaultUserProfile = {
     questionSchedule: cadenceMap.daily.schedule,
     notificationChannels: notificationChannelPresets.filter((channel) => channel.isDefault).map((channel) => channel.id),
     avatar: '🌌',
-    points: 620,
+    points: 0,
     streak: 9,
     tier: 'Growth Explorer',
     lastLoginAt: '2025-11-12T21:00:00.000Z',
@@ -586,6 +587,7 @@ export function AppProvider({children}) {
                 if (!response.ok) {
                     let errorData = {}
                     let errorText = ''
+
                     try {
                         errorText = await response.text()
                         if (errorText) {
@@ -634,7 +636,6 @@ export function AppProvider({children}) {
                 // API 응답에서 user_id 받기 (응답 본문 또는 헤더에서)
                 const responseData = await response.json()
                 const userId = responseData.user_id || response.headers.get('X-User-ID')
-
                 if (!userId) {
                     console.error('[Signup] Response data:', responseData)
                     console.error('[Signup] Response headers:', Object.fromEntries(response.headers.entries()))
@@ -898,34 +899,68 @@ export function AppProvider({children}) {
     )
 
     const redeemReward = useCallback(
-        ({id, name, cost}) => {
-            if (!user || user.points < cost) {
+        async ({id, name, cost}) => {
+            if (!user || !user.id) {
+                return {success: false, reason: '로그인이 필요합니다.'}
+            }
+
+            if (!user.points || user.points < cost) {
                 return {success: false, reason: '포인트가 부족합니다.'}
             }
 
-            setUser((prev) => {
-                if (!prev) return prev
-                return {...prev, points: prev.points - cost}
-            })
+            try {
+                // 실제 API 호출
+                console.log('[Redeem Reward] 리워드 교환 시작:', { userId: user.id, cost })
+                const apiResponse = await redeemRewardApi(user.id, cost)
+                
+                console.log('[Redeem Reward] API 응답:', apiResponse)
 
-            const record = {
-                id: `${id}-${Date.now()}`,
-                rewardId: id,
-                name,
-                cost,
-                purchasedAt: new Date().toISOString(),
-                deliveryStatus: '바코드 발급 완료',
-                usageStatus: 'ready',
-                barcode: generateMockBarcode(),
-                pin: generateMockPin(),
-                expiresAt: calculateExpiry(),
-                usedAt: null,
-                memo: '발급 즉시 사용 가능합니다.',
+                // API 응답에서 받은 remaining_points로 사용자 포인트 업데이트
+                if (apiResponse.remaining_points !== undefined) {
+                    setUser((prev) => {
+                        if (!prev) return prev
+                        return {...prev, points: apiResponse.remaining_points}
+                    })
+                    console.log('[Redeem Reward] 사용자 포인트 업데이트:', apiResponse.remaining_points)
+                } else {
+                    // API 응답에 remaining_points가 없으면 로컬에서 차감
+                    setUser((prev) => {
+                        if (!prev) return prev
+                        return {...prev, points: prev.points - cost}
+                    })
+                    console.warn('[Redeem Reward] API 응답에 remaining_points가 없어 로컬에서 차감합니다.')
+                }
+
+                const record = {
+                    id: `${id}-${Date.now()}`,
+                    rewardId: id,
+                    name,
+                    cost,
+                    purchasedAt: new Date().toISOString(),
+                    deliveryStatus: '바코드 발급 완료',
+                    usageStatus: 'ready',
+                    barcode: generateMockBarcode(),
+                    pin: generateMockPin(),
+                    expiresAt: calculateExpiry(),
+                    usedAt: null,
+                    memo: '발급 즉시 사용 가능합니다.',
+                }
+
+                setPurchases((prev) => [record, ...prev])
+
+                return {
+                    success: true, 
+                    record,
+                    message: apiResponse.message || '리워드 교환이 완료되었습니다.',
+                    remainingPoints: apiResponse.remaining_points
+                }
+            } catch (error) {
+                console.error('[Redeem Reward] 리워드 교환 실패:', error)
+                return {
+                    success: false, 
+                    reason: error.message || '리워드 교환에 실패했습니다. 잠시 후 다시 시도해주세요.'
+                }
             }
-
-            setPurchases((prev) => [record, ...prev])
-
-            return {success: true, record}
         },
         [user],
     )
@@ -946,6 +981,22 @@ export function AppProvider({children}) {
         [user],
     )
 
+    const updateUserPoints = useCallback(
+        (points) => {
+            if (typeof points !== 'number' || points < 0) {
+                console.warn('[Update User Points] 유효하지 않은 포인트 값:', points)
+                return
+            }
+
+            setUser((prev) => {
+                if (!prev) return prev
+                console.log('[Update User Points] 포인트 업데이트:', { before: prev.points, after: points })
+                return {...prev, points: points}
+            })
+        },
+        [],
+    )
+
     const value = {
         user,
         login,
@@ -962,6 +1013,7 @@ export function AppProvider({children}) {
         purchases,
         redeemReward,
         deductPoints,
+        updateUserPoints,
         sentQuestions,
         lastDispatch,
         dispatchQuestion,

@@ -1,10 +1,11 @@
 import { motion } from 'framer-motion'
+
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+import { useAppState } from '../context/AppStateContext'
 import '../styles/pages/SignupSuccess.css'
 
 // --- 인라인 SVG 아이콘 ---
-
 // 체크 써클 아이콘
 const CheckCircleIcon = () => (
     <svg
@@ -27,6 +28,7 @@ const CheckCircleIcon = () => (
 export default function SignupSuccessPage() {
     const navigate = useNavigate();
     const location = useLocation();
+    const { signup } = useAppState();
     const [firstInterviewSent, setFirstInterviewSent] = useState(false);
     const [isSigningUp, setIsSigningUp] = useState(false);
     const [signupCompleted, setSignupCompleted] = useState(false);
@@ -94,6 +96,57 @@ export default function SignupSuccessPage() {
         } else {
             // userId가 없는 경우 설정 페이지로 이동
             navigate('/settings', { replace: true });
+        }
+    };
+
+    const handleSignupSubmit = async () => {
+        if (!pendingSignup) {
+            alert('회원가입 정보를 찾을 수 없습니다.');
+            return;
+        }
+
+        setIsSigningUp(true);
+        try {
+            const result = await signup({
+                ...pendingSignup,
+                kakaoAuthCompleted: true,
+                notificationKakao: true
+            });
+
+            console.log('[SignupSuccess] 회원가입 완료:', result);
+            
+            setUserId(result?.userId);
+            setSignupCompleted(true);
+            
+            // 첫 인터뷰 질문 발송
+            if (result?.userId) {
+                fetch('/api/interviews/first', {
+                    method: 'POST',
+                    headers: {
+                        'X-User-ID': result.userId,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({}),
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            console.error('[SignupSuccess] /first 실패:', response.status);
+                        } else {
+                            console.log('[SignupSuccess] ✅ 첫 인터뷰 질문 발송 성공');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('[SignupSuccess] /first 오류:', error);
+                    });
+            }
+
+            // localStorage에서 pendingSignup 제거
+            localStorage.removeItem('pendingSignup');
+        } catch (error) {
+            console.error('[SignupSuccess] 회원가입 오류:', error);
+            alert(error.message || '회원가입에 실패했습니다. 잠시 후 다시 시도해주세요.');
+        } finally {
+            setIsSigningUp(false);
         }
     };
 
