@@ -259,9 +259,6 @@
     font-size: 0.9rem;
     font-weight: 600;
     color: rgba(20, 31, 64, 0.8);
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
 }
 
 .form__field span {
@@ -272,7 +269,6 @@
 
 .form__field input,
 .form__field select {
-    width: 100%;
     padding: 0.8rem 1rem;
     border-radius: var(--radius-sm);
     border: 1px solid rgba(64, 81, 115, 0.28);
@@ -281,7 +277,6 @@
     color: rgba(20, 31, 64, 0.8);
     background: #ffffff;
     transition: all 0.2s ease;
-    box-sizing: border-box;
 }
 
 .form__field select {
@@ -373,24 +368,8 @@
 
 .auth__email-row input {
     flex: 1;
-    min-width: 0;
-    width: 100%;
-    padding: 0.8rem 1rem;
-    border-radius: var(--radius-sm);
-    border: 1px solid rgba(64, 81, 115, 0.28);
-    font-size: 16px;
-    font: inherit;
-    color: rgba(20, 31, 64, 0.8);
-    background: #ffffff;
-    transition: all 0.2s ease;
-    box-sizing: border-box;
 }
 
-.auth__email-row input:focus {
-    outline: none;
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 4px rgba(102, 153, 255, 0.1);
-}
 
 .auth__email-verify-button {
     white-space: nowrap;
@@ -402,9 +381,6 @@
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
-    box-sizing: border-box;
-    width: 100%;
-    max-width: 100%;
 }
 
 .auth__email-verify-button:disabled {
@@ -420,9 +396,6 @@
     margin-top: 0.6rem;
     display: grid;
     gap: 0.4rem;
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
 }
 
 .auth__email-code-header {
@@ -441,36 +414,29 @@
     display: flex;
     gap: 0.5rem;
     align-items: flex-start;
-    flex-wrap: nowrap;
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
+    flex-wrap: wrap;
 }
 
 .auth__email-code-inputs {
     display: flex;
-    gap: 0.3rem;
-    flex: 0 0 auto;
+    gap: 0.4rem;
+    flex: 1;
     min-width: 0;
-    width: auto;
-    box-sizing: border-box;
 }
 
 .auth__email-code-input-single {
-    flex: 0 0 auto;
-    width: 38px;
-    max-width: 38px;
-    min-width: 38px;
-    padding: 0.5rem 0.15rem;
+    flex: 1;
+    min-width: 0;
+    max-width: 50px;
+    padding: 0.6rem 0.4rem;
     text-align: center;
-    font-size: 16px; /* 모바일에서 확대 방지를 위해 16px 이상 필수 */
+    font-size: 1.1rem;
     font-weight: 600;
     letter-spacing: 0;
     border-radius: var(--radius-sm);
     border: 1px solid rgba(64, 81, 115, 0.28);
     background: #ffffff;
     transition: all 0.2s ease;
-    box-sizing: border-box;
 }
 
 .auth__email-code-input-single:focus {
@@ -483,10 +449,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
-    flex-shrink: 0;
-    min-width: 0;
-    max-width: 120px;
-    box-sizing: border-box;
+    min-width: 100px;
 }
 
 .auth__email-resend-button {
@@ -500,9 +463,6 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
-    box-sizing: border-box;
-    width: 100%;
-    max-width: 100%;
 }
 
 .auth__email-resend-button:hover:not(:disabled) {
