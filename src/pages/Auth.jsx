@@ -814,8 +814,9 @@ export default function AuthPage() {
                                             <div className="auth__kakao-button-wrapper">
                                                 <button
                                                     type="button"
-                                                    onClick={() => {
-                                                        // localStorage에 현재 정보 저장
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
                                                         localStorage.setItem('pendingSignup', JSON.stringify({
                                                             name: signupForm.name,
                                                             email: signupForm.email,
@@ -839,7 +840,7 @@ export default function AuthPage() {
                                                         const kakaoAuthUrl = `https://prepair.wisoft.dev/api/auth/kakao?email=${encodeURIComponent(signupForm.email)}&force_reauth=true&new_signup=true&redirect_uri=${encodeURIComponent(redirectUri)}&timestamp=${timestamp}`;
                                                         
                                                         console.log('[Auth] 카카오 인증 URL:', kakaoAuthUrl);
-                                                        window.location.href = kakaoAuthUrl;
+                                                        window.location.assign(kakaoAuthUrl);
                                                     }}
                                                     className="auth__kakao-auth-button"
                                                 >
