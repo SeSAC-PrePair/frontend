@@ -105,35 +105,36 @@ export default function SignupSuccessPage() {
         };
 
         signup(signupData)
-            .then((result) => {
+            .then(async (result) => {
                 console.log('[SignupSuccess] 회원가입 성공:', result);
-                setSignupCompleted(true);
-                setUserId(result?.userId || user?.id);
                 localStorage.removeItem('pendingSignup');
 
-                // 첫 인터뷰 질문 발송
+                // 첫 인터뷰 질문 발송 (완료될 때까지 대기)
                 const newUserId = result?.userId || user?.id;
                 if (newUserId) {
                     console.log('[SignupSuccess] 첫 인터뷰 질문 발송 시작');
-                    fetch('/api/interviews/first', {
-                        method: 'POST',
-                        headers: {
-                            'X-User-ID': newUserId,
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({}),
-                    })
-                        .then(response => {
-                            if (!response.ok) {
-                                console.error('[SignupSuccess] /first 실패:', response.status);
-                            } else {
-                                console.log('[SignupSuccess] ✅ 첫 인터뷰 질문 발송 성공');
-                            }
-                        })
-                        .catch(error => {
-                            console.error('[SignupSuccess] /first 오류:', error);
+                    try {
+                        const response = await fetch('/api/interviews/first', {
+                            method: 'POST',
+                            headers: {
+                                'X-User-ID': newUserId,
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({}),
                         });
+                        if (!response.ok) {
+                            console.error('[SignupSuccess] /first 실패:', response.status);
+                        } else {
+                            console.log('[SignupSuccess] ✅ 첫 인터뷰 질문 발송 성공');
+                        }
+                    } catch (error) {
+                        console.error('[SignupSuccess] /first 오류:', error);
+                    }
                 }
+
+                // 이메일 발송 완료 후 UI 업데이트
+                setSignupCompleted(true);
+                setUserId(newUserId);
             })
             .catch((error) => {
                 console.error('[SignupSuccess] 회원가입 실패:', error);
