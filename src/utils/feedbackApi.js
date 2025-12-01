@@ -315,6 +315,129 @@ export async function generateFeedback(historyId, payload) {
 }
 
 /**
+ * 재피드백(새로운 피드백 생성)을 요청합니다.
+ * @param {string} historyId - 히스토리 ID (예: "h-004")
+ * @param {Object} payload - 요청 페이로드
+ * @param {string} payload.question - 질문 내용
+ * @param {string} payload.answer - 답변 내용
+ * @returns {Promise<Object>} 피드백 응답 객체
+ * @throws {Error} API 호출 실패 시 에러 발생
+ */
+export async function regenerateFeedback(historyId, payload) {
+    // payload 자체 검증
+    if (!payload || typeof payload !== 'object') {
+        throw new Error('요청 데이터가 올바르지 않습니다.')
+    }
+
+    const { question, answer } = payload
+
+    // 필수 파라미터 검증
+    if (!question || typeof question !== 'string' || !question.trim()) {
+        console.error('[Regenerate Feedback API] Question validation failed:', { question, type: typeof question })
+        throw new Error('질문이 없습니다. 다시 확인해주세요.')
+    }
+
+    if (!answer || typeof answer !== 'string' || !answer.trim()) {
+        console.error('[Regenerate Feedback API] Answer validation failed:', { answer, type: typeof answer })
+        throw new Error('답변이 없습니다. 다시 확인해주세요.')
+    }
+
+    if (!historyId) {
+        throw new Error('히스토리 ID가 필요합니다.')
+    }
+
+    const apiUrl = `/api/evaluation/feedback/${historyId}`
+
+    try {
+        const trimmedQuestion = question.trim()
+        const trimmedAnswer = answer.trim()
+
+        const requestBody = {
+            question: String(trimmedQuestion),
+            answer: String(trimmedAnswer),
+        }
+
+        const requestBodyString = JSON.stringify(requestBody, null, 0)
+
+        const requestHeaders = {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Accept': 'application/json',
+        }
+
+        console.log('[Regenerate Feedback API] ===== Request Details =====')
+        console.log('[Regenerate Feedback API] Request URL:', apiUrl)
+        console.log('[Regenerate Feedback API] Method: POST (재피드백)')
+        console.log('[Regenerate Feedback API] historyId:', historyId)
+        console.log('[Regenerate Feedback API] payload:', requestBody)
+        console.log('[Regenerate Feedback API] ===========================')
+
+        const response = await fetch(apiUrl, {
+            method: 'POST', // 재피드백은 POST 사용
+            headers: requestHeaders,
+            body: requestBodyString,
+            credentials: 'include',
+        })
+
+        console.log('[Regenerate Feedback API] Fetch completed, response status:', response.status)
+
+        const responseText = await response.text()
+        const contentType = response.headers.get('content-type') || ''
+
+        console.log('[Regenerate Feedback API] ===== Response Details =====')
+        console.log('[Regenerate Feedback API] Response status:', response.status)
+        console.log('[Regenerate Feedback API] Content-Type:', contentType)
+        console.log('[Regenerate Feedback API] Response text:', responseText)
+        console.log('[Regenerate Feedback API] =============================')
+
+        if (!response.ok) {
+            let errorData
+            try {
+                if (responseText.trim()) {
+                    errorData = JSON.parse(responseText)
+                } else {
+                    errorData = { message: '서버에서 빈 응답을 받았습니다.' }
+                }
+            } catch (parseError) {
+                errorData = {
+                    message: responseText || `서버 오류가 발생했습니다. (${response.status} ${response.statusText})`
+                }
+            }
+
+            if (response.status === 400) {
+                const errorMessage = errorData.message || errorData.error || '질문이 없습니다. 다시 확인해주세요.'
+                throw new Error(errorMessage)
+            }
+
+            throw new Error(
+                errorData.message ||
+                `피드백 생성에 실패했습니다. (${response.status} ${response.statusText})`
+            )
+        }
+
+        if (!responseText || !responseText.trim()) {
+            throw new Error('서버에서 빈 응답을 받았습니다.')
+        }
+
+        let data
+        try {
+            data = JSON.parse(responseText)
+        } catch (parseError) {
+            if (!contentType.includes('application/json')) {
+                throw new Error(`서버가 JSON 형식이 아닌 응답을 반환했습니다. (Content-Type: ${contentType})`)
+            }
+            throw new Error(`서버 응답을 파싱할 수 없습니다: ${parseError.message}`)
+        }
+
+        return data
+    } catch (error) {
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+            throw new Error('네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.')
+        }
+        throw error
+    }
+}
+
+/**
  * 질문에 대한 추천 답안을 가져옵니다.
  * @param {Object} payload - 요청 페이로드
  * @param {string} payload.question - 질문 내용

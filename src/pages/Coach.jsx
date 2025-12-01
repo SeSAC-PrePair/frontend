@@ -5,7 +5,7 @@ import {useAppState} from '../context/AppStateContext'
 import Modal from '../components/Modal'
 import PointsRewardModal from '../components/PointsRewardModal'
 import useMediaQuery from '../hooks/useMediaQuery'
-import {generateFeedback, getSuggestedAnswer, getSummaryFeedback, getTodayQuestion, getInterviewHistories, getInterviewHistoryDetail} from '../utils/feedbackApi'
+import {generateFeedback, regenerateFeedback, getSuggestedAnswer, getSummaryFeedback, getTodayQuestion, getInterviewHistories, getInterviewHistoryDetail} from '../utils/feedbackApi'
 import {getUserSummary} from '../utils/authApi'
 import robotLogo from '../assets/b01fa81ce7a959934e8f78fc6344081972afd0ae.png'
 import '../styles/pages/Coach.css'
@@ -405,12 +405,11 @@ export default function CoachPage() {
                     console.log('[Coach Today Question] Success:', data)
                     setTodayQuestion(data)
                     setIsLoadingTodayQuestion(false)
-                    
+
                     // answered_at이 있으면 이미 답변한 것으로 간주하고 답변 필드에 설정
-                    if (data.answered_at && data.status === 'ANSWERED') {
-                        // 이미 답변한 경우, 답변 내용은 API에서 가져와야 하지만
-                        // 현재 API 응답에 answer 필드가 없으므로 일단 빈 문자열로 처리
-                        // 필요시 별도 API 호출로 답변 내용을 가져올 수 있음
+                    if (data.answered_at && data.status === 'ANSWERED' && data.answer) {
+                        // 이미 답변한 경우, API 응답의 answer를 답변란에 표시
+                        setAnswer(data.answer)
                     }
                 })
                 .catch((error) => {
@@ -923,7 +922,8 @@ export default function CoachPage() {
             console.log('[RePractice] answer length:', finalPayload.answer?.length)
             console.log('[RePractice] =========================================')
             
-            const feedbackResponse = await generateFeedback(historyId, finalPayload)
+            // 재피드백은 POST 요청 (regenerateFeedback) 사용
+            const feedbackResponse = await regenerateFeedback(historyId, finalPayload)
 
             // API 응답을 새로운 형식에 맞게 변환
             // 응답 형식: { question_id, user_id, question, created_at, answerd_at, answer, feedback: { good, improvement, recommendation }, score, status }
@@ -1639,10 +1639,18 @@ export default function CoachPage() {
             <Modal
                 open={showFeedbackModal}
                 onClose={() => {
+                    // 재피드백(isPractice)인 경우 과거의 질문 탭으로 이동
+                    const wasPractice = modalFeedbackData?.isPractice
                     setShowFeedbackModal(false)
                     setModalFeedbackData(null)
                     setHistoryDetail(null)
                     setSelectedHistoryId(null)
+                    if (wasPractice) {
+                        setActivePanel('history')
+                        setRePracticeTarget(null)
+                        setRePracticeAnswer('')
+                        setRePracticeResult(null)
+                    }
                 }}
                 title={modalFeedbackData?.isPractice ? '연습용 AI 평가' : 'AI 평가'}
                 size="lg"

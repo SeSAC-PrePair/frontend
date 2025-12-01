@@ -140,12 +140,12 @@
     margin: 0 auto;
 }
 
-/* 메시 그라데이션 배경 */
+/* 메시 그라데이션 배경 - 정적으로 변경하여 성능 최적화 */
 .showcase-mesh {
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate3d(-50%, -50%, 0);
+    transform: translate(-50%, -50%);
     width: 450px;
     height: 450px;
     border-radius: 50%;
@@ -154,21 +154,10 @@
         radial-gradient(circle at 70% 60%, rgba(102, 153, 255, 0.25) 0%, transparent 50%),
         radial-gradient(circle at 40% 80%, rgba(139, 92, 246, 0.2) 0%, transparent 50%);
     filter: blur(20px);
-    animation: meshFloat 12s ease-in-out infinite;
-    will-change: transform;
     z-index: 0;
 }
 
-@keyframes meshFloat {
-    0%, 100% {
-        transform: translate3d(-50%, -50%, 0) scale(1);
-    }
-    50% {
-        transform: translate3d(-50%, -50%, 0) scale(1.03);
-    }
-}
-
-/* 오비탈 링 */
+/* 오비탈 링 - 정적으로 변경하여 성능 최적화 */
 .showcase-orbit {
     position: absolute;
     top: 50%;
@@ -183,27 +172,21 @@
     width: 320px;
     height: 320px;
     border-color: rgba(255, 182, 193, 0.4);
-    transform: translate3d(-50%, -50%, 0) rotateX(70deg);
-    animation: orbitSpin1 20s linear infinite;
-    will-change: transform;
+    transform: translate(-50%, -50%) rotateX(70deg);
 }
 
 .showcase-orbit--2 {
     width: 380px;
     height: 380px;
     border-color: rgba(102, 153, 255, 0.3);
-    transform: translate3d(-50%, -50%, 0) rotateX(70deg) rotateZ(60deg);
-    animation: orbitSpin2 25s linear infinite reverse;
-    will-change: transform;
+    transform: translate(-50%, -50%) rotateX(70deg) rotateZ(60deg);
 }
 
 .showcase-orbit--3 {
     width: 420px;
     height: 420px;
     border-color: rgba(139, 92, 246, 0.25);
-    transform: translate3d(-50%, -50%, 0) rotateX(70deg) rotateZ(120deg);
-    animation: orbitSpin3 30s linear infinite;
-    will-change: transform;
+    transform: translate(-50%, -50%) rotateX(70deg) rotateZ(120deg);
 }
 
 .orbit-dot {
@@ -216,21 +199,6 @@
     border-radius: 50%;
     background: linear-gradient(135deg, #ff9eb5 0%, #6699ff 100%);
     box-shadow: 0 0 12px rgba(255, 158, 181, 0.6);
-}
-
-@keyframes orbitSpin1 {
-    from { transform: translate3d(-50%, -50%, 0) rotateX(70deg) rotateZ(0deg); }
-    to { transform: translate3d(-50%, -50%, 0) rotateX(70deg) rotateZ(360deg); }
-}
-
-@keyframes orbitSpin2 {
-    from { transform: translate3d(-50%, -50%, 0) rotateX(70deg) rotateZ(60deg); }
-    to { transform: translate3d(-50%, -50%, 0) rotateX(70deg) rotateZ(420deg); }
-}
-
-@keyframes orbitSpin3 {
-    from { transform: translate3d(-50%, -50%, 0) rotateX(70deg) rotateZ(120deg); }
-    to { transform: translate3d(-50%, -50%, 0) rotateX(70deg) rotateZ(480deg); }
 }
 
 /* 플로팅 글래스 카드 */
@@ -313,71 +281,44 @@
     margin-left: 2px;
 }
 
-/* 카드 위치 및 애니메이션 */
+/* 카드 위치 - 정적으로 변경하여 성능 최적화 */
 .floating-card--question {
     top: 8%;
     left: -5%;
-    animation: floatQuestion 8s ease-in-out infinite;
+    transform: rotate(-1deg);
 }
 
 .floating-card--score {
     top: 15%;
     right: -8%;
-    animation: floatScore 9s ease-in-out infinite 0.5s;
+    transform: rotate(1deg);
 }
 
 .floating-card--feedback {
     bottom: 18%;
     left: -10%;
-    animation: floatFeedback 8.5s ease-in-out infinite 1s;
+    transform: rotate(0.5deg);
 }
 
 .floating-card--reward {
     bottom: 8%;
     right: -5%;
-    animation: floatReward 7.5s ease-in-out infinite 1.5s;
+    transform: rotate(-0.5deg);
 }
 
-@keyframes floatQuestion {
-    0%, 100% { transform: translate3d(0, 0, 0) rotate(-1deg); }
-    50% { transform: translate3d(0, -8px, 0) rotate(0.5deg); }
-}
-
-@keyframes floatScore {
-    0%, 100% { transform: translate3d(0, 0, 0) rotate(1deg); }
-    50% { transform: translate3d(0, -10px, 0) rotate(-0.5deg); }
-}
-
-@keyframes floatFeedback {
-    0%, 100% { transform: translate3d(0, 0, 0) rotate(0.5deg); }
-    50% { transform: translate3d(0, -6px, 0) rotate(-1deg); }
-}
-
-@keyframes floatReward {
-    0%, 100% { transform: translate3d(0, 0, 0) rotate(-0.5deg); }
-    50% { transform: translate3d(0, -9px, 0) rotate(1deg); }
-}
-
-/* 중앙 로봇 */
+/* 중앙 로봇 - 정적으로 변경하여 성능 최적화 */
 .showcase-robot {
     position: relative;
     width: 240px;
     height: 240px;
     z-index: 10;
-    animation: robotBounce 6s ease-in-out infinite;
-    will-change: transform;
-}
-
-@keyframes robotBounce {
-    0%, 100% { transform: translate3d(0, 0, 0); }
-    50% { transform: translate3d(0, -8px, 0); }
 }
 
 .robot-platform {
     position: absolute;
     bottom: -30px;
     left: 50%;
-    transform: translate3d(-50%, 0, 0);
+    transform: translateX(-50%);
     width: 160px;
     height: 20px;
     background: linear-gradient(135deg, rgba(255, 182, 193, 0.3) 0%, rgba(102, 153, 255, 0.3) 100%);
@@ -390,7 +331,7 @@
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate3d(-50%, -50%, 0);
+    transform: translate(-50%, -50%);
     width: 280px;
     height: 280px;
     border-radius: 50%;
@@ -401,19 +342,7 @@
         transparent 70%
     );
     z-index: -1;
-    animation: robotGlow 4s ease-in-out infinite;
-    will-change: transform, opacity;
-}
-
-@keyframes robotGlow {
-    0%, 100% {
-        opacity: 0.6;
-        transform: translate3d(-50%, -50%, 0) scale(1);
-    }
-    50% {
-        opacity: 0.85;
-        transform: translate3d(-50%, -50%, 0) scale(1.05);
-    }
+    opacity: 0.75;
 }
 
 .showcase-robot img {
@@ -421,55 +350,42 @@
     height: 100%;
     object-fit: contain;
     filter: drop-shadow(0 20px 40px rgba(255, 158, 181, 0.25));
-    transition: transform 0.4s ease, filter 0.4s ease;
+    transition: transform 0.3s ease, filter 0.3s ease;
     position: relative;
     z-index: 1;
-    will-change: transform;
 }
 
 .showcase-robot:hover img {
     filter: drop-shadow(0 25px 50px rgba(255, 158, 181, 0.35));
-    transform: scale3d(1.05, 1.05, 1);
+    transform: scale(1.05);
 }
 
 .showcase-robot:hover .robot-glow {
     opacity: 0.9;
-    transform: translate3d(-50%, -50%, 0) scale(1.1);
+    transform: translate(-50%, -50%) scale(1.1);
 }
 
 .robot-shadow {
     position: absolute;
     bottom: -40px;
     left: 50%;
-    transform: translate3d(-50%, 0, 0);
+    transform: translateX(-50%);
     width: 120px;
     height: 16px;
     background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.15) 0%, transparent 70%);
     border-radius: 50%;
     z-index: -3;
-    animation: shadowPulse 6s ease-in-out infinite;
-    will-change: transform, opacity;
+    opacity: 0.75;
 }
 
-@keyframes shadowPulse {
-    0%, 100% {
-        transform: translate3d(-50%, 0, 0) scale(1);
-        opacity: 0.8;
-    }
-    50% {
-        transform: translate3d(-50%, 0, 0) scale(0.9);
-        opacity: 0.6;
-    }
-}
-
-/* 스파클 효과 */
+/* 스파클 효과 - 정적으로 변경하여 성능 최적화 */
 .sparkle {
     position: absolute;
     width: 6px;
     height: 6px;
     z-index: 6;
     pointer-events: none;
-    will-change: transform, opacity;
+    opacity: 0.6;
 }
 
 .sparkle::before,
@@ -500,30 +416,16 @@
 .sparkle--1 {
     top: 25%;
     left: 20%;
-    animation: sparkleAnim 3s ease-in-out infinite;
 }
 
 .sparkle--2 {
     top: 20%;
     right: 25%;
-    animation: sparkleAnim 3.5s ease-in-out infinite 0.5s;
 }
 
 .sparkle--3 {
     bottom: 30%;
     right: 20%;
-    animation: sparkleAnim 3s ease-in-out infinite 1s;
-}
-
-@keyframes sparkleAnim {
-    0%, 100% {
-        opacity: 0;
-        transform: scale3d(0, 0, 1) rotate(0deg);
-    }
-    50% {
-        opacity: 0.8;
-        transform: scale3d(1, 1, 1) rotate(180deg);
-    }
 }
 
 /* Buttons */

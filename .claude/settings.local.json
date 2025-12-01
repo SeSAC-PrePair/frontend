@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "mcp__exa__web_search_exa",
-      "WebFetch(domain:toss.im)"
+      "WebFetch(domain:toss.im)",
+      "Bash(pm2 logs:*)",
+      "Bash(pm2 restart:*)"
     ],
     "deny": [],
     "ask": []
