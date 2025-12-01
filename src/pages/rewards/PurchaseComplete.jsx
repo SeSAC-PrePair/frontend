@@ -13,10 +13,10 @@ export default function PurchaseComplete() {
 
     return (
         <div className="purchase-complete">
-            <header>
+            <header className="purchase-complete__header">
                 <span className="tag">Purchase Complete</span>
-                <h1>바코드가 발급되었어요</h1>
-                <p>구매 확인 창 이후 바로 확인할 수 있는 전자 바우처를 준비했습니다.</p>
+                <h2>쿠폰이 발급되었습니다</h2>
+                <p>매장에서 바코드 또는 PIN을 보여주세요.</p>
             </header>
 
             {purchase ? (
