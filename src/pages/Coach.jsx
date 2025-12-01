@@ -696,6 +696,24 @@ export default function CoachPage() {
             }
 
             setResult(computed)
+            // API 응답의 score를 포인트로 사용
+            // API 응답에서 point 필드가 있으면 우선 사용, 없으면 score 사용
+            const apiEarnedPoints = feedbackResponse.point !== null && feedbackResponse.point !== undefined
+                ? feedbackResponse.point
+                : (feedbackResponse.score !== null && feedbackResponse.score !== undefined)
+                ? feedbackResponse.score
+                : null
+            
+            console.log('[Coach] API 응답 포인트 확인:', {
+                point: feedbackResponse.point,
+                score: feedbackResponse.score,
+                scoreType: typeof feedbackResponse.score,
+                apiEarnedPoints,
+                apiEarnedPointsType: typeof apiEarnedPoints,
+                computedScore: computed.score,
+                fullResponse: feedbackResponse,
+            })
+            
             const rewardInfo = recordInterviewResult({
                 score: computed.score,
                 summary: computed.summary,
@@ -707,14 +725,22 @@ export default function CoachPage() {
                 gaps: computed.gaps,
                 recommendations: computed.recommendations,
                 answer: trimmed,
+                earnedPoints: apiEarnedPoints,
                 historyId: responseHistoryId, // API 응답 또는 요청 시 사용한 historyId 저장
             })
             setIsEvaluating(false)
             // 답변은 유지 (최신 답변으로 갱신됨)
             setModalFeedbackData(computed)
             
-            // 포인트가 적립된 경우 팝업 표시 (오늘의 질문에 최초로 답변한 경우)
-            if (rewardInfo && rewardInfo.isFirstToday && rewardInfo.earnedPoints > 0) {
+            // 오늘의 질문에 최초로 답변한 경우 포인트 모달 표시 (포인트가 0이어도 표시)
+            console.log('[Coach] 포인트 모달 조건 확인:', {
+                rewardInfo,
+                earnedPoints: rewardInfo?.earnedPoints,
+                isFirstToday: rewardInfo?.isFirstToday,
+                shouldShow: rewardInfo && rewardInfo.isFirstToday,
+            })
+            
+            if (rewardInfo && rewardInfo.isFirstToday) {
                 console.log('[Coach] 포인트 모달 표시:', {
                     earnedPoints: rewardInfo.earnedPoints,
                     isFirstToday: rewardInfo.isFirstToday,
@@ -1557,23 +1583,7 @@ export default function CoachPage() {
                                             animate={{opacity: 1, y: 0}}
                                             transition={{delay: 0.02, duration: 0.4, ease: 'easeOut'}}
                                         >
-                                            <header className="coach__question-header">
-                                                <h2>나의 활동</h2>
-                                            </header>
-                                            <div className="coach__summary-stats">
-                                                <div className="coach__stat-item">
-                                                    <span className="coach__stat-label">답변한 질문</span>
-                                                    <span className="coach__stat-value">{userSummary.answered_count || '0'}</span>
-                                                </div>
-                                                <div className="coach__stat-item">
-                                                    <span className="coach__stat-label">오늘의 점수</span>
-                                                    <span className="coach__stat-value">{userSummary.today_score || '-'}</span>
-                                                </div>
-                                                <div className="coach__stat-item">
-                                                    <span className="coach__stat-label">포인트</span>
-                                                    <span className="coach__stat-value">{userSummary.points || '0'}</span>
-                                                </div>
-                                            </div>
+                                            
                                         </Motion.article>
                                     )}
                                     <Motion.article

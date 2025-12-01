@@ -705,6 +705,7 @@ export function AppProvider({children}) {
              gaps = [],
              recommendations = [],
              answer = '',
+             earnedPoints: apiEarnedPoints = null,
          }) => {
             const submittedAt = new Date().toISOString()
             
@@ -727,8 +728,25 @@ export function AppProvider({children}) {
             }
 
             const isFirstToday = isFirstSubmissionToday()
-            const bonus = Math.max(40, Math.round(score * 0.6))
-            const earnedPoints = isFirstToday ? bonus : 0
+            // API에서 받은 실제 포인트를 사용 (0이어도 그대로 사용)
+            // API에서 포인트가 없으면 score를 그대로 포인트로 사용
+            let earnedPoints = 0
+            if (isFirstToday) {
+                if (apiEarnedPoints !== null && apiEarnedPoints !== undefined) {
+                    // API에서 실제 포인트가 있으면 사용 (0이어도 그대로 사용)
+                    earnedPoints = apiEarnedPoints
+                } else {
+                    // API에서 포인트가 없으면 score를 그대로 포인트로 사용
+                    earnedPoints = score
+                }
+            }
+            
+            console.log('[AppStateContext] recordInterviewResult:', {
+                isFirstToday,
+                apiEarnedPoints,
+                score,
+                earnedPoints,
+            })
 
             setSentQuestions((prev) => {
                 if (prev.length === 0) return prev

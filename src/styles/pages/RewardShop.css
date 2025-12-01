@@ -329,9 +329,15 @@
 
 .redeem-confirm__actions {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    align-items: center;
     gap: 0.8rem;
+}
+
+.redeem-confirm__actions .cta-button--primary {
+    flex: 1;
+    min-width: 140px;
 }
 
 .redeem-confirm__error {
