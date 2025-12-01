@@ -1175,16 +1175,17 @@ export default function CoachPage() {
                                                 const keyword = searchTerm.trim().toLowerCase()
                                                 return entry.question?.toLowerCase().includes(keyword)
                                             })
-                                            .map((entry) => {
-                                                // historyId 추출: history_id가 우선, 없으면 question_id를 사용
-                                                // API 응답에 따라 history_id가 없을 수 있으므로 question_id를 fallback으로 사용
-                                                const historyId = entry.history_id || (entry.question_id != null ? `q_${entry.question_id}` : null) || null
+                                            .map((entry, index) => {
+                                                // historyId 추출: API 응답에서 history_id를 직접 사용
+                                                const historyId = entry.history_id || null
                                                 const dateStr = entry.created_at || entry.date || entry.answered_at
                                                 
+                                                // 고유한 key 생성: history_id를 우선 사용, 없으면 question_id와 index 조합
+                                                const uniqueKey = entry.history_id || `${entry.question_id}-${index}` || `history-${entry.created_at}-${index}`
                                                 
                                                 return (
                                                     <article
-                                                        key={entry.question_id || entry.history_id || `history-${entry.created_at}`}
+                                                        key={uniqueKey}
                                                         className="history-card"
                                                     >
                                                         <header>
@@ -1230,14 +1231,63 @@ export default function CoachPage() {
                                                                         }
                                                                         
                                                                         console.log('[Coach History Detail] Calling API with userId:', userId, 'historyId:', historyId)
-                                                                        const detail = await getInterviewHistoryDetail(userId, historyId)
-                                                                        console.log('[Coach History Detail] API response:', detail)
                                                                         
-                                                                        setHistoryDetail(detail)
+                                                                        let detail
+                                                                        try {
+                                                                            // 상세 API 호출 시도
+                                                                            detail = await getInterviewHistoryDetail(userId, historyId)
+                                                                            console.log('[Coach History Detail] ===== API Response Received =====')
+                                                                            console.log('[Coach History Detail] API response:', detail)
+                                                                            console.log('[Coach History Detail] Full API response JSON:', JSON.stringify(detail, null, 2))
+                                                                            console.log('[Coach History Detail] detail.feedback exists:', 'feedback' in detail)
+                                                                            console.log('[Coach History Detail] detail.feedback value:', detail.feedback)
+                                                                            console.log('[Coach History Detail] detail.feedback type:', typeof detail.feedback)
+                                                                            if (detail.feedback) {
+                                                                                console.log('[Coach History Detail] detail.feedback keys:', Object.keys(detail.feedback))
+                                                                                console.log('[Coach History Detail] detail.feedback.good:', detail.feedback.good)
+                                                                                console.log('[Coach History Detail] detail.feedback.improvement:', detail.feedback.improvement)
+                                                                                console.log('[Coach History Detail] detail.feedback.recommendation:', detail.feedback.recommendation)
+                                                                            }
+                                                                            console.log('[Coach History Detail] ====================================')
+                                                                            setHistoryDetail(detail)
+                                                                        } catch (apiError) {
+                                                                            console.warn('[Coach History Detail] 상세 API 호출 실패, 목록 데이터 사용:', apiError)
+                                                                            // 상세 API 호출 실패 시 목록 응답 데이터 사용
+                                                                            detail = {
+                                                                                history_id: entry.history_id,
+                                                                                question_id: entry.question_id,
+                                                                                question: entry.question,
+                                                                                score: entry.score,
+                                                                                answer: '', // 목록 응답에는 answer가 없음
+                                                                                feedback: {}, // 목록 응답에는 feedback이 없음
+                                                                            }
+                                                                        }
+                                                                        
+                                                                        // 상세 API 응답에도 feedback이 없는 경우 처리
+                                                                        if (!detail.feedback || (typeof detail.feedback === 'object' && Object.keys(detail.feedback || {}).length === 0)) {
+                                                                            console.warn('[Coach History Detail] ⚠️ API 응답에 feedback 데이터가 없습니다.')
+                                                                            console.warn('[Coach History Detail] detail 객체의 모든 키:', Object.keys(detail))
+                                                                            console.warn('[Coach History Detail] detail.feedback:', detail.feedback)
+                                                                            console.warn('[Coach History Detail] 상세 API 응답에 feedback 필드가 포함되어 있지 않습니다.')
+                                                                            console.warn('[Coach History Detail] 서버 측에서 feedback 데이터를 반환하지 않는 것 같습니다.')
+                                                                        }
                                                                         
                                                                         // 모달에 표시할 데이터 구성
+                                                                        // API 응답에 feedback이 없을 수 있으므로 기본값으로 빈 객체 사용
                                                                         const feedbackData = detail.feedback || {}
+                                                                        console.log('[Coach History Detail] ===== Feedback Data Parsing =====')
+                                                                        console.log('[Coach History Detail] detail object:', detail)
+                                                                        console.log('[Coach History Detail] detail.feedback:', detail.feedback)
                                                                         console.log('[Coach History Detail] feedbackData:', feedbackData)
+                                                                        console.log('[Coach History Detail] feedbackData type:', typeof feedbackData)
+                                                                        console.log('[Coach History Detail] feedbackData keys:', feedbackData ? Object.keys(feedbackData) : 'null/undefined')
+                                                                        console.log('[Coach History Detail] feedbackData.good:', feedbackData.good)
+                                                                        console.log('[Coach History Detail] feedbackData.good type:', typeof feedbackData.good)
+                                                                        console.log('[Coach History Detail] feedbackData.improvement:', feedbackData.improvement)
+                                                                        console.log('[Coach History Detail] feedbackData.improvement type:', typeof feedbackData.improvement)
+                                                                        console.log('[Coach History Detail] feedbackData.recommendation:', feedbackData.recommendation)
+                                                                        console.log('[Coach History Detail] feedbackData.recommendation type:', typeof feedbackData.recommendation)
+                                                                        console.log('[Coach History Detail] ===================================')
                                                                         
                                                                         // feedback 필드가 문자열인 경우와 객체인 경우 모두 처리
                                                                         let strengths = []
@@ -1247,45 +1297,76 @@ export default function CoachPage() {
                                                                         if (typeof feedbackData === 'string') {
                                                                             // feedback이 문자열인 경우
                                                                             gaps = [feedbackData]
-                                                                        } else if (typeof feedbackData === 'object') {
+                                                                        } else if (typeof feedbackData === 'object' && feedbackData !== null) {
                                                                             // feedback이 객체인 경우
-                                                                            if (feedbackData.good) {
-                                                                                strengths = Array.isArray(feedbackData.good) 
-                                                                                    ? feedbackData.good 
-                                                                                    : [feedbackData.good]
+                                                                            // good 필드 처리
+                                                                            if (feedbackData.good !== undefined && feedbackData.good !== null) {
+                                                                                if (Array.isArray(feedbackData.good)) {
+                                                                                    strengths = feedbackData.good.filter(item => item && item.trim().length > 0)
+                                                                                } else if (typeof feedbackData.good === 'string' && feedbackData.good.trim().length > 0) {
+                                                                                    strengths = [feedbackData.good.trim()]
+                                                                                }
                                                                             }
-                                                                            if (feedbackData.improvement) {
-                                                                                gaps = Array.isArray(feedbackData.improvement) 
-                                                                                    ? feedbackData.improvement 
-                                                                                    : [feedbackData.improvement]
+                                                                            
+                                                                            // improvement 필드 처리
+                                                                            if (feedbackData.improvement !== undefined && feedbackData.improvement !== null) {
+                                                                                if (Array.isArray(feedbackData.improvement)) {
+                                                                                    gaps = feedbackData.improvement.filter(item => item && item.trim().length > 0)
+                                                                                } else if (typeof feedbackData.improvement === 'string' && feedbackData.improvement.trim().length > 0) {
+                                                                                    gaps = [feedbackData.improvement.trim()]
+                                                                                }
                                                                             }
-                                                                            if (feedbackData.recommendation) {
-                                                                                recommendations = Array.isArray(feedbackData.recommendation) 
-                                                                                    ? feedbackData.recommendation 
-                                                                                    : [feedbackData.recommendation]
+                                                                            
+                                                                            // recommendation 필드 처리 (쉼표로 구분된 문자열일 수 있음)
+                                                                            if (feedbackData.recommendation !== undefined && feedbackData.recommendation !== null) {
+                                                                                if (Array.isArray(feedbackData.recommendation)) {
+                                                                                    recommendations = feedbackData.recommendation.filter(item => item && item.trim().length > 0)
+                                                                                } else if (typeof feedbackData.recommendation === 'string' && feedbackData.recommendation.trim().length > 0) {
+                                                                                    // 쉼표로 구분된 문자열인 경우 배열로 분리
+                                                                                    recommendations = feedbackData.recommendation
+                                                                                        .split(',')
+                                                                                        .map(item => item.trim())
+                                                                                        .filter(item => item.length > 0)
+                                                                                }
                                                                             }
                                                                         }
+                                                                        
+                                                                        console.log('[Coach History Detail] ===== Parsed Results =====')
+                                                                        console.log('[Coach History Detail] Parsed strengths:', strengths)
+                                                                        console.log('[Coach History Detail] Parsed strengths length:', strengths.length)
+                                                                        console.log('[Coach History Detail] Parsed gaps:', gaps)
+                                                                        console.log('[Coach History Detail] Parsed gaps length:', gaps.length)
+                                                                        console.log('[Coach History Detail] Parsed recommendations:', recommendations)
+                                                                        console.log('[Coach History Detail] Parsed recommendations length:', recommendations.length)
+                                                                        console.log('[Coach History Detail] ===========================')
                                                                         
                                                                         const modalData = {
                                                                             question: detail.question || entry.question,
                                                                             answer: detail.answer || '',
-                                                                            score: detail.score ?? 0,
+                                                                            score: detail.score ?? entry.score ?? 0,
                                                                             strengths,
                                                                             gaps,
                                                                             recommendations,
                                                                             isPractice: false,
                                                                         }
                                                                         
+                                                                        console.log('[Coach History Detail] ===== Final Modal Data =====')
                                                                         console.log('[Coach History Detail] Setting modal data:', modalData)
-                                                                        // 모달 데이터와 모달 열기 상태를 함께 업데이트
+                                                                        console.log('[Coach History Detail] Modal data strengths:', modalData.strengths)
+                                                                        console.log('[Coach History Detail] Modal data gaps:', modalData.gaps)
+                                                                        console.log('[Coach History Detail] Modal data recommendations:', modalData.recommendations)
+                                                                        console.log('[Coach History Detail] =============================')
+                                                                        
+                                                                        // 모달 데이터를 먼저 설정
                                                                         setModalFeedbackData(modalData)
+                                                                        
+                                                                        // 모달 열기 (React가 자동으로 배치 처리함)
                                                                         setShowFeedbackModal(true)
                                                                         console.log('[Coach History Detail] Modal opened, showFeedbackModal set to true')
                                                                     } catch (error) {
                                                                         console.error('[Coach History Detail] 오류:', error)
                                                                         console.error('[Coach History Detail] Error stack:', error.stack)
                                                                         setError(error.message || '상세 피드백을 불러오는데 실패했습니다.')
-                                                                        // 에러 발생 시에도 모달은 닫지 않음 (이전 상태 유지)
                                                                     } finally {
                                                                         setIsLoadingDetail(false)
                                                                     }
@@ -1580,31 +1661,46 @@ export default function CoachPage() {
                         <div className="coach__submitted-answer coach__feedback-section">
                             <strong>{modalFeedbackData.isPractice ? '이번 답변에서 좋아진 점' : '잘한 점'}</strong>
                             <p>
-                                {(modalFeedbackData.strengths ?? modalFeedbackData.highlights ?? []).length > 0 ? (
-                                    (modalFeedbackData.strengths ?? modalFeedbackData.highlights ?? []).join(', ')
-                                ) : (
-                                    '없음'
-                                )}
+                                {(() => {
+                                    const strengths = modalFeedbackData.strengths ?? modalFeedbackData.highlights
+                                    if (Array.isArray(strengths) && strengths.length > 0) {
+                                        return strengths.join(', ')
+                                    }
+                                    if (typeof strengths === 'string' && strengths.trim().length > 0) {
+                                        return strengths.trim()
+                                    }
+                                    return '피드백 데이터가 없습니다.'
+                                })()}
                             </p>
                         </div>
                         <div className="coach__submitted-answer coach__feedback-section">
                             <strong>{modalFeedbackData.isPractice ? '더 보완하면 좋은 부분' : '개선할 점'}</strong>
                             <p>
-                                {(modalFeedbackData.gaps ?? []).length > 0 ? (
-                                    modalFeedbackData.gaps.join(', ')
-                                ) : (
-                                    '없음'
-                                )}
+                                {(() => {
+                                    const gaps = modalFeedbackData.gaps
+                                    if (Array.isArray(gaps) && gaps.length > 0) {
+                                        return gaps.join(', ')
+                                    }
+                                    if (typeof gaps === 'string' && gaps.trim().length > 0) {
+                                        return gaps.trim()
+                                    }
+                                    return '피드백 데이터가 없습니다.'
+                                })()}
                             </p>
                         </div>
                         <div className="coach__submitted-answer coach__feedback-section">
                             <strong>{modalFeedbackData.isPractice ? '다음 연습 가이드' : '추가 학습'}</strong>
                             <p>
-                                {(modalFeedbackData.recommendations ?? modalFeedbackData.focusTags ?? []).length > 0 ? (
-                                    (modalFeedbackData.recommendations ?? modalFeedbackData.focusTags).join(', ')
-                                ) : (
-                                    '없음'
-                                )}
+                                {(() => {
+                                    const recommendations = modalFeedbackData.recommendations ?? modalFeedbackData.focusTags
+                                    if (Array.isArray(recommendations) && recommendations.length > 0) {
+                                        return recommendations.join(', ')
+                                    }
+                                    if (typeof recommendations === 'string' && recommendations.trim().length > 0) {
+                                        return recommendations.trim()
+                                    }
+                                    return '피드백 데이터가 없습니다.'
+                                })()}
                             </p>
                         </div>
                     </div>

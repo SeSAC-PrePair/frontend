@@ -5,42 +5,14 @@ import Modal from '../components/Modal'
 import {getUserInfo, updateUserInfo} from '../utils/authApi'
 import '../styles/pages/Settings.css'
 
-const focusAreas = [
-    {
-        id: 'product-strategy',
-        label: '프로덕트 전략',
-        description: '시장 리서치, 로드맵 수립, KPI 설계에 집중하고 싶어요.',
-    },
-    {
-        id: 'growth-data',
-        label: '그로스 · 데이터',
-        description: '데이터 기반 실험, 퍼널 진단, 인사이트 발굴이 목표예요.',
-    },
-    {
-        id: 'leadership',
-        label: '리더십 · 협업',
-        description: '조직 운영, 팀 커뮤니케이션 역량을 기르고 싶어요.',
-    },
-    {
-        id: 'communication',
-        label: '커뮤니케이션 · 스토리',
-        description: '설득력 있는 발표, 글쓰기, 스토리텔링을 연습하고 싶어요.',
-    },
-]
-
-
 export default function SettingsPage() {
     const {user, updateSettings, deleteAccount, cadencePresets, notificationChannelPresets} = useAppState()
     const navigate = useNavigate()
-    const focusMatch = focusAreas.find((area) => area.label === user?.focusArea)
-    const fallbackFocusAreaId = focusMatch?.id ?? focusAreas[0]?.id ?? ''
 
     const [form, setForm] = useState({
         name: user?.name ?? '',
         email: user?.email ?? '',
-        jobCategory: user?.jobTrackLabel ?? user?.customJobLabel ?? '',
-        jobRole: user?.jobRoleLabel ?? '',
-        focusAreaId: fallbackFocusAreaId,
+        jobDescription: '', // 통합된 서술형 필드
         questionCadence: user?.questionCadence ?? 'daily',
         notificationChannels: user?.notificationChannels?.filter((channel) => channel !== 'email') ?? [],
     })
@@ -50,6 +22,7 @@ export default function SettingsPage() {
     const [deleteError, setDeleteError] = useState('')
     const [isDeleting, setIsDeleting] = useState(false)
     const [isLoadingUserInfo, setIsLoadingUserInfo] = useState(false)
+    const [isSaving, setIsSaving] = useState(false)
 
     // 페이지 마운트 시 사용자 정보 조회
     useEffect(() => {
@@ -65,13 +38,22 @@ export default function SettingsPage() {
                 const apiEmail = userInfo.email || ''
                 const apiSettings = userInfo.settings || {}
                 
-                // job_category 매핑 (API 응답의 job_category를 직접 사용)
+                // job_category, job_role, focusArea를 통합하여 서술형 필드로 구성
                 const apiJobCategory = apiSettings.job_category || ''
-                const nextJobCategory = apiJobCategory || (user.jobTrackLabel ?? user.customJobLabel ?? '')
-                
-                // job_role 매핑
                 const apiJobRole = apiSettings.job_role || ''
-                const nextJobRole = apiJobRole || (user.jobRoleLabel ?? '')
+                const apiFocusArea = apiSettings.focus_area || ''
+                
+                // 기존 user 데이터와 API 데이터를 결합
+                const jobCategory = apiJobCategory || (user.jobTrackLabel ?? user.customJobLabel ?? '')
+                const jobRole = apiJobRole || (user.jobRoleLabel ?? '')
+                const focusArea = apiFocusArea || (user.focusArea ?? '')
+                
+                // 서술형 필드로 통합 (기존 값들을 조합)
+                const jobDescriptionParts = []
+                if (jobCategory) jobDescriptionParts.push(jobCategory)
+                if (jobRole) jobDescriptionParts.push(jobRole)
+                if (focusArea) jobDescriptionParts.push(focusArea)
+                const nextJobDescription = jobDescriptionParts.join(', ') || ''
                 
                 // schedule_type 매핑 (DAILY -> daily 등)
                 const apiScheduleType = apiSettings.schedule_type || ''
@@ -85,16 +67,11 @@ export default function SettingsPage() {
                 // notification_type 매핑
                 const apiNotificationType = apiSettings.notification_type || 'EMAIL'
                 const notificationChannels = apiNotificationType === 'KAKAO' ? ['kakao'] : []
-                
-                // focusArea는 API 응답에 없으므로 기존 값 유지
-                const nextFocusAreaId = focusAreas.find((area) => area.label === user.focusArea)?.id ?? focusAreas[0]?.id ?? ''
 
                 setForm({
                     name: apiName || (user.name ?? ''),
                     email: apiEmail || (user.email ?? ''),
-                    jobCategory: nextJobCategory,
-                    jobRole: nextJobRole,
-                    focusAreaId: nextFocusAreaId,
+                    jobDescription: nextJobDescription,
                     questionCadence: nextQuestionCadence,
                     notificationChannels: notificationChannels,
                 })
@@ -122,27 +99,27 @@ export default function SettingsPage() {
         
         const nextJobCategory = user.jobTrackLabel ?? user.customJobLabel ?? ''
         const nextJobRole = user.jobRoleLabel ?? ''
-        const nextFocusAreaId =
-            focusAreas.find((area) => area.label === user.focusArea)?.id ?? focusAreas[0]?.id ?? ''
+        const nextFocusArea = user.focusArea ?? ''
+        
+        // 서술형 필드로 통합
+        const jobDescriptionParts = []
+        if (nextJobCategory) jobDescriptionParts.push(nextJobCategory)
+        if (nextJobRole) jobDescriptionParts.push(nextJobRole)
+        if (nextFocusArea) jobDescriptionParts.push(nextFocusArea)
+        const nextJobDescription = jobDescriptionParts.join(', ') || ''
 
         // form이 비어있을 때만 기존 user 데이터 사용
         if (form.name === '' && form.email === '') {
             setForm({
                 name: user.name ?? '',
                 email: user.email ?? '',
-                jobCategory: nextJobCategory,
-                jobRole: nextJobRole,
-                focusAreaId: nextFocusAreaId,
+                jobDescription: nextJobDescription,
                 questionCadence: user.questionCadence ?? 'daily',
                 notificationChannels: user.notificationChannels?.filter((channel) => channel !== 'email') ?? [],
             })
         }
     }, [user, isLoadingUserInfo, form.name, form.email])
 
-
-    const handleFocusSelect = (focusId) => {
-        setForm((prev) => ({...prev, focusAreaId: focusId}))
-    }
 
     const handleSubmit = async (event) => {
         event.preventDefault()
@@ -153,24 +130,35 @@ export default function SettingsPage() {
             return
         }
         
+        setIsSaving(true)
+        setStatus('')
+        
         try {
             const cadenceMeta = cadencePresets.find((item) => item.id === form.questionCadence)
-            const focusMeta = focusAreas.find((area) => area.id === form.focusAreaId)
+            
+            // 서술형 필드에서 받은 내용을 그대로 사용
+            let jobDescription = form.jobDescription?.trim() || ''
+            
+            // 이모지 제거 (서버가 이모지를 허용하지 않을 수 있음)
+            jobDescription = jobDescription.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim()
             
             // API 스펙에 맞게 데이터 변환
-            const jobCategory = form.jobCategory?.trim() || ''
-            const jobRole = form.jobRole?.trim() || ''
+            // job_category와 job_role을 분리하거나, job_role에 전체 내용 저장
+            // 현재는 서술형 필드 전체를 job_role로 저장
+            // job_category는 빈 문자열이면 서버 validation 실패할 수 있으므로 기본값 설정
+            const jobCategory = '' // 서술형으로 통합했으므로 빈 값 (서버가 허용하는지 확인 필요)
+            const jobRole = jobDescription // 전체 내용을 job_role로 저장
             
             // notification 설정
             const hasKakao = form.notificationChannels.includes('kakao')
             
-            // API 호출
+            // API 호출 (서버 스펙에 맞게)
             await updateUserInfo(user.id, {
                 user_name: form.name || '',
                 user_email: form.email || '',
                 job_category: jobCategory,
                 job_role: jobRole,
-                question_frequency: 0, // API 스펙에 따라 기본값 0
+                question_frequency: 0, // 기본값 0
                 notification: {
                     email: true, // 이메일은 항상 true (기본)
                     kakao: hasKakao,
@@ -183,8 +171,8 @@ export default function SettingsPage() {
                 jobTrackLabel: jobCategory,
                 jobRoleId: '',
                 jobRoleLabel: jobRole,
-                desiredField: jobRole || jobCategory || user?.desiredField || '',
-                focusArea: focusMeta?.label ?? '',
+                desiredField: jobRole || user?.desiredField || '',
+                focusArea: '', // 서술형으로 통합했으므로 빈 값
                 questionCadence: form.questionCadence,
                 questionCadenceLabel: cadenceMeta?.label,
                 questionSchedule: cadenceMeta?.schedule,
@@ -198,6 +186,8 @@ export default function SettingsPage() {
             console.error('[Settings] 회원 정보 수정 실패:', error)
             setStatus(error.message || '저장에 실패했습니다. 잠시 후 다시 시도해주세요.')
             setTimeout(() => setStatus(''), 3000)
+        } finally {
+            setIsSaving(false)
         }
     }
 
@@ -307,43 +297,21 @@ export default function SettingsPage() {
                     <b>목표 직무 · 관심 분야</b>
                     <div className="settings__goal-section">
                         <div className="settings__group">
-                            <p id="settings-job-track-label" className="settings__subhead">
-                                직군 (Job Category)
-                            </p>
+                        
                             <div className="settings__field">
-                                <input
-                                    type="text"
-                                    id="settings-job-track"
+                                <textarea
+                                    id="settings-job-description"
                                     className="settings__select"
-                                    aria-labelledby="settings-job-track-label"
-                                    placeholder="직군을 입력하세요 (예: IT, 마케팅, 영업 등)"
-                                    value={form.jobCategory}
+                                    aria-labelledby="settings-job-description-label"
+                                    placeholder="목표 직무 및 관심 분야를 입력하세요 (예: 프론트엔드 개발자, 마케팅 매니저, 프로덕트 전략 등)"
+                                    value={form.jobDescription}
                                     onChange={(event) =>
-                                        setForm((prev) => ({ ...prev, jobCategory: event.target.value }))
+                                        setForm((prev) => ({ ...prev, jobDescription: event.target.value }))
                                     }
+                                    rows={3}
                                 />
                             </div>
                         </div>
-
-                        <div className="settings__group">
-                            <p id="settings-job-role-label" className="settings__subhead">
-                                세부 직무 (Job Role)
-                            </p>
-                            <div className="settings__field">
-                                <input
-                                    type="text"
-                                    id="settings-job-role"
-                                    className="settings__select"
-                                    aria-labelledby="settings-job-role-label"
-                                    placeholder="세부 직무를 입력하세요 (예: 프론트엔드 개발자, 마케팅 매니저 등)"
-                                    value={form.jobRole}
-                                    onChange={(event) =>
-                                        setForm((prev) => ({ ...prev, jobRole: event.target.value }))
-                                    }
-                                />
-                            </div>
-                        </div>
-
                     </div>
                 </fieldset>
 
@@ -396,8 +364,12 @@ export default function SettingsPage() {
                     </div>
                 </fieldset>
 
-                <button type="submit" className="cta-button cta-button--primary">
-                    변경 사항 저장
+                <button 
+                    type="submit" 
+                    className="cta-button cta-button--primary"
+                    disabled={isSaving}
+                >
+                    {isSaving ? '저장 중...' : '변경 사항 저장'}
                 </button>
                 {status && <p className="settings__status">{status}</p>}
             </form>

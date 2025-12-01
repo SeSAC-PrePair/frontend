@@ -260,17 +260,43 @@ export async function updateUserInfo(userId, userData) {
     const apiUrl = `/api/users/me`
     
     try {
+        // 서버 스펙에 맞는 요청 본문 구성
+        // 빈 문자열 필드는 서버가 허용하지 않을 수 있으므로, 값이 있을 때만 포함
         const requestBody = {
-            user_name: userData.user_name ?? '',
-            user_email: userData.user_email ?? '',
-            job_category: userData.job_category ?? '',
-            job_role: userData.job_role ?? '',
+            user_name: userData.user_name || '',
+            user_email: userData.user_email || '',
             question_frequency: userData.question_frequency ?? 0,
             notification: {
-                email: userData.notification?.email ?? true,
-                kakao: userData.notification?.kakao ?? false,
+                email: userData.notification?.email !== undefined ? userData.notification.email : true,
+                kakao: userData.notification?.kakao !== undefined ? userData.notification.kakao : false,
             },
         }
+        
+        // job_category와 job_role 처리
+        // job_category가 빈 문자열이면 null로 보내거나 필드를 제외할 수 있지만,
+        // 서버 스펙에 따라 빈 문자열을 허용할 수도 있으므로 일단 빈 문자열로 전송
+        requestBody.job_category = (userData.job_category && userData.job_category.trim()) 
+            ? userData.job_category.trim() 
+            : ''
+        
+        // job_role에서 이모지 제거 (서버가 이모지를 허용하지 않을 수 있음)
+        let jobRole = (userData.job_role && userData.job_role.trim()) 
+            ? userData.job_role.trim() 
+            : ''
+        // 이모지 제거
+        jobRole = jobRole.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim()
+        requestBody.job_role = jobRole
+        
+        // 요청 본문 검증 로그
+        console.log('[Update User Info API] Request Body (parsed):', JSON.stringify(requestBody, null, 2))
+        console.log('[Update User Info API] Request Body values:', {
+            user_name: requestBody.user_name,
+            user_email: requestBody.user_email,
+            job_category: requestBody.job_category,
+            job_role: requestBody.job_role,
+            question_frequency: requestBody.question_frequency,
+            notification: requestBody.notification,
+        })
         
         const requestBodyString = JSON.stringify(requestBody)
         
@@ -324,8 +350,14 @@ export async function updateUserInfo(userId, userData) {
 
             // 400 Bad Request 에러 처리
             if (response.status === 400) {
-                const errorMessage = errorData.message || errorData.error || '잘못된 요청입니다.'
-                console.error('[Update User Info API] 400 Bad Request:', errorMessage)
+                // 서버 응답에서 더 자세한 에러 정보 추출
+                const errorMessage = errorData.message || errorData.error || errorData.detail || '잘못된 요청입니다.'
+                console.error('[Update User Info API] 400 Bad Request - Full Error:', {
+                    errorData,
+                    responseText,
+                    requestBody: requestBody,
+                    requestBodyString: requestBodyString,
+                })
                 throw new Error(errorMessage)
             }
 

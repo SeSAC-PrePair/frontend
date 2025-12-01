@@ -555,9 +555,9 @@ export function AppProvider({children}) {
 
                 // API 요청 데이터 구성
                 const requestData = {
-                    name: payload.name,
-                    email: payload.email,
-                    password: payload.password,
+                    name: payload.name?.trim() || '',
+                    email: payload.email?.trim() || '',
+                    password: payload.password || '',
                     settings: {
                         job: job,
                         schedule_type: scheduleType,
@@ -565,13 +565,37 @@ export function AppProvider({children}) {
                     },
                 }
 
+                // 최종 검증: 필수 필드 확인
+                if (!requestData.name) {
+                    throw new Error('이름을 입력해주세요.')
+                }
+                if (!requestData.email) {
+                    throw new Error('이메일을 입력해주세요.')
+                }
+                if (!requestData.password) {
+                    throw new Error('비밀번호를 입력해주세요.')
+                }
+                if (!requestData.settings.job) {
+                    throw new Error('목표 직무를 입력해주세요.')
+                }
+                if (!requestData.settings.schedule_type) {
+                    throw new Error('질문 주기를 선택해주세요.')
+                }
+                if (!requestData.settings.notification_type) {
+                    throw new Error('알림 타입을 설정해주세요.')
+                }
+
                 // 디버깅: 요청 데이터 상세 로깅
+                console.log('[Signup] ===== Request Details =====')
+                console.log('[Signup] Request URL: /api/auth/signup')
+                console.log('[Signup] Request Method: POST')
                 console.log('[Signup] Request data:', JSON.stringify(requestData, null, 2))
                 console.log('[Signup] Payload:', payload)
                 console.log('[Signup] Job:', job)
                 console.log('[Signup] Schedule Type:', scheduleType)
                 console.log('[Signup] Notification Kakao:', payload.notificationKakao)
                 console.log('[Signup] Notification Type:', notificationType)
+                console.log('[Signup] ===========================')
 
                 // API 호출
                 const response = await fetch('/api/auth/signup', {
@@ -588,13 +612,19 @@ export function AppProvider({children}) {
                     let errorText = ''
                     try {
                         errorText = await response.text()
+                        console.error('[Signup] Raw Error Response Text:', errorText)
                         if (errorText) {
                             try {
                                 errorData = JSON.parse(errorText)
+                                console.error('[Signup] Parsed Error Data:', errorData)
                             } catch (parseError) {
                                 // JSON 파싱 실패 시 텍스트 그대로 사용
-                                errorData = { message: errorText || '알 수 없는 오류가 발생했습니다.' }
+                                console.error('[Signup] Failed to parse error response as JSON:', parseError)
+                                errorData = { message: errorText || '알 수 없는 오류가 발생했습니다.', raw: errorText }
                             }
+                        } else {
+                            console.error('[Signup] Empty error response body')
+                            errorData = { message: '서버에서 빈 응답을 받았습니다.' }
                         }
                     } catch (e) {
                         console.error('[Signup] Failed to read error response:', e)
@@ -604,16 +634,30 @@ export function AppProvider({children}) {
                     // 디버깅: 에러 응답 상세 로깅
                     console.error('[Signup] ===== Error Response =====')
                     console.error('[Signup] Status:', response.status, response.statusText)
-                    console.error('[Signup] Error Text:', errorText)
-                    console.error('[Signup] Error Data:', errorData)
+                    console.error('[Signup] Status Code:', response.status)
+                    console.error('[Signup] Error Text (Raw):', errorText)
+                    console.error('[Signup] Error Data (Parsed):', errorData)
+                    console.error('[Signup] Error Data (Stringified):', JSON.stringify(errorData, null, 2))
                     console.error('[Signup] Request Data:', JSON.stringify(requestData, null, 2))
                     console.error('[Signup] Request Headers:', {
                         'Content-Type': 'application/json',
                     })
+                    console.error('[Signup] Response Headers:', Object.fromEntries(response.headers.entries()))
                     console.error('[Signup] ===========================')
                     
                     if (response.status === 400) {
-                        throw new Error(errorData.message || errorData.error || '입력 정보를 확인해주세요.')
+                        // 400 에러의 경우 서버에서 반환한 상세 메시지 표시
+                        const errorMessage = errorData.message || errorData.error || errorData.detail || errorData.raw || errorText || '입력 정보를 확인해주세요.'
+                        console.error('[Signup] 400 Bad Request - Full Details:', {
+                            errorData,
+                            errorText,
+                            requestData,
+                            payload,
+                            responseHeaders: Object.fromEntries(response.headers.entries()),
+                        })
+                        // 에러 메시지를 alert로도 표시하여 사용자가 확인할 수 있도록 함
+                        console.error('[Signup] Error Message to User:', errorMessage)
+                        throw new Error(errorMessage)
                     } else if (response.status === 409) {
                         throw new Error(errorData.message || '이미 존재하는 이메일입니다.')
                     } else if (response.status === 500) {

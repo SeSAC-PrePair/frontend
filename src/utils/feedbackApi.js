@@ -1022,12 +1022,21 @@ export async function getInterviewHistoryDetail(userId, historyId) {
 
         // 응답 데이터 로깅
         console.log('[Interview History Detail API] ===== Parsed Response Data =====')
+        console.log('[Interview History Detail API] Full response object:', data)
+        console.log('[Interview History Detail API] Response keys:', Object.keys(data))
         console.log('[Interview History Detail API] History ID:', data.history_id)
         console.log('[Interview History Detail API] Question ID:', data.question_id)
         console.log('[Interview History Detail API] Question:', data.question?.substring(0, 100) + '...')
         console.log('[Interview History Detail API] Answer:', data.answer?.substring(0, 100) + '...')
         console.log('[Interview History Detail API] Score:', data.score)
         console.log('[Interview History Detail API] Feedback:', data.feedback)
+        console.log('[Interview History Detail API] Feedback type:', typeof data.feedback)
+        if (data.feedback && typeof data.feedback === 'object') {
+            console.log('[Interview History Detail API] Feedback keys:', Object.keys(data.feedback))
+            console.log('[Interview History Detail API] Feedback.good:', data.feedback.good)
+            console.log('[Interview History Detail API] Feedback.improvement:', data.feedback.improvement)
+            console.log('[Interview History Detail API] Feedback.recommendation:', data.feedback.recommendation)
+        }
         console.log('[Interview History Detail API] ======================================')
 
         return data
