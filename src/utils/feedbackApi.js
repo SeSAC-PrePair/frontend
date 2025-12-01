@@ -115,7 +115,7 @@ export async function generateFeedback(historyId, payload) {
         
         console.log('[Feedback API] ===========================')
         
-        // PATCH 요청 전송 (서버 스펙에 맞는 형식)
+        // POST 요청 전송 (서버 스펙에 맞는 형식)
         // API 문서에 따라 명시적으로 Content-Type 설정
         const requestHeaders = {
             'Content-Type': 'application/json; charset=utf-8',
@@ -150,7 +150,7 @@ export async function generateFeedback(historyId, payload) {
         // 실제 fetch 요청 직전에 최종 확인
         console.log('[Feedback API] ===== Final Check Before Fetch =====')
         console.log('[Feedback API] About to send fetch request to:', apiUrl)
-        console.log('[Feedback API] Method: PATCH')
+        console.log('[Feedback API] Method: POST')
         console.log('[Feedback API] Headers:', JSON.stringify(requestHeaders, null, 2))
         console.log('[Feedback API] Body length:', requestBodyString.length)
         console.log('[Feedback API] Body (full):', requestBodyString)
@@ -164,7 +164,7 @@ export async function generateFeedback(historyId, payload) {
         console.log('[Feedback API] =====================================')
         
         const response = await fetch(apiUrl, {
-            method: 'PATCH',
+            method: 'POST',
             headers: requestHeaders,
             body: requestBodyString,
             credentials: 'include', // 쿠키 포함
