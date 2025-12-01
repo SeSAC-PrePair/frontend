@@ -27,7 +27,7 @@ const CheckCircleIcon = () => (
 export default function SignupSuccessPage() {
     const navigate = useNavigate();
     const location = useLocation();
-    
+
     // location.state에서 카카오 인증 필요 여부 확인
     const needsKakaoAuth = location.state?.needsKakaoAuth || false;
     const userId = location.state?.userId;
@@ -39,7 +39,7 @@ export default function SignupSuccessPage() {
             const timer = setTimeout(() => {
                 window.location.href = `/api/auth/kakao?user_id=${encodeURIComponent(userId)}`;
             }, 1000); // 1초 후 자동 리다이렉트
-            
+
             return () => clearTimeout(timer);
         }
     }, [needsKakaoAuth, userId]);
@@ -47,7 +47,7 @@ export default function SignupSuccessPage() {
     const goToMyPage = () => {
         navigate('/rewards', { replace: true });
     };
-    
+
     const handleKakaoAuth = () => {
         // 카카오 인증 페이지로 직접 리다이렉트
         if (userId) {
@@ -80,12 +80,12 @@ export default function SignupSuccessPage() {
                     <p style={{ margin: '0.5rem 0 1.5rem', fontSize: '0.95rem', color: '#555' }}>
                         PrePair에 오신 것을 환영합니다.
                     </p>
-                    
+
                     {needsKakaoAuth && (
-                        <div style={{ 
-                            marginBottom: '1rem', 
-                            padding: '1rem', 
-                            backgroundColor: '#fff3cd', 
+                        <div style={{
+                            marginBottom: '1rem',
+                            padding: '1rem',
+                            backgroundColor: '#fff3cd',
                             borderRadius: '8px',
                             border: '1px solid #ffc107',
                             fontSize: '0.9rem',
@@ -99,7 +99,7 @@ export default function SignupSuccessPage() {
                             </p>
                         </div>
                     )}
-                    
+
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
                         {needsKakaoAuth && (
                             <button

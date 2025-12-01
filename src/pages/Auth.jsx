@@ -30,7 +30,7 @@ export default function AuthPage() {
     const [mode, setMode] = useState('signup')
     const [activeStep, setActiveStep] = useState(0)
     const [loginForm, setLoginForm] = useState({ email: '', password: '' })
-    
+
     // 비밀번호 찾기 관련 상태
     const [showPasswordReset, setShowPasswordReset] = useState(false)
     const [passwordResetForm, setPasswordResetForm] = useState({ email: '', password: '', passwordConfirm: '' })
@@ -94,9 +94,9 @@ export default function AuthPage() {
     const resetPasswordLengthValid = passwordResetForm.password.length >= 6;
     const resetPasswordSpecialCharValid = /[^A-Za-z0-9]/.test(passwordResetForm.password);
     const resetPasswordMatchValid = passwordResetForm.password === passwordResetForm.passwordConfirm;
-    const resetPasswordFormValid = 
-        passwordResetForm.email && 
-        passwordResetForm.password && 
+    const resetPasswordFormValid =
+        passwordResetForm.email &&
+        passwordResetForm.password &&
         passwordResetForm.passwordConfirm &&
         resetPasswordLengthValid &&
         resetPasswordSpecialCharValid &&
@@ -141,9 +141,9 @@ export default function AuthPage() {
             setPasswordResetStatus({ loading: false, error: '' })
         } catch (error) {
             console.error('[Auth] Password reset error:', error)
-            setPasswordResetStatus({ 
-                loading: false, 
-                error: error.message || '비밀번호 재설정에 실패했습니다. 잠시 후 다시 시도해주세요.' 
+            setPasswordResetStatus({
+                loading: false,
+                error: error.message || '비밀번호 재설정에 실패했습니다. 잠시 후 다시 시도해주세요.'
             })
         }
     }
@@ -158,23 +158,23 @@ export default function AuthPage() {
 
         try {
             const result = await signup(signupForm)
-            
+
             // 카카오 알림이 설정되어 있고 userId가 있으면 바로 카카오 인증 API 호출
             if (signupForm.notificationKakao && result?.userId) {
                 console.log('[Auth] 카카오 알림 설정됨, 카카오 인증 API 호출:', {
                     userId: result.userId,
                     url: `/api/auth/kakao?user_id=${encodeURIComponent(result.userId)}`
                 })
-                
+
                 // 카카오 인증 페이지로 리다이렉트
                 window.location.href = `/api/auth/kakao?user_id=${encodeURIComponent(result.userId)}`
                 return
             }
-            
+
             // 카카오 알림이 설정되지 않은 경우 회원가입 성공 페이지로 이동
-            navigate('/signup-success', { 
+            navigate('/signup-success', {
                 replace: true,
-                state: { 
+                state: {
                     needsKakaoAuth: false,
                     userId: result?.userId
                 }
@@ -210,7 +210,7 @@ export default function AuthPage() {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}))
-                
+
                 if (response.status === 400) {
                     throw new Error(errorData.message || '이메일은 필수 입력 항목입니다.')
                 } else if (response.status === 404) {
@@ -270,7 +270,7 @@ export default function AuthPage() {
             // 응답 처리 - API 스펙에 따라 200이면 성공, 400이면 에러
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}))
-                
+
                 if (response.status === 400) {
                     throw new Error(errorData.message || '유효하지 않은 인증 코드입니다.')
                 } else {
@@ -516,7 +516,7 @@ export default function AuthPage() {
                                                                         const newCode = [...verificationCode]
                                                                         newCode[index] = value
                                                                         setVerificationCode(newCode)
-                                                                        
+
                                                                         // 자동으로 다음 input으로 포커스 이동
                                                                         if (value && index < 5) {
                                                                             const nextInput = event.target.parentElement.children[index + 1]
@@ -769,8 +769,8 @@ export default function AuthPage() {
                                             onClick={() => setActiveStep(1)}>
                                         이전
                                     </button>
-                                    <button 
-                                        type="submit" 
+                                    <button
+                                        type="submit"
                                         className="cta-button cta-button--primary"
                                     >
                                         회원가입 완료
@@ -812,7 +812,7 @@ export default function AuthPage() {
                                 onChange={(event) => setLoginForm((prev) => ({ ...prev, password: event.target.value }))}
                                 required
                             />
-                            <button 
+                            <button
                                 type="button"
                                 className="auth__link"
                                 onClick={() => {
@@ -922,8 +922,8 @@ export default function AuthPage() {
                                 )}
 
                                 <div className="auth__actions">
-                                    <button 
-                                        type="button" 
+                                    <button
+                                        type="button"
                                         className="cta-button cta-button--ghost"
                                         onClick={() => {
                                             setShowPasswordReset(false)
@@ -934,8 +934,8 @@ export default function AuthPage() {
                                     >
                                         취소
                                     </button>
-                                    <button 
-                                        type="submit" 
+                                    <button
+                                        type="submit"
                                         className="cta-button cta-button--primary"
                                         disabled={!resetPasswordFormValid || passwordResetStatus.loading}
                                     >
