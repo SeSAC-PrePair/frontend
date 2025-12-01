@@ -105,46 +105,45 @@ export default function SignupSuccessPage() {
             return;
         }
 
-        setIsSigningUp(true);
-        try {
-            const result = await signup({
-                ...pendingSignup,
-                kakaoAuthCompleted: true,
-                notificationKakao: true
-            });
+        if (pendingSignup.email !== emailFromQuery) {
+            alert('카카오 인증 정보와 회원가입 정보가 일치하지 않습니다.');
+            return;
+        }
 
-            console.log('[SignupSuccess] 회원가입 완료:', result);
-            
-            setUserId(result?.userId);
-            setSignupCompleted(true);
-            
-            // 첫 인터뷰 질문 발송
+        setIsSigningUp(true);
+
+        try {
+            console.log('[SignupSuccess] 회원가입 API 호출:', pendingSignup);
+            const result = await signup(pendingSignup);
+
             if (result?.userId) {
-                fetch('/api/interviews/first', {
+                console.log('[SignupSuccess] ✅ 회원가입 성공 - userId:', result.userId);
+                setUserId(result.userId);
+                setSignupCompleted(true);
+                localStorage.removeItem('pendingSignup'); // 성공 시 localStorage 정리
+
+                // 첫 인터뷰 질문 발송
+                console.log('[SignupSuccess] 첫 인터뷰 질문 발송 시작');
+                const firstInterviewResponse = await fetch('/api/interviews/first', {
                     method: 'POST',
                     headers: {
                         'X-User-ID': result.userId,
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({}),
-                })
-                    .then(response => {
-                        if (!response.ok) {
-                            console.error('[SignupSuccess] /first 실패:', response.status);
-                        } else {
-                            console.log('[SignupSuccess] ✅ 첫 인터뷰 질문 발송 성공');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('[SignupSuccess] /first 오류:', error);
-                    });
+                });
+
+                if (!firstInterviewResponse.ok) {
+                    throw new Error(`첫 인터뷰 질문 발송 실패: ${firstInterviewResponse.status}`);
+                }
+                console.log('[SignupSuccess] ✅ 첫 인터뷰 질문 발송 성공');
+            } else {
+                throw new Error('회원가입 후 사용자 ID를 받지 못했습니다.');
             }
 
-            // localStorage에서 pendingSignup 제거
-            localStorage.removeItem('pendingSignup');
         } catch (error) {
-            console.error('[SignupSuccess] 회원가입 오류:', error);
-            alert(error.message || '회원가입에 실패했습니다. 잠시 후 다시 시도해주세요.');
+            console.error('[SignupSuccess] ❌ 회원가입 오류:', error);
+            alert(error.message || '회원가입 중 오류가 발생했습니다.');
         } finally {
             setIsSigningUp(false);
         }
