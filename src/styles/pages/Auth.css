@@ -172,6 +172,8 @@
     gap: 1.2rem; /* 섹션 간 간격도 살짝 줄이기 */
     width: 100%;
     max-width: 520px;
+    box-sizing: border-box;
+    overflow-x: hidden; /* 가로 스크롤 방지 */
 }
 
 /* === 1. 폼 요소(label, button 등) 사이의 간격 추가 === */
@@ -257,6 +259,9 @@
     font-size: 0.9rem;
     font-weight: 600;
     color: rgba(20, 31, 64, 0.8);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .form__field span {
@@ -267,14 +272,16 @@
 
 .form__field input,
 .form__field select {
+    width: 100%;
     padding: 0.8rem 1rem;
     border-radius: var(--radius-sm);
     border: 1px solid rgba(64, 81, 115, 0.28);
-    font-size: 1rem;
+    font-size: 16px; /* 모바일에서 확대 방지를 위해 16px 이상 필수 */
     font: inherit;
     color: rgba(20, 31, 64, 0.8);
     background: #ffffff;
     transition: all 0.2s ease;
+    box-sizing: border-box;
 }
 
 .form__field select {
@@ -366,6 +373,23 @@
 
 .auth__email-row input {
     flex: 1;
+    min-width: 0;
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(64, 81, 115, 0.28);
+    font-size: 16px;
+    font: inherit;
+    color: rgba(20, 31, 64, 0.8);
+    background: #ffffff;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.auth__email-row input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 4px rgba(102, 153, 255, 0.1);
 }
 
 .auth__email-verify-button {
@@ -378,6 +402,9 @@
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
 }
 
 .auth__email-verify-button:disabled {
@@ -393,6 +420,9 @@
     margin-top: 0.6rem;
     display: grid;
     gap: 0.4rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .auth__email-code-header {
@@ -411,29 +441,36 @@
     display: flex;
     gap: 0.5rem;
     align-items: flex-start;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .auth__email-code-inputs {
     display: flex;
-    gap: 0.4rem;
-    flex: 1;
+    gap: 0.3rem;
+    flex: 0 0 auto;
     min-width: 0;
+    width: auto;
+    box-sizing: border-box;
 }
 
 .auth__email-code-input-single {
-    flex: 1;
-    min-width: 0;
-    max-width: 50px;
-    padding: 0.6rem 0.4rem;
+    flex: 0 0 auto;
+    width: 38px;
+    max-width: 38px;
+    min-width: 38px;
+    padding: 0.5rem 0.15rem;
     text-align: center;
-    font-size: 1.1rem;
+    font-size: 16px; /* 모바일에서 확대 방지를 위해 16px 이상 필수 */
     font-weight: 600;
     letter-spacing: 0;
     border-radius: var(--radius-sm);
     border: 1px solid rgba(64, 81, 115, 0.28);
     background: #ffffff;
     transition: all 0.2s ease;
+    box-sizing: border-box;
 }
 
 .auth__email-code-input-single:focus {
@@ -446,7 +483,10 @@
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
-    min-width: 100px;
+    flex-shrink: 0;
+    min-width: 0;
+    max-width: 120px;
+    box-sizing: border-box;
 }
 
 .auth__email-resend-button {
@@ -460,6 +500,9 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
 }
 
 .auth__email-resend-button:hover:not(:disabled) {
@@ -519,6 +562,13 @@
     .auth__email-code-row {
         flex-direction: column;
         align-items: stretch;
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .auth__email-code {
+        width: 100%;
+        max-width: 100%;
     }
 
     .auth__email-verify-button,
@@ -530,11 +580,17 @@
 
     .auth__email-code-inputs {
         width: 100%;
+        max-width: 100%;
         justify-content: space-between;
+        gap: 0.25rem;
     }
 
     .auth__email-code-input-single {
-        max-width: calc(16.666% - 0.33rem);
+        width: calc((100% - 1.25rem) / 6); /* 6개 필드, gap 0.25rem * 5 = 1.25rem */
+        max-width: calc(16.666% - 0.2rem);
+        min-width: 32px;
+        font-size: 16px; /* 모바일에서 확대 방지 */
+        padding: 0.5rem 0.15rem;
     }
 
     .auth__email-code-actions {
@@ -544,6 +600,16 @@
 
     .auth__email-code-input {
         max-width: 100%;
+    }
+
+    /* 카카오 알림 체크박스 크기 및 마진 조정 */
+    #kakao-toggle {
+        width: 10px;
+        height: 10px;
+        min-width: 10px;
+        min-height: 10px;
+        margin: 0 2px 0 0;
+        flex-shrink: 0;
     }
 }
 

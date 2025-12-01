@@ -25,6 +25,7 @@ export default defineConfig({
         orientation: 'portrait',
         scope: '/',
         start_url: '/',
+        id: '/',
         icons: [
           {
             src: '/favicon.png',
@@ -43,7 +44,8 @@ export default defineConfig({
       workbox: {
         // API 요청은 navigate fallback에서 제외 (중요!)
         // navigate fallback은 페이지 네비게이션에만 적용되고, API 요청은 제외됨
-        navigateFallbackDenylist: [/^\/signup-success/, /^\/auth/, /^\/api\//],
+        // OAuth 콜백 관련 쿼리 파라미터가 있는 경로도 제외 (Service Worker 캐시 충돌 방지)
+        navigateFallbackDenylist: [/^\/signup-success/, /^\/auth/, /^\/api\//, /\?.*kakao=/],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
         globIgnores: ['**/showcase/**'], // showcase 폴더 제외 (큰 이미지 파일들)
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB로 증가

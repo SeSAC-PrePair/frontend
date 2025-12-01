@@ -504,6 +504,14 @@
         justify-content: flex-start;
     }
 
+    .channel-pill input[type="checkbox"] {
+        width: 10px;
+        height: 10px;
+        min-width: 10px;
+        min-height: 10px;
+        flex-shrink: 0;
+    }
+
     .settings__form textarea {
         min-height: 70px;
         max-height: 120px;

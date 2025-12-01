@@ -79,12 +79,12 @@ define(['./workbox-b79e8dca'], (function (workbox) { 'use strict';
    */
   workbox.precacheAndRoute([{
     "url": "index.html",
-    "revision": "0.t53uqrak1c8"
+    "revision": "0.gdcbrjbb9d8"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
     allowlist: [/^\/$/],
-    denylist: [/^\/signup-success/, /^\/auth/, /^\/api\//]
+    denylist: [/^\/signup-success/, /^\/auth/, /^\/api\//, /\?.*kakao=/]
   }));
   workbox.registerRoute(/^https:\/\/prepair\.wisoft\.dev\/api\/auth\/kakao/i, new workbox.NetworkOnly({
     "cacheName": "kakao-auth-cache",
