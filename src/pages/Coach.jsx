@@ -1,6 +1,6 @@
 import {AnimatePresence, motion as Motion} from 'framer-motion'
 import {useMemo, useState, useEffect} from 'react'
-import {useLocation} from 'react-router-dom'
+import {useLocation, useNavigate} from 'react-router-dom'
 import {useAppState} from '../context/AppStateContext'
 import Modal from '../components/Modal'
 import PointsRewardModal from '../components/PointsRewardModal'
@@ -284,6 +284,7 @@ export default function CoachPage() {
         deductPoints,
     } = useAppState()
     const location = useLocation()
+    const navigate = useNavigate()
     const latestDispatch = sentQuestions?.[0] ?? null
     // answer state는 사용자가 입력한 답변이므로 빈 문자열로 초기화
     // latestDispatch?.answer는 질문일 수 있으므로 사용하지 않음
@@ -370,8 +371,10 @@ export default function CoachPage() {
         }
         : null
     
-    // 한 번 제출했는지 확인 (result가 있거나 latestDispatch에 answeredAt이 있으면)
-    const hasSubmittedOnce = result !== null || latestDispatchLocal?.answeredAt != null
+    // 한 번 제출했는지 확인 (result가 있거나 latestDispatch에 answeredAt이 있거나 API에서 이미 답변했다고 알려주면)
+    // todayQuestion에서 status가 'ANSWERED'이거나 answered_at이 있으면 이미 답변한 것
+    const hasAnsweredTodayQuestion = todayQuestion?.status === 'ANSWERED' || todayQuestion?.answered_at != null
+    const hasSubmittedOnce = result !== null || latestDispatchLocal?.answeredAt != null || hasAnsweredTodayQuestion
     const canGetAISuggestion = hasSubmittedOnce && (user?.points ?? 0) >= 10
     // 재피드백 받기에서는 포인트 차감 없이 사용 가능
     const canGetRePracticeAISuggestion = rePracticeTarget !== null
@@ -1136,13 +1139,18 @@ export default function CoachPage() {
                                     </AnimatePresence>
                                 </div>
                                 {error && !isEvaluating && <p className="coach__error">{error}</p>}
+                                {hasAnsweredTodayQuestion && (
+                                    <p className="coach__answered-notice">
+                                        오늘의 질문에 이미 답변하셨습니다. 다시 피드백을 받으시려면 &quot;과거의 질문&quot; 탭에서 &quot;재피드백 받기&quot;를 이용해주세요.
+                                    </p>
+                                )}
                                 <button
                                     type="button"
                                     className="cta-button cta-button--primary"
                                     onClick={handleEvaluate}
-                                    disabled={isEvaluating || answer.trim().length < minLength}
+                                    disabled={isEvaluating || answer.trim().length < minLength || hasAnsweredTodayQuestion}
                                 >
-                                    {isEvaluating ? 'AI가 분석 중...' : 'AI 피드백 받기'}
+                                    {isEvaluating ? 'AI가 분석 중...' : hasAnsweredTodayQuestion ? '오늘 이미 답변 완료' : 'AI 피드백 받기'}
                                 </button>
                             </Motion.article>
 
@@ -1773,7 +1781,11 @@ export default function CoachPage() {
 
             <PointsRewardModal
                 open={showPointsRewardModal}
-                onClose={() => setShowPointsRewardModal(false)}
+                onClose={() => {
+                    setShowPointsRewardModal(false)
+                    // 오늘의 질문 최초 피드백 후 리워드 페이지로 이동
+                    navigate('/rewards')
+                }}
                 points={earnedPoints}
             />
         </div>
