@@ -461,7 +461,20 @@ export function AppProvider({children}) {
                         throw new Error(errorData.message || '이메일과 비밀번호는 필수 입력 항목입니다.')
                     } else if (response.status === 401) {
                         throw new Error(errorData.message || '이메일 또는 비밀번호가 올바르지 않습니다.')
+                    } else if (response.status === 500) {
+                        // 500 에러의 경우 특별한 에러 타입으로 표시
+                        const error = new Error(errorData.message || '서버 오류가 발생했습니다.')
+                        error.isServerError = true
+                        error.statusCode = 500
+                        throw error
                     } else {
+                        // 기타 에러도 서버 오류로 간주할 수 있음
+                        if (response.status >= 500) {
+                            const error = new Error(errorData.message || `서버 오류가 발생했습니다. (${response.status})`)
+                            error.isServerError = true
+                            error.statusCode = response.status
+                            throw error
+                        }
                         throw new Error(errorData.message || `로그인에 실패했습니다. (${response.status})`)
                     }
                 }
@@ -508,6 +521,12 @@ export function AppProvider({children}) {
                 
                 return userProfile
             } catch (error) {
+                // 네트워크 에러 처리
+                if (error instanceof TypeError && error.message.includes('fetch')) {
+                    const networkError = new Error('네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.')
+                    networkError.isNetworkError = true
+                    throw networkError
+                }
                 // 에러를 다시 throw하여 호출하는 쪽에서 처리할 수 있도록 함
                 throw error
             }
@@ -627,8 +646,18 @@ export function AppProvider({children}) {
                             requestData,
                             payload,
                         })
-                        throw new Error(`서버 오류가 발생했습니다: ${errorMessage}`)
+                        const error = new Error(errorMessage)
+                        error.isServerError = true
+                        error.statusCode = 500
+                        throw error
                     } else {
+                        // 기타 서버 오류 (502, 503 등)
+                        if (response.status >= 500) {
+                            const error = new Error(errorData.message || errorData.error || `서버 오류가 발생했습니다. (${response.status})`)
+                            error.isServerError = true
+                            error.statusCode = response.status
+                            throw error
+                        }
                         throw new Error(errorData.message || errorData.error || `회원가입에 실패했습니다. (${response.status})`)
                     }
                 }
@@ -737,6 +766,12 @@ export function AppProvider({children}) {
                 
                 return { userId, user: newProfile }
             } catch (error) {
+                // 네트워크 에러 처리
+                if (error instanceof TypeError && error.message.includes('fetch')) {
+                    const networkError = new Error('네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.')
+                    networkError.isNetworkError = true
+                    throw networkError
+                }
                 // 에러를 다시 throw하여 호출하는 쪽에서 처리할 수 있도록 함
                 throw error
             }

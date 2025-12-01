@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAppState } from '../context/AppStateContext'
 import { resetPassword } from '../utils/authApi'
+import ErrorModal from '../components/ErrorModal'
 import robotLogo from '../assets/b01fa81ce7a959934e8f78fc6344081972afd0ae.png'
 import '../styles/pages/Auth.css'
 
@@ -75,6 +76,14 @@ export default function AuthPage() {
 
     // 회원가입 및 질문 전송 로딩 상태
     const [isSigningUp, setIsSigningUp] = useState(false)
+
+    // 에러 모달 상태
+    const [errorModal, setErrorModal] = useState({
+        open: false,
+        title: '',
+        message: '',
+        type: 'general'
+    })
 
     // 이메일 인증 관련 상태
     const [emailVerification, setEmailVerification] = useState({
@@ -150,7 +159,28 @@ export default function AuthPage() {
             })
             navigate(redirectFrom || '/rewards', { replace: true })
         } catch (error) {
-            alert(error.message || '로그인에 실패했습니다. 잠시 후 다시 시도해주세요.')
+            console.error('[Auth] Login error:', error)
+            
+            // 서버 오류인 경우 모달로 표시
+            if (error.isServerError || error.statusCode >= 500) {
+                setErrorModal({
+                    open: true,
+                    title: '로그인 오류',
+                    message: error.message || '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+                    type: 'server'
+                })
+            } else if (error.isNetworkError) {
+                // 네트워크 오류인 경우 모달로 표시
+                setErrorModal({
+                    open: true,
+                    title: '네트워크 오류',
+                    message: error.message || '네트워크 연결을 확인해주세요.',
+                    type: 'network'
+                })
+            } else {
+                // 일반 에러는 기존대로 alert 사용 (400, 401 등)
+                alert(error.message || '로그인에 실패했습니다. 잠시 후 다시 시도해주세요.')
+            }
         }
     }
 
@@ -214,8 +244,28 @@ export default function AuthPage() {
             })
         } catch (error) {
             console.error('[Auth] Signup error:', error)
-            const errorMessage = error.message || '회원가입에 실패했습니다. 잠시 후 다시 시도해주세요.'
-            alert(errorMessage)
+            
+            // 서버 오류인 경우 모달로 표시
+            if (error.isServerError || error.statusCode >= 500) {
+                setErrorModal({
+                    open: true,
+                    title: '회원가입 오류',
+                    message: error.message || '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+                    type: 'server'
+                })
+            } else if (error.isNetworkError) {
+                // 네트워크 오류인 경우 모달로 표시
+                setErrorModal({
+                    open: true,
+                    title: '네트워크 오류',
+                    message: error.message || '네트워크 연결을 확인해주세요.',
+                    type: 'network'
+                })
+            } else {
+                // 일반 에러는 기존대로 alert 사용 (400, 409 등)
+                const errorMessage = error.message || '회원가입에 실패했습니다. 잠시 후 다시 시도해주세요.'
+                alert(errorMessage)
+            }
             setIsSigningUp(false)
         }
     }
@@ -456,7 +506,9 @@ export default function AuthPage() {
                 </header>
 
                 {mode === 'signup' ? (
-                    <form onSubmit={handleSignup}>
+                    <form onSubmit={(event) => {
+                        event.preventDefault()
+                    }}>
                         <div className="form__stepper">
                             {steps.map((step, index) => (
                                 <div
@@ -479,6 +531,11 @@ export default function AuthPage() {
                                             placeholder="홍길동"
                                             value={signupForm.name}
                                             onChange={(event) => setSignupForm((prev) => ({ ...prev, name: event.target.value }))}
+                                            onKeyDown={(event) => {
+                                                if (event.key === 'Enter') {
+                                                    event.preventDefault()
+                                                }
+                                            }}
                                             required
                                         />
                                     </label>
@@ -502,6 +559,11 @@ export default function AuthPage() {
                                                     if (timerRef.current) {
                                                         clearTimeout(timerRef.current)
                                                         timerRef.current = null
+                                                    }
+                                                }}
+                                                onKeyDown={(event) => {
+                                                    if (event.key === 'Enter') {
+                                                        event.preventDefault()
                                                     }
                                                 }}
                                                 required
@@ -632,6 +694,11 @@ export default function AuthPage() {
                                             placeholder="비밀번호 (6자 이상, 특수문자 1개 포함)"
                                             value={signupForm.password}
                                             onChange={(event) => setSignupForm((prev) => ({ ...prev, password: event.target.value }))}
+                                            onKeyDown={(event) => {
+                                                if (event.key === 'Enter') {
+                                                    event.preventDefault()
+                                                }
+                                            }}
                                             required
                                         />
                                     </label>
@@ -642,6 +709,11 @@ export default function AuthPage() {
                                             placeholder="비밀번호 확인"
                                             value={signupForm.passwordConfirm}
                                             onChange={(event) => setSignupForm((prev) => ({ ...prev, passwordConfirm: event.target.value }))}
+                                            onKeyDown={(event) => {
+                                                if (event.key === 'Enter') {
+                                                    event.preventDefault()
+                                                }
+                                            }}
                                             required
                                         />
                                     </label>
@@ -686,6 +758,11 @@ export default function AuthPage() {
                                             jobRole: event.target.value,
                                             jobCategoryOther: event.target.value  // jobCategory가 'other'이므로 동일한 값 설정
                                         }))}
+                                        onKeyDown={(event) => {
+                                            if (event.key === 'Enter') {
+                                                event.preventDefault()
+                                            }
+                                        }}
                                         required
                                     />
                                 </label>
@@ -820,8 +897,12 @@ export default function AuthPage() {
                                         이전
                                     </button>
                                     <button
-                                        type="submit"
+                                        type="button"
                                         className="cta-button cta-button--primary"
+                                        onClick={(event) => {
+                                            event.preventDefault()
+                                            handleSignup(event)
+                                        }}
                                     >
                                         회원가입 완료
                                     </button>
@@ -990,6 +1071,15 @@ export default function AuthPage() {
                     </div>
                 )}
             </section>
+
+            {/* 에러 모달 */}
+            <ErrorModal
+                open={errorModal.open}
+                onClose={() => setErrorModal({ ...errorModal, open: false })}
+                title={errorModal.title}
+                message={errorModal.message}
+                type={errorModal.type}
+            />
         </div>
     )
 }
