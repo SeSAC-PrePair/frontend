@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAppState } from '../context/AppStateContext'
-import { resetPassword } from '../utils/authApi'
+import { findPassword } from '../utils/authApi'
 import robotLogo from '../assets/b01fa81ce7a959934e8f78fc6344081972afd0ae.png'
 import '../styles/pages/Auth.css'
 
@@ -31,8 +31,8 @@ export default function AuthPage() {
 
     // 비밀번호 찾기 관련 상태
     const [showPasswordReset, setShowPasswordReset] = useState(false)
-    const [passwordResetForm, setPasswordResetForm] = useState({ email: '', password: '', passwordConfirm: '' })
-    const [passwordResetStatus, setPasswordResetStatus] = useState({ loading: false, error: '' })
+    const [passwordResetForm, setPasswordResetForm] = useState({ email: '' })
+    const [passwordResetStatus, setPasswordResetStatus] = useState({ loading: false, error: '', foundPassword: null })
 
     const [signupForm, setSignupForm] = useState({
         name: '',
@@ -119,16 +119,7 @@ export default function AuthPage() {
     const passwordMatchValid = signupForm.password === signupForm.passwordConfirm;
 
     // 비밀번호 찾기 폼 유효성 검사
-    const resetPasswordLengthValid = passwordResetForm.password.length >= 6;
-    const resetPasswordSpecialCharValid = /[^A-Za-z0-9]/.test(passwordResetForm.password);
-    const resetPasswordMatchValid = passwordResetForm.password === passwordResetForm.passwordConfirm;
-    const resetPasswordFormValid =
-        passwordResetForm.email &&
-        passwordResetForm.password &&
-        passwordResetForm.passwordConfirm &&
-        resetPasswordLengthValid &&
-        resetPasswordSpecialCharValid &&
-        resetPasswordMatchValid;
+    const resetPasswordFormValid = passwordResetForm.email && passwordResetForm.email.trim() !== '';
 
     const signupStep1Disabled =
         !signupForm.name ||
@@ -159,19 +150,21 @@ export default function AuthPage() {
         event.preventDefault()
         if (!resetPasswordFormValid) return
 
-        setPasswordResetStatus({ loading: true, error: '' })
+        setPasswordResetStatus({ loading: true, error: '', foundPassword: null })
 
         try {
-            await resetPassword(passwordResetForm.email, passwordResetForm.password)
-            alert('비밀번호가 성공적으로 재설정되었습니다. 새 비밀번호로 로그인해주세요.')
-            setShowPasswordReset(false)
-            setPasswordResetForm({ email: '', password: '', passwordConfirm: '' })
-            setPasswordResetStatus({ loading: false, error: '' })
+            const result = await findPassword(passwordResetForm.email)
+            setPasswordResetStatus({ 
+                loading: false, 
+                error: '', 
+                foundPassword: result.password 
+            })
         } catch (error) {
-            console.error('[Auth] Password reset error:', error)
+            console.error('[Auth] Password find error:', error)
             setPasswordResetStatus({
                 loading: false,
-                error: error.message || '비밀번호 재설정에 실패했습니다. 잠시 후 다시 시도해주세요.'
+                error: error.message || '비밀번호 찾기에 실패했습니다. 잠시 후 다시 시도해주세요.',
+                foundPassword: null
             })
         }
     }
@@ -860,17 +853,18 @@ export default function AuthPage() {
                                 onChange={(event) => setLoginForm((prev) => ({ ...prev, password: event.target.value }))}
                                 required
                             />
-                            <button
-                                type="button"
-                                className="auth__link"
-                                onClick={() => {
-                                    setShowPasswordReset(true)
-                                    setPasswordResetForm((prev) => ({ ...prev, email: loginForm.email }))
-                                }}
-                                style={{ textAlign: 'left', padding: 0, margin: 0 }}
-                            >
-                                비밀번호를 잊으셨나요?
-                            </button>
+                                <button
+                                    type="button"
+                                    className="auth__link"
+                                    onClick={() => {
+                                        setShowPasswordReset(true)
+                                        setPasswordResetForm({ email: loginForm.email })
+                                        setPasswordResetStatus({ loading: false, error: '', foundPassword: null })
+                                    }}
+                                    style={{ textAlign: 'left', padding: 0, margin: 0 }}
+                                >
+                                    비밀번호를 잊으셨나요?
+                                </button>
                         </label>
 
                         <button type="submit" className="cta-button cta-button--primary" disabled={loginDisabled}>
@@ -895,102 +889,102 @@ export default function AuthPage() {
                     <div className="auth__password-reset-modal">
                         <div className="auth__password-reset-content">
                             <div className="auth__password-reset-header">
-                                <h3>비밀번호 재설정</h3>
+                                <h3>비밀번호 찾기</h3>
                                 <button
                                     type="button"
                                     className="auth__password-reset-close"
                                     onClick={() => {
                                         setShowPasswordReset(false)
-                                        setPasswordResetForm({ email: '', password: '', passwordConfirm: '' })
-                                        setPasswordResetStatus({ loading: false, error: '' })
+                                        setPasswordResetForm({ email: '' })
+                                        setPasswordResetStatus({ loading: false, error: '', foundPassword: null })
                                     }}
                                 >
                                     ×
                                 </button>
                             </div>
 
-                            <form onSubmit={handlePasswordReset}>
-                                <label className="form__field">
-                                    <span>이메일</span>
-                                    <input
-                                        type="email"
-                                        placeholder="you@example.com"
-                                        value={passwordResetForm.email}
-                                        onChange={(event) => setPasswordResetForm((prev) => ({ ...prev, email: event.target.value }))}
-                                        required
-                                        disabled={passwordResetStatus.loading}
-                                    />
-                                </label>
-
-                                <label className="form__field">
-                                    <span>새 비밀번호</span>
-                                    <input
-                                        type="password"
-                                        placeholder="비밀번호 (6자 이상, 특수문자 1개 포함)"
-                                        value={passwordResetForm.password}
-                                        onChange={(event) => setPasswordResetForm((prev) => ({ ...prev, password: event.target.value }))}
-                                        required
-                                        disabled={passwordResetStatus.loading}
-                                    />
-                                </label>
-
-                                {(passwordResetForm.password.length > 0 && !resetPasswordLengthValid) && (
-                                    <p className="auth__hint">
-                                        비밀번호는 6자 이상이어야 합니다.
-                                    </p>
-                                )}
-                                {(passwordResetForm.password.length > 0 && !resetPasswordSpecialCharValid) && (
-                                    <p className="auth__hint">
-                                        비밀번호는 특수문자를 1개 이상 포함해야 합니다. (예: !, @, #)
-                                    </p>
-                                )}
-
-                                <label className="form__field">
-                                    <span>새 비밀번호 확인</span>
-                                    <input
-                                        type="password"
-                                        placeholder="비밀번호 확인"
-                                        value={passwordResetForm.passwordConfirm}
-                                        onChange={(event) => setPasswordResetForm((prev) => ({ ...prev, passwordConfirm: event.target.value }))}
-                                        required
-                                        disabled={passwordResetStatus.loading}
-                                    />
-                                </label>
-
-                                {(passwordResetForm.passwordConfirm.length > 0 && !resetPasswordMatchValid) && (
-                                    <p className="auth__hint">
-                                        비밀번호가 일치하지 않습니다.
-                                    </p>
-                                )}
-
-                                {passwordResetStatus.error && (
-                                    <p className="auth__hint">
-                                        {passwordResetStatus.error}
-                                    </p>
-                                )}
-
-                                <div className="auth__actions">
-                                    <button
-                                        type="button"
-                                        className="cta-button cta-button--ghost"
-                                        onClick={() => {
-                                            setShowPasswordReset(false)
-                                            setPasswordResetForm({ email: '', password: '', passwordConfirm: '' })
-                                            setPasswordResetStatus({ loading: false, error: '' })
-                                        }}
-                                        disabled={passwordResetStatus.loading}
-                                    >
-                                        취소
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="cta-button cta-button--primary"
-                                        disabled={!resetPasswordFormValid || passwordResetStatus.loading}
-                                    >
-                                        {passwordResetStatus.loading ? '처리 중...' : '비밀번호 재설정'}
-                                    </button>
+                            {passwordResetStatus.foundPassword ? (
+                                <div>
+                                    <div style={{ padding: '20px 0' }}>
+                                        <p style={{ marginBottom: '16px', color: '#666', lineHeight: '1.6' }}>
+                                            비밀번호를 찾았습니다.
+                                        </p>
+                                        <div style={{ 
+                                            padding: '16px', 
+                                            backgroundColor: '#f5f5f5', 
+                                            borderRadius: '8px',
+                                            marginBottom: '20px'
+                                        }}>
+                                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', fontSize: '14px' }}>
+                                                비밀번호
+                                            </label>
+                                            <div style={{ 
+                                                fontSize: '18px', 
+                                                fontFamily: 'monospace',
+                                                wordBreak: 'break-all',
+                                                color: '#333'
+                                            }}>
+                                                {passwordResetStatus.foundPassword}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="auth__actions">
+                                        <button
+                                            type="button"
+                                            className="cta-button cta-button--primary"
+                                            onClick={() => {
+                                                setShowPasswordReset(false)
+                                                setPasswordResetForm({ email: '' })
+                                                setPasswordResetStatus({ loading: false, error: '', foundPassword: null })
+                                            }}
+                                        >
+                                            확인
+                                        </button>
+                                    </div>
                                 </div>
-                            </form>
+                            ) : (
+                                <form onSubmit={handlePasswordReset}>
+                                    <label className="form__field">
+                                        <span>이메일</span>
+                                        <input
+                                            type="email"
+                                            placeholder="you@example.com"
+                                            value={passwordResetForm.email}
+                                            onChange={(event) => setPasswordResetForm((prev) => ({ ...prev, email: event.target.value }))}
+                                            required
+                                            disabled={passwordResetStatus.loading}
+                                        />
+                                    </label>
+
+                                    {passwordResetStatus.error && (
+                                        <p className="auth__hint">
+                                            {passwordResetStatus.error}
+                                        </p>
+                                    )}
+
+                                    <div className="auth__actions">
+                                        <button
+                                            type="button"
+                                            className="cta-button cta-button--ghost"
+                                            onClick={() => {
+                                                setShowPasswordReset(false)
+                                                setPasswordResetForm({ email: '' })
+                                                setPasswordResetStatus({ loading: false, error: '', foundPassword: null })
+                                            }}
+                                            disabled={passwordResetStatus.loading}
+                                        >
+                                            취소
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="cta-button cta-button--primary"
+                                            disabled={!resetPasswordFormValid || passwordResetStatus.loading}
+                                        >
+                                            {passwordResetStatus.loading ? '처리 중...' : '비밀번호 찾기'}
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
                         </div>
                     </div>
                 )}

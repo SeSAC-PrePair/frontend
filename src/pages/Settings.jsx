@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react'
+import {useEffect, useState, useCallback} from 'react'
 import {useNavigate} from 'react-router-dom'
 import {useAppState} from '../context/AppStateContext'
 import Modal from '../components/Modal'
@@ -23,92 +23,111 @@ export default function SettingsPage() {
     const [isDeleting, setIsDeleting] = useState(false)
     const [isLoadingUserInfo, setIsLoadingUserInfo] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
+    const [hasFetchedFromApi, setHasFetchedFromApi] = useState(false) // API 호출 성공 여부 추적
+
+    // 사용자 정보를 가져와서 form 상태를 업데이트하는 함수
+    const fetchUserInfo = useCallback(async () => {
+        if (!user?.id) return
+        
+        setIsLoadingUserInfo(true)
+        try {
+            const userInfo = await getUserInfo(user.id)
+            
+            // 디버깅: 백엔드 응답 구조 확인
+            console.log('[Settings] 백엔드 응답 데이터:', userInfo)
+            console.log('[Settings] userInfo.job:', userInfo.job)
+            console.log('[Settings] userInfo.schedule_type:', userInfo.schedule_type)
+            console.log('[Settings] userInfo.notification_type:', userInfo.notification_type)
+            
+            // API 응답 데이터 매핑
+            // 백엔드 응답 구조: { name, email, job, schedule_type, notification_type }
+            // settings 객체가 없고 최상위 레벨에 필드가 있음
+            const apiName = userInfo.name || ''
+            const apiEmail = userInfo.email || ''
+            
+            // 백엔드에서 job 필드로 저장했으면, GET API에서도 job 필드로 반환됨
+            const apiJob = userInfo.job || ''
+            
+            // 백엔드 응답 데이터를 우선 사용 (백엔드가 최신 데이터)
+            const nextJobDescription = apiJob || ''
+            
+            // schedule_type 매핑 (DAILY -> daily 등)
+            const apiScheduleType = userInfo.schedule_type || ''
+            const scheduleTypeMap = {
+                'DAILY': 'daily',
+                'WEEKLY': 'weekly',
+                'MONTHLY': 'monthly',
+            }
+            // 백엔드 응답이 있으면 백엔드 데이터 우선 사용
+            const nextQuestionCadence = apiScheduleType 
+                ? scheduleTypeMap[apiScheduleType] || 'daily'
+                : (user.questionCadence ?? 'daily')
+            
+            // notification_type 매핑
+            const apiNotificationType = userInfo.notification_type || 'EMAIL'
+            // 백엔드 응답이 있으면 백엔드 데이터 우선 사용
+            const notificationChannels = apiNotificationType === 'KAKAO' ? ['kakao'] : []
+
+            console.log('[Settings] 파싱된 데이터:', {
+                jobDescription: nextJobDescription,
+                questionCadence: nextQuestionCadence,
+                notificationChannels: notificationChannels,
+            })
+
+            setForm({
+                name: apiName || (user.name ?? ''),
+                email: apiEmail || (user.email ?? ''),
+                jobDescription: nextJobDescription,
+                questionCadence: nextQuestionCadence,
+                notificationChannels: notificationChannels,
+            })
+            
+            // API 호출 성공 표시
+            setHasFetchedFromApi(true)
+        } catch (error) {
+            // 405 Method Not Allowed는 조용히 처리 (서버가 GET 메서드를 지원하지 않을 수 있음)
+            if (error.message === 'GET_METHOD_NOT_ALLOWED' || error.message.includes('405')) {
+                console.warn('[Settings] GET /api/users/me가 지원되지 않습니다 (405 Method Not Allowed). 기존 사용자 데이터를 사용합니다.')
+                setHasFetchedFromApi(false) // API 호출 실패
+            } else {
+                console.error('[Settings] 사용자 정보 조회 실패:', error)
+                setHasFetchedFromApi(false) // API 호출 실패
+            }
+            // 에러 발생 시 기존 user 데이터 사용 (다음 useEffect에서 처리됨)
+        } finally {
+            setIsLoadingUserInfo(false)
+        }
+    }, [user])
 
     // 페이지 마운트 시 사용자 정보 조회
     useEffect(() => {
-        const fetchUserInfo = async () => {
-            if (!user?.id) return
-            
-            setIsLoadingUserInfo(true)
-            try {
-                const userInfo = await getUserInfo(user.id)
-                
-                // API 응답 데이터 매핑
-                const apiName = userInfo.name || ''
-                const apiEmail = userInfo.email || ''
-                const apiSettings = userInfo.settings || {}
-                
-                // job_category, job_role, focusArea를 통합하여 서술형 필드로 구성
-                const apiJobCategory = apiSettings.job_category || ''
-                const apiJobRole = apiSettings.job_role || ''
-                const apiFocusArea = apiSettings.focus_area || ''
-                
-                // 기존 user 데이터와 API 데이터를 결합
-                const jobCategory = apiJobCategory || (user.jobTrackLabel ?? user.customJobLabel ?? '')
-                const jobRole = apiJobRole || (user.jobRoleLabel ?? '')
-                const focusArea = apiFocusArea || (user.focusArea ?? '')
-                
-                // 서술형 필드로 통합 (기존 값들을 조합)
-                const jobDescriptionParts = []
-                if (jobCategory) jobDescriptionParts.push(jobCategory)
-                if (jobRole) jobDescriptionParts.push(jobRole)
-                if (focusArea) jobDescriptionParts.push(focusArea)
-                const nextJobDescription = jobDescriptionParts.join(', ') || ''
-                
-                // schedule_type 매핑 (DAILY -> daily 등)
-                const apiScheduleType = apiSettings.schedule_type || ''
-                const scheduleTypeMap = {
-                    'DAILY': 'daily',
-                    'WEEKLY': 'weekly',
-                    'MONTHLY': 'monthly',
-                }
-                const nextQuestionCadence = scheduleTypeMap[apiScheduleType] || (user.questionCadence ?? 'daily')
-                
-                // notification_type 매핑
-                const apiNotificationType = apiSettings.notification_type || 'EMAIL'
-                const notificationChannels = apiNotificationType === 'KAKAO' ? ['kakao'] : []
-
-                setForm({
-                    name: apiName || (user.name ?? ''),
-                    email: apiEmail || (user.email ?? ''),
-                    jobDescription: nextJobDescription,
-                    questionCadence: nextQuestionCadence,
-                    notificationChannels: notificationChannels,
-                })
-            } catch (error) {
-                // 405 Method Not Allowed는 조용히 처리 (서버가 GET 메서드를 지원하지 않을 수 있음)
-                if (error.message === 'GET_METHOD_NOT_ALLOWED' || error.message.includes('405')) {
-                    console.warn('[Settings] GET /api/users/me가 지원되지 않습니다 (405 Method Not Allowed). 기존 사용자 데이터를 사용합니다.')
-                } else {
-                    console.error('[Settings] 사용자 정보 조회 실패:', error)
-                }
-                // 에러 발생 시 기존 user 데이터 사용 (다음 useEffect에서 처리됨)
-            } finally {
-                setIsLoadingUserInfo(false)
-            }
-        }
-        
+        // user.id가 변경되면 API 호출 상태 리셋
+        setHasFetchedFromApi(false)
         fetchUserInfo()
-    }, [user?.id])
+    }, [fetchUserInfo])
 
-    // API 호출이 실패하거나 user가 변경되었을 때 폴백 데이터 설정
+    // API 호출이 실패했을 때만 폴백 데이터 설정 (API 성공 시에는 실행하지 않음)
     useEffect(() => {
         if (!user) return
-        // API 호출이 완료되고 form이 비어있을 때만 폴백 데이터 사용
+        // API 호출 중이면 대기
         if (isLoadingUserInfo) return
+        // API 호출이 성공했으면 폴백 로직 실행하지 않음
+        if (hasFetchedFromApi) return
         
         const nextJobCategory = user.jobTrackLabel ?? user.customJobLabel ?? ''
         const nextJobRole = user.jobRoleLabel ?? ''
         const nextFocusArea = user.focusArea ?? ''
         
-        // 서술형 필드로 통합
+        // 서술형 필드로 통합 (회원가입 시 입력한 직무 정보 우선 표시)
+        // jobRole이 있으면 그것을 우선 사용
         const jobDescriptionParts = []
         if (nextJobCategory) jobDescriptionParts.push(nextJobCategory)
         if (nextJobRole) jobDescriptionParts.push(nextJobRole)
         if (nextFocusArea) jobDescriptionParts.push(nextFocusArea)
-        const nextJobDescription = jobDescriptionParts.join(', ') || ''
+        // jobRole만 있어도 표시 (회원가입 시 입력한 직무가 가장 중요)
+        const nextJobDescription = nextJobRole || jobDescriptionParts.join(', ') || ''
 
-        // form이 비어있을 때만 기존 user 데이터 사용
+        // form이 비어있을 때만 기존 user 데이터 사용 (API 호출 실패 시에만)
         if (form.name === '' && form.email === '') {
             setForm({
                 name: user.name ?? '',
@@ -118,7 +137,7 @@ export default function SettingsPage() {
                 notificationChannels: user.notificationChannels?.filter((channel) => channel !== 'email') ?? [],
             })
         }
-    }, [user, isLoadingUserInfo, form.name, form.email])
+    }, [user, isLoadingUserInfo, hasFetchedFromApi, form.name, form.email])
 
 
     const handleSubmit = async (event) => {
@@ -142,42 +161,41 @@ export default function SettingsPage() {
             // 이모지 제거 (서버가 이모지를 허용하지 않을 수 있음)
             jobDescription = jobDescription.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim()
             
-            // API 스펙에 맞게 데이터 변환
-            // job_category와 job_role을 분리하거나, job_role에 전체 내용 저장
-            // 현재는 서술형 필드 전체를 job_role로 저장
-            // job_category는 빈 문자열이면 서버 validation 실패할 수 있으므로 기본값 설정
-            const jobCategory = '' // 서술형으로 통합했으므로 빈 값 (서버가 허용하는지 확인 필요)
-            const jobRole = jobDescription // 전체 내용을 job_role로 저장
+            // schedule_type 매핑 (daily -> DAILY 등)
+            const scheduleTypeMap = {
+                'daily': 'DAILY',
+                'weekly': 'WEEKLY',
+                'monthly': 'MONTHLY',
+            }
+            const scheduleType = scheduleTypeMap[form.questionCadence] || 'DAILY'
             
-            // notification 설정
+            // notification_type 매핑
             const hasKakao = form.notificationChannels.includes('kakao')
+            const notificationType = hasKakao ? 'KAKAO' : 'EMAIL'
             
-            // API 호출 (서버 스펙에 맞게)
+            // API 호출 (새로운 서버 스펙에 맞게)
             await updateUserInfo(user.id, {
-                user_name: form.name || '',
-                user_email: form.email || '',
-                job_category: jobCategory,
-                job_role: jobRole,
-                question_frequency: 0, // 기본값 0
-                notification: {
-                    email: true, // 이메일은 항상 true (기본)
-                    kakao: hasKakao,
-                },
+                job: jobDescription,
+                schedule_type: scheduleType,
+                notification_type: notificationType,
             })
+            
+            // 백엔드에서 변경된 최신 데이터를 다시 가져와서 form 상태 업데이트
+            await fetchUserInfo()
             
             // 로컬 상태 업데이트
             updateSettings({
                 jobTrackId: '',
-                jobTrackLabel: jobCategory,
+                jobTrackLabel: jobDescription,
                 jobRoleId: '',
-                jobRoleLabel: jobRole,
-                desiredField: jobRole || user?.desiredField || '',
+                jobRoleLabel: jobDescription,
+                desiredField: jobDescription || user?.desiredField || '',
                 focusArea: '', // 서술형으로 통합했으므로 빈 값
                 questionCadence: form.questionCadence,
                 questionCadenceLabel: cadenceMeta?.label,
                 questionSchedule: cadenceMeta?.schedule,
                 notificationChannels: ['email', ...form.notificationChannels],
-                customJobLabel: jobCategory,
+                customJobLabel: jobDescription,
             })
             
             setStatus('저장되었습니다!')

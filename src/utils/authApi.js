@@ -240,14 +240,9 @@ export async function deleteUser(userId, password) {
  * 회원 정보를 수정합니다. (PATCH /api/users/me)
  * @param {string} userId - 사용자 ID
  * @param {Object} userData - 수정할 사용자 정보
- * @param {string} userData.user_name - 사용자 이름 (빈 문자열 가능)
- * @param {string} userData.user_email - 사용자 이메일 (빈 문자열 가능)
- * @param {string} userData.job_category - 직군
- * @param {string} userData.job_role - 세부 직무
- * @param {number} userData.question_frequency - 질문 빈도 (기본값 0)
- * @param {Object} userData.notification - 알림 설정
- * @param {boolean} userData.notification.email - 이메일 알림 여부
- * @param {boolean} userData.notification.kakao - 카카오 알림 여부
+ * @param {string} userData.job - 직무 (서술형)
+ * @param {string} userData.schedule_type - 질문 빈도 타입 (DAILY, WEEKLY, MONTHLY)
+ * @param {string} userData.notification_type - 알림 타입 (EMAIL, KAKAO)
  * @returns {Promise<void>}
  * @throws {Error} API 호출 실패 시 에러 발생
  */
@@ -261,41 +256,24 @@ export async function updateUserInfo(userId, userData) {
     
     try {
         // 서버 스펙에 맞는 요청 본문 구성
-        // 빈 문자열 필드는 서버가 허용하지 않을 수 있으므로, 값이 있을 때만 포함
+        // job에서 이모지 제거 (서버가 이모지를 허용하지 않을 수 있음)
+        let job = (userData.job && userData.job.trim()) 
+            ? userData.job.trim() 
+            : ''
+        job = job.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim()
+        
         const requestBody = {
-            user_name: userData.user_name || '',
-            user_email: userData.user_email || '',
-            question_frequency: userData.question_frequency ?? 0,
-            notification: {
-                email: userData.notification?.email !== undefined ? userData.notification.email : true,
-                kakao: userData.notification?.kakao !== undefined ? userData.notification.kakao : false,
-            },
+            job: job,
+            schedule_type: userData.schedule_type || 'DAILY',
+            notification_type: userData.notification_type || 'EMAIL',
         }
-        
-        // job_category와 job_role 처리
-        // job_category가 빈 문자열이면 null로 보내거나 필드를 제외할 수 있지만,
-        // 서버 스펙에 따라 빈 문자열을 허용할 수도 있으므로 일단 빈 문자열로 전송
-        requestBody.job_category = (userData.job_category && userData.job_category.trim()) 
-            ? userData.job_category.trim() 
-            : ''
-        
-        // job_role에서 이모지 제거 (서버가 이모지를 허용하지 않을 수 있음)
-        let jobRole = (userData.job_role && userData.job_role.trim()) 
-            ? userData.job_role.trim() 
-            : ''
-        // 이모지 제거
-        jobRole = jobRole.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim()
-        requestBody.job_role = jobRole
         
         // 요청 본문 검증 로그
         console.log('[Update User Info API] Request Body (parsed):', JSON.stringify(requestBody, null, 2))
         console.log('[Update User Info API] Request Body values:', {
-            user_name: requestBody.user_name,
-            user_email: requestBody.user_email,
-            job_category: requestBody.job_category,
-            job_role: requestBody.job_role,
-            question_frequency: requestBody.question_frequency,
-            notification: requestBody.notification,
+            job: requestBody.job,
+            schedule_type: requestBody.schedule_type,
+            notification_type: requestBody.notification_type,
         })
         
         const requestBodyString = JSON.stringify(requestBody)
@@ -395,30 +373,15 @@ export async function updateUserInfo(userId, userData) {
 }
 
 /**
- * 비밀번호 찾기/재설정을 수행합니다.
+ * 비밀번호 찾기를 수행합니다.
  * @param {string} email - 사용자 이메일
- * @param {string} password - 새 비밀번호 (최소 6자, 특수문자 1개 이상)
  * @returns {Promise<{email: string, password: string}>}
  * @throws {Error} API 호출 실패 시 에러 발생
  */
-export async function resetPassword(email, password) {
+export async function findPassword(email) {
     // email 검증
     if (!email || typeof email !== 'string' || !email.trim()) {
         throw new Error('이메일을 입력해주세요.')
-    }
-
-    // password 검증
-    if (!password || typeof password !== 'string' || !password.trim()) {
-        throw new Error('비밀번호를 입력해주세요.')
-    }
-
-    // 비밀번호 규칙 검증
-    if (password.trim().length < 6) {
-        throw new Error('비밀번호는 최소 6자리 이상이어야 합니다.')
-    }
-
-    if (!/[^A-Za-z0-9]/.test(password.trim())) {
-        throw new Error('비밀번호는 특수 문자 1개 이상을 포함해야 합니다. (예: !, @, #)')
     }
 
     const apiUrl = `/api/auth/password`
@@ -426,7 +389,6 @@ export async function resetPassword(email, password) {
     try {
         const requestBody = {
             email: email.trim(),
-            password: password.trim(),
         }
         
         const requestBodyString = JSON.stringify(requestBody)
@@ -437,13 +399,13 @@ export async function resetPassword(email, password) {
         }
         
         // 디버깅 로그
-        console.log('[Reset Password API] ===== Request Details =====')
-        console.log('[Reset Password API] Request URL:', apiUrl)
-        console.log('[Reset Password API] Full URL:', window.location.origin + apiUrl)
-        console.log('[Reset Password API] Request Method: POST')
-        console.log('[Reset Password API] Request Headers:', JSON.stringify(requestHeaders, null, 2))
-        console.log('[Reset Password API] Request Body:', requestBodyString)
-        console.log('[Reset Password API] ===========================')
+        console.log('[Find Password API] ===== Request Details =====')
+        console.log('[Find Password API] Request URL:', apiUrl)
+        console.log('[Find Password API] Full URL:', window.location.origin + apiUrl)
+        console.log('[Find Password API] Request Method: POST')
+        console.log('[Find Password API] Request Headers:', JSON.stringify(requestHeaders, null, 2))
+        console.log('[Find Password API] Request Body:', requestBodyString)
+        console.log('[Find Password API] ===========================')
         
         const response = await fetch(apiUrl, {
             method: 'POST',
@@ -457,11 +419,11 @@ export async function resetPassword(email, password) {
         const contentType = response.headers.get('content-type') || ''
         
         // 디버깅 로그
-        console.log('[Reset Password API] ===== Response Details =====')
-        console.log('[Reset Password API] Response status:', response.status)
-        console.log('[Reset Password API] Content-Type:', contentType)
-        console.log('[Reset Password API] Response text:', responseText)
-        console.log('[Reset Password API] =============================')
+        console.log('[Find Password API] ===== Response Details =====')
+        console.log('[Find Password API] Response status:', response.status)
+        console.log('[Find Password API] Content-Type:', contentType)
+        console.log('[Find Password API] Response text:', responseText)
+        console.log('[Find Password API] =============================')
         
         if (!response.ok) {
             let errorData
@@ -477,24 +439,24 @@ export async function resetPassword(email, password) {
                 }
             }
 
-            // 400 Bad Request 에러 처리 (비밀번호 입력 필수)
+            // 400 Bad Request 에러 처리
             if (response.status === 400) {
-                const errorMessage = errorData.message || errorData.error || '비밀번호를 입력해주세요.'
-                console.error('[Reset Password API] 400 Bad Request:', errorMessage)
+                const errorMessage = errorData.message || errorData.error || '비밀번호 입력 필수'
+                console.error('[Find Password API] 400 Bad Request:', errorMessage)
                 throw new Error(errorMessage)
             }
 
             // 404 Not Found 에러 처리 (엔드포인트가 없음)
             if (response.status === 404) {
                 const errorMessage = errorData.message || errorData.error || '비밀번호 찾기 API 엔드포인트를 찾을 수 없습니다. 서버 설정을 확인해주세요.'
-                console.error('[Reset Password API] 404 Not Found:', errorMessage)
-                console.error('[Reset Password API] Requested URL:', apiUrl)
+                console.error('[Find Password API] 404 Not Found:', errorMessage)
+                console.error('[Find Password API] Requested URL:', apiUrl)
                 throw new Error('비밀번호 찾기 기능이 아직 준비되지 않았습니다. 관리자에게 문의해주세요.')
             }
 
             throw new Error(
                 errorData.message || 
-                `비밀번호 재설정에 실패했습니다. (${response.status} ${response.statusText})`
+                `비밀번호 찾기에 실패했습니다. (${response.status} ${response.statusText})`
             )
         }
 
@@ -506,7 +468,7 @@ export async function resetPassword(email, password) {
             throw new Error('서버 응답을 파싱할 수 없습니다.')
         }
 
-        console.log('[Reset Password API] 비밀번호 재설정이 성공적으로 완료되었습니다.')
+        console.log('[Find Password API] 비밀번호 찾기가 성공적으로 완료되었습니다.')
         return responseData
     } catch (error) {
         // 네트워크 에러 등 기타 에러 처리
