@@ -1575,17 +1575,6 @@ export default function CoachPage() {
                                 </div>
                             ) : summaryData ? (
                                 <>
-                                    {/* 사용자 요약 정보 표시 */}
-                                    {userSummary && (
-                                        <Motion.article
-                                            className="coach__card coach__card--stats"
-                                            initial={{opacity: 0, y: 12}}
-                                            animate={{opacity: 1, y: 0}}
-                                            transition={{delay: 0.02, duration: 0.4, ease: 'easeOut'}}
-                                        >
-                                            
-                                        </Motion.article>
-                                    )}
                                     <Motion.article
                                         className="coach__card coach__card--summary"
                                         initial={{opacity: 0, y: 12}}
