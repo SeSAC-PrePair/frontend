@@ -758,17 +758,22 @@ export function AppProvider({children}) {
                     lastLoginAt: new Date().toISOString(),
                 }
 
-                setUser(newProfile)
-                setActiveQuestion(null)
-                setSentQuestions([])
-                setLastDispatch(null)
-                sequenceRef.current = 0
-                dispatchQuestion({
-                    profile: newProfile,
-                    channels: mergedChannels,
-                    cadenceId: cadence.id,
-                    sequence: 0,
-                })
+                // 카카오 알림이 설정되지 않은 경우에만 로컬 상태 업데이트
+                // 카카오 알림이 설정된 경우는 카카오 인증 완료 후 로그인하도록 함
+                if (!payload.notificationKakao) {
+                    setUser(newProfile)
+                    setActiveQuestion(null)
+                    setSentQuestions([])
+                    setLastDispatch(null)
+                    sequenceRef.current = 0
+                    dispatchQuestion({
+                        profile: newProfile,
+                        channels: mergedChannels,
+                        cadenceId: cadence.id,
+                        sequence: 0,
+                    })
+                }
+                
                 return { userId, user: newProfile }
             } catch (error) {
                 // 에러를 다시 throw하여 호출하는 쪽에서 처리할 수 있도록 함
