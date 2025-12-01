@@ -644,11 +644,13 @@ export function AppProvider({children}) {
                     }
                 }
 
-                // API 응답에서 user_id 받기
+                // API 응답에서 user_id 받기 (응답 본문 또는 헤더에서)
                 const responseData = await response.json()
-                const userId = responseData.user_id
+                const userId = responseData.user_id || response.headers.get('X-User-ID')
 
                 if (!userId) {
+                    console.error('[Signup] Response data:', responseData)
+                    console.error('[Signup] Response headers:', Object.fromEntries(response.headers.entries()))
                     throw new Error('회원가입 응답에서 user_id를 받을 수 없습니다.')
                 }
 
@@ -658,11 +660,10 @@ export function AppProvider({children}) {
                     const firstInterviewResponse = await fetch('/api/interviews/first', {
                         method: 'POST',
                         headers: {
+                            'X-User-ID': userId,
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({
-                            user_id: userId,
-                        }),
+                        body: JSON.stringify({}),
                     })
 
                     if (!firstInterviewResponse.ok) {

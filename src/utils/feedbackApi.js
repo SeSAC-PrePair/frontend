@@ -433,10 +433,11 @@ export async function getSummaryFeedback(userId) {
         throw new Error('사용자 ID가 필요합니다.')
     }
 
-    const apiUrl = `/api/evaluation/feedback/${userId.trim()}`
+    const apiUrl = `/api/evaluation/feedback`
     
     try {
         const requestHeaders = {
+            'X-User-ID': userId.trim(),
             'Accept': 'application/json',
         }
         
@@ -445,6 +446,7 @@ export async function getSummaryFeedback(userId) {
         console.log('[Summary Feedback API] Request URL:', apiUrl)
         console.log('[Summary Feedback API] Request Method: GET')
         console.log('[Summary Feedback API] User ID:', userId)
+        console.log('[Summary Feedback API] Request Headers:', JSON.stringify(requestHeaders, null, 2))
         console.log('[Summary Feedback API] ===========================')
         
         const response = await fetch(apiUrl, {

@@ -159,12 +159,23 @@ export default function AuthPage() {
         try {
             const result = await signup(signupForm)
             
-            // 회원가입 성공 - 카카오 인증은 성공 페이지에서 안내
-            // 카카오 알림을 선택한 경우, 성공 페이지에서 카카오 인증을 안내하도록 상태 전달
+            // 카카오 알림이 설정되어 있고 userId가 있으면 바로 카카오 인증 API 호출
+            if (signupForm.notificationKakao && result?.userId) {
+                console.log('[Auth] 카카오 알림 설정됨, 카카오 인증 API 호출:', {
+                    userId: result.userId,
+                    url: `/api/auth/kakao?user_id=${encodeURIComponent(result.userId)}`
+                })
+                
+                // 카카오 인증 페이지로 리다이렉트
+                window.location.href = `/api/auth/kakao?user_id=${encodeURIComponent(result.userId)}`
+                return
+            }
+            
+            // 카카오 알림이 설정되지 않은 경우 회원가입 성공 페이지로 이동
             navigate('/signup-success', { 
                 replace: true,
                 state: { 
-                    needsKakaoAuth: signupForm.notificationKakao && result?.userId,
+                    needsKakaoAuth: false,
                     userId: result?.userId
                 }
             })

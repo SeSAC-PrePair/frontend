@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useEffect } from 'react'
 import '../styles/pages/SignupSuccess.css'
 
 // --- 인라인 SVG 아이콘 ---
@@ -30,6 +31,18 @@ export default function SignupSuccessPage() {
     // location.state에서 카카오 인증 필요 여부 확인
     const needsKakaoAuth = location.state?.needsKakaoAuth || false;
     const userId = location.state?.userId;
+
+    // 카카오 알림이 설정되어 있고 userId가 있으면 자동으로 카카오 인증 페이지로 리다이렉트
+    useEffect(() => {
+        if (needsKakaoAuth && userId) {
+            // 약간의 지연을 두어 사용자에게 회원가입 성공 메시지를 볼 수 있게 함
+            const timer = setTimeout(() => {
+                window.location.href = `/api/auth/kakao?user_id=${encodeURIComponent(userId)}`;
+            }, 1000); // 1초 후 자동 리다이렉트
+            
+            return () => clearTimeout(timer);
+        }
+    }, [needsKakaoAuth, userId]);
 
     const goToMyPage = () => {
         navigate('/rewards', { replace: true });
