@@ -67,7 +67,7 @@ if (!self.define) {
     });
   };
 }
-define(['./workbox-137dedbd'], (function (workbox) { 'use strict';
+define(['./workbox-b79e8dca'], (function (workbox) { 'use strict';
 
   self.skipWaiting();
   workbox.clientsClaim();
@@ -79,12 +79,21 @@ define(['./workbox-137dedbd'], (function (workbox) { 'use strict';
    */
   workbox.precacheAndRoute([{
     "url": "index.html",
-    "revision": "0.u8tpmh3gqdk"
+    "revision": "0.tc2u5ti51bg"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
-    allowlist: [/^\/$/]
+    allowlist: [/^\/$/],
+    denylist: [/^\/signup-success/, /^\/auth/, /^\/api\//]
   }));
+  workbox.registerRoute(/^https:\/\/prepair\.wisoft\.dev\/api\/auth\/kakao/i, new workbox.NetworkOnly({
+    "cacheName": "kakao-auth-cache",
+    plugins: []
+  }), 'GET');
+  workbox.registerRoute(/^\/api\/.*/i, new workbox.NetworkOnly({
+    "cacheName": "local-api-cache",
+    plugins: []
+  }), 'GET');
   workbox.registerRoute(/^https:\/\/prepair\.wisoft\.dev\/api\/.*/i, new workbox.NetworkFirst({
     "cacheName": "api-cache",
     plugins: [new workbox.ExpirationPlugin({

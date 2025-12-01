@@ -2,6 +2,7 @@
 .landing-new {
     width: 100%;
     overflow-x: hidden;
+    overflow-y: visible;
 }
 
 /* Section Common Styles */
@@ -32,6 +33,7 @@
     align-items: center;
     max-width: 1400px;
     margin: 0 auto;
+    overflow: visible;
 }
 
 .hero-content {
@@ -122,6 +124,8 @@
     justify-content: center;
     align-items: center;
     perspective: 1000px;
+    overflow: visible;
+    padding: 2rem;
 }
 
 /* Hero Showcase - Modern Glass & Floating Cards Style */
@@ -133,7 +137,7 @@
     align-items: center;
     justify-content: center;
     overflow: visible;
-    contain: layout style paint;
+    margin: 0 auto;
 }
 
 /* 메시 그라데이션 배경 */
@@ -857,11 +861,14 @@
 
     .hero-visual {
         order: -1;
+        padding: 1.5rem;
+        overflow: visible;
     }
 
     .hero-showcase {
         width: 360px;
         height: 360px;
+        overflow: visible;
     }
 
     .showcase-mesh {
@@ -1125,9 +1132,14 @@
         font-size: 0.75rem;
     }
 
+    .hero-visual {
+        padding: 1rem;
+    }
+
     .hero-showcase {
         width: 300px;
         height: 300px;
+        overflow: visible;
     }
 
     .showcase-mesh {

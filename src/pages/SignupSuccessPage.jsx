@@ -28,9 +28,8 @@ const CheckCircleIcon = () => (
 export default function SignupSuccessPage() {
     const navigate = useNavigate();
     const location = useLocation();
-    const { signup } = useAppState();
+    const { user, login } = useAppState();
     const [firstInterviewSent, setFirstInterviewSent] = useState(false);
-    const [isSigningUp, setIsSigningUp] = useState(false);
     const [signupCompleted, setSignupCompleted] = useState(false);
     const [userId, setUserId] = useState(null);
 
@@ -54,6 +53,83 @@ export default function SignupSuccessPage() {
             }
         }
     }, []);
+
+    // 카카오 인증 완료 후 user 상태 확인 및 처리
+    useEffect(() => {
+        if (kakaoSuccess && !signupCompleted) {
+            if (user) {
+                // user 상태가 이미 설정되어 있으면 회원가입 완료로 처리
+                // (이미 AppStateContext에서 signup 완료 후 setUser 호출됨)
+                console.log('[SignupSuccess] 카카오 인증 완료 후 user 상태 확인:', user);
+                setSignupCompleted(true);
+                setUserId(user.id);
+                localStorage.removeItem('pendingSignup'); // localStorage 정리
+                
+                // 첫 인터뷰 질문 발송
+                console.log('[SignupSuccess] 첫 인터뷰 질문 발송 시작');
+                fetch('/api/interviews/first', {
+                    method: 'POST',
+                    headers: {
+                        'X-User-ID': user.id,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({}),
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            console.error('[SignupSuccess] /first 실패:', response.status);
+                        } else {
+                            console.log('[SignupSuccess] ✅ 첫 인터뷰 질문 발송 성공');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('[SignupSuccess] /first 오류:', error);
+                    });
+            } else if (pendingSignup && pendingSignup.email && pendingSignup.password) {
+                // user가 없으면 pendingSignup의 정보로 로그인 시도
+                // 주의: 이미 회원가입이 완료된 경우 로그인만 시도 (중복 회원가입 방지)
+                console.log('[SignupSuccess] user 상태 없음 - 로그인 시도');
+                login({ email: pendingSignup.email, password: pendingSignup.password })
+                    .then((userProfile) => {
+                        console.log('[SignupSuccess] 로그인 성공:', userProfile);
+                        setSignupCompleted(true);
+                        setUserId(userProfile.id);
+                        localStorage.removeItem('pendingSignup'); // localStorage 정리
+                        
+                        // 첫 인터뷰 질문 발송
+                        console.log('[SignupSuccess] 첫 인터뷰 질문 발송 시작');
+                        fetch('/api/interviews/first', {
+                            method: 'POST',
+                            headers: {
+                                'X-User-ID': userProfile.id,
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({}),
+                        })
+                            .then(response => {
+                                if (!response.ok) {
+                                    console.error('[SignupSuccess] /first 실패:', response.status);
+                                } else {
+                                    console.log('[SignupSuccess] ✅ 첫 인터뷰 질문 발송 성공');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('[SignupSuccess] /first 오류:', error);
+                            });
+                    })
+                    .catch((error) => {
+                        console.error('[SignupSuccess] 로그인 실패:', error);
+                        // 로그인 실패 시 사용자에게 안내
+                        alert('로그인에 실패했습니다. 다시 시도해주세요.');
+                    });
+            } else {
+                // pendingSignup도 없으면 에러 처리
+                console.error('[SignupSuccess] user도 pendingSignup도 없음 - 회원가입 정보를 찾을 수 없습니다.');
+                alert('회원가입 정보를 찾을 수 없습니다. 다시 회원가입을 진행해주세요.');
+                navigate('/auth', { replace: true });
+            }
+        }
+    }, [kakaoSuccess, user, signupCompleted, pendingSignup, login, navigate]);
 
     // 회원가입 완료 시 첫 인터뷰 질문 발송 (카카오 알림 없는 경우)
     useEffect(() => {
@@ -99,55 +175,6 @@ export default function SignupSuccessPage() {
         }
     };
 
-    const handleSignupSubmit = async () => {
-        if (!pendingSignup) {
-            alert('회원가입 정보를 찾을 수 없습니다.');
-            return;
-        }
-
-        if (pendingSignup.email !== emailFromQuery) {
-            alert('카카오 인증 정보와 회원가입 정보가 일치하지 않습니다.');
-            return;
-        }
-
-        setIsSigningUp(true);
-
-        try {
-            console.log('[SignupSuccess] 회원가입 API 호출:', pendingSignup);
-            const result = await signup(pendingSignup);
-
-            if (result?.userId) {
-                console.log('[SignupSuccess] ✅ 회원가입 성공 - userId:', result.userId);
-                setUserId(result.userId);
-                setSignupCompleted(true);
-                localStorage.removeItem('pendingSignup'); // 성공 시 localStorage 정리
-
-                // 첫 인터뷰 질문 발송
-                console.log('[SignupSuccess] 첫 인터뷰 질문 발송 시작');
-                const firstInterviewResponse = await fetch('/api/interviews/first', {
-                    method: 'POST',
-                    headers: {
-                        'X-User-ID': result.userId,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({}),
-                });
-
-                if (!firstInterviewResponse.ok) {
-                    throw new Error(`첫 인터뷰 질문 발송 실패: ${firstInterviewResponse.status}`);
-                }
-                console.log('[SignupSuccess] ✅ 첫 인터뷰 질문 발송 성공');
-            } else {
-                throw new Error('회원가입 후 사용자 ID를 받지 못했습니다.');
-            }
-
-        } catch (error) {
-            console.error('[SignupSuccess] ❌ 회원가입 오류:', error);
-            alert(error.message || '회원가입 중 오류가 발생했습니다.');
-        } finally {
-            setIsSigningUp(false);
-        }
-    };
 
     // AuthPage의 레이아웃 클래스를 재사용하여 일관성 유지
     return (
@@ -166,34 +193,14 @@ export default function SignupSuccessPage() {
                 >
                     <CheckCircleIcon />
                     <h2 style={{ marginTop: '1.5rem', fontSize: '1.4rem', color: '#198754' }}>
-                        {signupCompleted ? '회원가입이 완료되었습니다!' : '카카오톡 인증 완료!'}
+                        {signupCompleted || (kakaoSuccess && user) ? '회원가입이 완료되었습니다!' : '카카오톡 인증 완료!'}
                     </h2>
                     <p style={{ margin: '0.5rem 0 1.5rem', fontSize: '0.95rem', color: '#555' }}>
-                        {signupCompleted ? 'PrePair에 오신 것을 환영합니다.' : '이제 회원가입을 완료해주세요.'}
+                        {signupCompleted || (kakaoSuccess && user) ? 'PrePair에 오신 것을 환영합니다.' : '이제 회원가입을 완료해주세요.'}
                     </p>
                     
-                    {/* 카카오 인증 완료 & 회원가입 대기 중 */}
-                    {kakaoSuccess && pendingSignup && !signupCompleted && (
-                        <div style={{ 
-                            marginBottom: '1rem', 
-                            padding: '1rem', 
-                            backgroundColor: '#d1e7dd', 
-                            borderRadius: '8px',
-                            border: '1px solid #198754',
-                            fontSize: '0.9rem',
-                            color: '#0f5132'
-                        }}>
-                            <p style={{ margin: '0 0 0.5rem 0', fontWeight: 'bold' }}>
-                                ✅ 카카오톡 인증 완료
-                            </p>
-                            <p style={{ margin: 0 }}>
-                                아래 버튼을 눌러 회원가입을 완료해주세요.
-                            </p>
-                        </div>
-                    )}
-                    
-                    {/* 회원가입 완료 */}
-                    {signupCompleted && (
+                    {/* 회원가입 완료 또는 카카오 인증 완료 */}
+                    {(signupCompleted || (kakaoSuccess && user)) && (
                         <div style={{ 
                             marginBottom: '1rem', 
                             padding: '1rem', 
@@ -213,39 +220,13 @@ export default function SignupSuccessPage() {
                     )}
                     
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
-                        {/* 카카오 인증 완료 & 회원가입 대기 중: 회원가입 완료 버튼 */}
-                        {kakaoSuccess && pendingSignup && !signupCompleted && (
-                            <button
-                                type="button"
-                                onClick={handleSignupSubmit}
-                                className="cta-button cta-button--primary"
-                                disabled={isSigningUp}
-                            >
-                                {isSigningUp ? '회원가입 진행 중...' : '회원가입 완료'}
-                            </button>
-                        )}
-                        
-                        {/* 회원가입 완료: 시작하기 버튼 */}
-                        {signupCompleted && (
-                            <button
-                                type="button"
-                                onClick={goToMyPage}
-                                className="cta-button cta-button--primary"
-                            >
-                                시작하기
-                            </button>
-                        )}
-                        
-                        {/* 카카오 알림 안 한 경우: 마이페이지로 가기 */}
-                        {!kakaoSuccess && !pendingSignup && (
-                            <button
-                                type="button"
-                                onClick={goToMyPage}
-                                className="cta-button cta-button--primary"
-                            >
-                                마이페이지로 가기
-                            </button>
-                        )}
+                        <button
+                            type="button"
+                            onClick={goToMyPage}
+                            className="cta-button cta-button--primary"
+                        >
+                            마이페이지로 가기
+                        </button>
                     </div>
                 </motion.div>
             </motion.section>

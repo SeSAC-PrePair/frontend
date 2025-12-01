@@ -730,3 +730,31 @@
         font-size: 1rem;
     }
 }
+
+/* 카카오 인증 버튼 스타일 */
+.auth__kakao-button-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.auth__kakao-auth-button {
+    background: #FEE500;
+    color: #000000;
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    min-width: 200px;
+}
+
+.auth__kakao-auth-button:hover {
+    background: #FDD835;
+}
+
+.auth__kakao-auth-button:active {
+    background: #FBC02D;
+}

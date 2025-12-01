@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import useMediaQuery from '../hooks/useMediaQuery'
 import robotLogo from '../assets/b01fa81ce7a959934e8f78fc6344081972afd0ae.png'
 import { fetchJobPostings, getEmploymentTypeText } from '../utils/worknetApi'
@@ -92,6 +92,8 @@ const defaultJobPostings = [
 ]
 
 export default function LandingPage() {
+    const navigate = useNavigate()
+    const [searchParams] = useSearchParams()
     const isMobile = useMediaQuery('(max-width: 768px)')
     const benefitsRef = useRef(null)
     const howStepsRef = useRef(null)
@@ -99,6 +101,30 @@ export default function LandingPage() {
     const [howIndex, setHowIndex] = useState(0)
     const [jobPostings, setJobPostings] = useState(defaultJobPostings)
     const [isLoadingJobs, setIsLoadingJobs] = useState(true)
+
+    // 카카오 인증 완료 후 Settings로 리다이렉트
+    useEffect(() => {
+        const kakaoSuccess = searchParams.get('kakao') === 'success'
+        const email = searchParams.get('email')
+        
+        if (kakaoSuccess && email) {
+            // localStorage에서 Settings에서 왔는지 확인
+            const pendingAuth = localStorage.getItem('pendingKakaoAuth')
+            if (pendingAuth) {
+                try {
+                    const data = JSON.parse(pendingAuth)
+                    if (data.from === 'settings' && data.email === email) {
+                        console.log('[Landing] Settings에서 온 카카오 인증 완료 - Settings로 리다이렉트')
+                        localStorage.removeItem('pendingKakaoAuth')
+                        navigate(`/settings?kakao=success&email=${encodeURIComponent(email)}`, { replace: true })
+                        return
+                    }
+                } catch (e) {
+                    console.error('[Landing] pendingKakaoAuth 파싱 오류:', e)
+                }
+            }
+        }
+    }, [searchParams, navigate])
 
     const handleScroll = (ref, setIndex, itemCount) => {
         if (!ref.current) return

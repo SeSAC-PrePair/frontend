@@ -12,162 +12,6 @@ import {redeemReward as redeemRewardApi} from '../utils/rewardsApi'
 
 const AppStateContext = createContext(null)
 
-const mockScoreHistory = [
-    {
-        id: 'session-008',
-        question: '최근에 설계한 기능이 실패했을 때의 회고 과정을 설명해주세요.',
-        score: 92,
-        submittedAt: '2025-11-12T09:00:00.000Z',
-        summary: '실패 원인을 데이터로 추적하고, 개선 로드맵을 제시한 점이 인상적입니다.',
-        highlights: ['문제 재정의 능력', '팀 커뮤니케이션 전략', '재발 방지 플랜'],
-        focusTags: ['Retro', 'Leadership', 'Learning Mindset'],
-        strengths: ['데이터 근거로 원인을 규명했습니다.', '후속 로드맵을 명확히 설계했습니다.'],
-        gaps: ['위기 당시 리스크 커뮤니케이션 절차가 다소 모호했습니다.'],
-        recommendations: ['리스크 커뮤니케이션 스크립트를 미리 작성해 보세요.', '회고 회의 흐름을 3단계로 정리해 보세요.'],
-        breakdown: {
-            structure: 90,
-            clarity: 94,
-            depth: 93,
-            story: 91,
-        },
-    },
-    {
-        id: 'session-007',
-        question: '데이터 기반으로 제품 의사결정을 내린 경험을 설명해주세요.',
-        score: 84,
-        submittedAt: '2025-11-11T10:30:00.000Z',
-        summary: '명확한 KPI를 두고 실험 설계를 진행한 정량 분석이 돋보입니다.',
-        highlights: ['A/B 테스트 설계', '지표 읽는 방법', '팀 설득'],
-        focusTags: ['Product Sense', 'Experiment'],
-        strengths: ['실험 설계를 KPI에 직결시켰습니다.', '데이터 스토리텔링으로 팀을 설득했습니다.'],
-        gaps: ['헬스 메트릭 대안이 조금 더 보강되면 좋습니다.'],
-        recommendations: ['핵심/보조 지표를 구분해 스토리라인을 연습하세요.', '데이터 기반 설득 문장을 2~3개 준비해 보세요.'],
-        breakdown: {
-            structure: 82,
-            clarity: 86,
-            depth: 80,
-            story: 88,
-        },
-    },
-    {
-        id: 'session-006',
-        question: '서비스 지표가 급격히 하락했을 때 어떤 식의 원인 분석을 진행할 것인가요?',
-        score: 76,
-        submittedAt: '2025-11-10T08:20:00.000Z',
-        summary: '이상 징후를 탐지하는 퍼널 진단 방법은 적절했으나, 후속 의사결정 근거가 조금 아쉬웠습니다.',
-        highlights: ['퍼널 분석', '알람 설계'],
-        focusTags: ['Diagnostics'],
-        strengths: ['퍼널 전환율을 세분화해 진단했습니다.', '알람 기준을 명확히 설명했습니다.'],
-        gaps: ['후속 실험 계획이 보다 구체적이면 설득력이 높아집니다.'],
-        recommendations: ['이상 징후 대응 프로세스를 3단계로 정리해 보세요.', '추가 실험 아이디어를 숫자와 함께 제시해 보세요.'],
-        breakdown: {
-            structure: 72,
-            clarity: 78,
-            depth: 74,
-            story: 80,
-        },
-    },
-]
-
-const questionBank = [
-    {
-        id: 'q-people-001',
-        trackId: 'people',
-        roleId: 'cabin-crew',
-        prompt: '기내에서 예기치 못한 이슈를 해결했던 경험을 STAR 구조로 설명해 주세요.',
-        subPrompt: '상황, 즉각적인 대응, 고객 반응, 배운 점을 순서대로 들려주세요.',
-        tags: ['Customer Care', 'Communication', 'Poise'],
-    },
-    {
-        id: 'q-people-002',
-        trackId: 'people',
-        roleId: 'csr',
-        prompt: '클레임 고객을 만족시킨 경험이 있다면 상세히 설명해 주세요.',
-        subPrompt: '고객의 초기 감정, 공감 방식, 해결 프로세스, 결과를 포함해주세요.',
-        tags: ['Empathy', 'Conflict Resolution'],
-    },
-    {
-        id: 'q-leadership-001',
-        trackId: 'leadership',
-        roleId: 'pm',
-        prompt: '프로젝트 리더로서 위기 상황을 조율했던 순간을 회고해 주세요.',
-        subPrompt: '문제 정의, 이해관계자 정렬, 의사결정, 학습을 중심으로 이야기하면 좋아요.',
-        tags: ['Leadership', 'Stakeholder', 'Decision Making'],
-    },
-    {
-        id: 'q-leadership-002',
-        trackId: 'leadership',
-        roleId: 'startup-dev',
-        prompt: '스타트업에서 제품을 빠르게 고도화한 경험을 공유해주세요.',
-        subPrompt: '우선순위, 커뮤니케이션, 실행 전략, 성과를 포함해 주세요.',
-        tags: ['Product Strategy', 'Execution'],
-    },
-    {
-        id: 'q-creative-001',
-        trackId: 'creative',
-        roleId: 'marketer',
-        prompt: '가장 임팩트 있었던 캠페인 기획과 성과를 이야기해주세요.',
-        subPrompt: '인사이트, 컨셉, 실행, 성과 지표, 배운 점을 짚어주세요.',
-        tags: ['Storytelling', 'Creativity', 'Metrics'],
-    },
-    {
-        id: 'q-creative-002',
-        trackId: 'creative',
-        roleId: 'designer',
-        prompt: '디자인 시스템을 구축하거나 개편한 경험이 있다면 설명해 주세요.',
-        subPrompt: '문제 정의, 의사결정 기준, 협업 구조, 결과를 담아주세요.',
-        tags: ['Design System', 'Collaboration'],
-    },
-    {
-        id: 'q-technical-001',
-        trackId: 'technical',
-        roleId: 'frontend',
-        prompt: '웹 성능 병목을 발견하고 개선했던 사례를 공유해주세요.',
-        subPrompt: '탐지 도구, 개선 실험, 성과, 커뮤니케이션 방식까지 포함해주세요.',
-        tags: ['Performance', 'Engineering'],
-    },
-    {
-        id: 'q-technical-002',
-        trackId: 'technical',
-        roleId: 'backend',
-        prompt: '대규모 트래픽 증가에 대비해 시스템을 확장했던 경험을 설명해 주세요.',
-        subPrompt: '문제 진단, 설계 선택, 리스크 관리, 결과를 중심으로 말해주세요.',
-        tags: ['Architecture', 'Scalability'],
-    },
-    {
-        id: 'q-technical-003',
-        trackId: 'technical',
-        roleId: 'rnd',
-        prompt: '연구 프로젝트에서 실험 설계를 주도했던 경험을 들려주세요.',
-        subPrompt: '가설 설정, 실험 방법, 결과 해석, 후속 학습을 포함하면 좋아요.',
-        tags: ['Research', 'Analytical Thinking'],
-    },
-    {
-        id: 'q-creative-003',
-        trackId: 'creative',
-        roleId: 'planner',
-        prompt: '서비스 기획 단계에서 비즈니스 임팩트를 만든 사례를 소개해주세요.',
-        subPrompt: '문제 정의, 리서치, 솔루션, 결과를 순차적으로 공유해주세요.',
-        tags: ['Product Sense', 'Insight'],
-    },
-    {
-        id: 'q-people-003',
-        trackId: 'people',
-        roleId: 'civil',
-        prompt: '민원 응대 과정에서 제도를 개선했던 경험이 있다면 설명해주세요.',
-        subPrompt: '민원 유형, 분석, 개선안, 만족도 변화를 포함하면 좋아요.',
-        tags: ['Service Innovation', 'Policy'],
-    },
-    {
-        id: 'q-leadership-003',
-        trackId: 'leadership',
-        roleId: 'hr',
-        prompt: '조직문화를 개선하기 위해 설계한 프로그램이 있다면 공유해주세요.',
-        subPrompt: '문제 인식, 설계, 실행, 성과, 배운 점을 이야기해주세요.',
-        tags: ['Culture', 'HR Strategy'],
-    },
-]
-
 const scoringRubric = [
     {
         id: 'structure',
@@ -304,6 +148,9 @@ const defaultUserProfile = {
 
 const defaultChannels = notificationChannelPresets.filter((channel) => channel.isDefault).map((channel) => channel.id)
 
+// 질문 뱅크 (현재는 빈 배열, 추후 API에서 가져오거나 다른 소스에서 로드)
+const questionBank = []
+
 function generateMockBarcode() {
     return Array.from({length: 4}, () => String(Math.floor(1000 + Math.random() * 9000))).join(' ')
 }
@@ -331,6 +178,8 @@ function getRoleLabel(trackId, roleId) {
 
 function pickQuestionForProfile(profile, sequence = 0) {
     if (!profile) return null
+    if (!questionBank || questionBank.length === 0) return null
+    
     const trackId = profile.jobTrackId || profile.trackId
     const roleId = profile.jobRoleId || profile.roleId
 
@@ -382,7 +231,7 @@ function appendToHeatmap(activity) {
 
 export function AppProvider({children}) {
     const [user, setUser] = useState(null)
-    const [scoreHistory, setScoreHistory] = useState(mockScoreHistory)
+    const [scoreHistory, setScoreHistory] = useState([])
     const [activity, setActivity] = useState(defaultActivity)
     const [purchases, setPurchases] = useState(defaultPurchases)
     const [sentQuestions, setSentQuestions] = useState([])
@@ -748,14 +597,15 @@ export function AppProvider({children}) {
                     lastLoginAt: new Date().toISOString(),
                 }
 
-                // 카카오 알림이 설정되지 않은 경우에만 로컬 상태 업데이트
-                // 카카오 알림이 설정된 경우는 카카오 인증 완료 후 로그인하도록 함
+                // 카카오 알림이 있든 없든 setUser() 호출
+                setUser(newProfile)
+                setActiveQuestion(null)
+                setSentQuestions([])
+                setLastDispatch(null)
+                sequenceRef.current = 0
+
+                // 카카오 알림 없는 경우에만 질문 발송
                 if (!payload.notificationKakao) {
-                    setUser(newProfile)
-                    setActiveQuestion(null)
-                    setSentQuestions([])
-                    setLastDispatch(null)
-                    sequenceRef.current = 0
                     dispatchQuestion({
                         profile: newProfile,
                         channels: mergedChannels,

@@ -48,31 +48,6 @@ export default function AuthPage() {
         kakaoAuthCompleted: false,  // 카카오 인증 완료 여부
     })
 
-    // 페이지 로드 시 카카오 인증 완료 여부 확인
-    useEffect(() => {
-        const searchParams = new URLSearchParams(location.search);
-        const kakaoSuccess = searchParams.get('kakao') === 'success';
-        const email = searchParams.get('email');
-        
-        if (kakaoSuccess && email) {
-            console.log('[Auth] 카카오 인증 완료 - 회원가입 폼으로 돌아옴');
-            
-            // localStorage에서 회원가입 정보 복구
-            const saved = localStorage.getItem('pendingSignup');
-            if (saved) {
-                const data = JSON.parse(saved);
-                if (data.email === email) {
-                    setSignupForm({
-                        ...data,
-                        kakaoAuthCompleted: true,
-                        notificationKakao: true
-                    });
-                    setActiveStep(2); // 마지막 단계로 이동
-                    console.log('[Auth] 회원가입 정보 복구 완료');
-                }
-            }
-        }
-    }, [location.search])
 
     // 회원가입 및 질문 전송 로딩 상태
     const [isSigningUp, setIsSigningUp] = useState(false)
@@ -234,14 +209,18 @@ export default function AuthPage() {
                 userId: result?.userId
             })
 
-            // 회원가입 성공 페이지로 이동
-            navigate('/signup-success', {
+            if (!signupForm.notificationKakao) {
+                navigate('/rewards', { replace: true });
+                } else {
+                // 카카오 알림 선택한 경우 signup-success로
+                navigate('/signup-success', {
                 replace: true,
                 state: {
-                    needsKakaoAuth: signupForm.notificationKakao && !signupForm.kakaoAuthCompleted,
-                    userId: result?.userId
+                needsKakaoAuth: !signupForm.kakaoAuthCompleted,
+                userId: result?.userId
                 }
-            })
+                });
+                }
         } catch (error) {
             console.error('[Auth] Signup error:', error)
             
@@ -832,32 +811,41 @@ export default function AuthPage() {
                                     {/* 카카오 알림 체크 시: 인증하기 버튼 또는 완료 메시지 */}
                                     {signupForm.notificationKakao && !signupForm.kakaoAuthCompleted && (
                                         <>
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    // localStorage에 현재 정보 저장
-                                                    localStorage.setItem('pendingSignup', JSON.stringify({
-                                                        name: signupForm.name,
-                                                        email: signupForm.email,
-                                                        password: signupForm.password,
-                                                        jobRole: signupForm.jobRole,
-                                                        jobCategoryOther: signupForm.jobCategoryOther,
-                                                        cadence: signupForm.cadence,
-                                                        notificationKakao: true,
-                                                        timestamp: Date.now()
-                                                    }));
-                                                    
-                                                    console.log('[Auth] 카카오 인증하기 버튼 클릭 - localStorage 저장 완료');
-                                                    console.log('[Auth] 카카오 인증 페이지로 리다이렉트');
-                                                    
-                                                    // 카카오 인증 페이지로 리다이렉트
-                                                    window.location.href = `https://prepair.wisoft.dev/api/auth/kakao?email=${encodeURIComponent(signupForm.email)}`;
-                                                }}
-                                                className="cta-button cta-button--primary"
-                                                style={{ marginTop: '10px', width: '100%', maxWidth: '200px' }}
-                                            >
-                                                🔐 카카오 인증하기
-                                            </button>
+                                            <div className="auth__kakao-button-wrapper">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        // localStorage에 현재 정보 저장
+                                                        localStorage.setItem('pendingSignup', JSON.stringify({
+                                                            name: signupForm.name,
+                                                            email: signupForm.email,
+                                                            password: signupForm.password,
+                                                            jobRole: signupForm.jobRole,
+                                                            jobCategoryOther: signupForm.jobCategoryOther,
+                                                            cadence: signupForm.cadence,
+                                                            notificationKakao: true,
+                                                            timestamp: Date.now()
+                                                        }));
+                                                        
+                                                        console.log('[Auth] 카카오 인증하기 버튼 클릭 - localStorage 저장 완료');
+                                                        console.log('[Auth] 카카오 인증 페이지로 리다이렉트');
+                                                        
+                                                        // 카카오 인증 페이지로 리다이렉트
+                                                        // force_reauth=true: 이전 토큰 무시하고 강제 재인증
+                                                        // new_signup=true: 새 회원가입임을 명시
+                                                        // timestamp: 캐시 방지
+                                                        const timestamp = Date.now();
+                                                        const redirectUri = `${window.location.origin}/signup-success`;
+                                                        const kakaoAuthUrl = `https://prepair.wisoft.dev/api/auth/kakao?email=${encodeURIComponent(signupForm.email)}&force_reauth=true&new_signup=true&redirect_uri=${encodeURIComponent(redirectUri)}&timestamp=${timestamp}`;
+                                                        
+                                                        console.log('[Auth] 카카오 인증 URL:', kakaoAuthUrl);
+                                                        window.location.href = kakaoAuthUrl;
+                                                    }}
+                                                    className="auth__kakao-auth-button"
+                                                >
+                                                    🔐 카카오 인증하기
+                                                </button>
+                                            </div>
                                             <p className="auth__hint auth__hint--info" style={{ marginTop: '8px', fontSize: '13px', color: '#666' }}>
                                                 <span role="img" aria-label="info icon" style={{ marginRight: '4px' }}>ℹ️</span>
                                                 카카오톡 알림을 사용하려면 먼저 카카오 인증을 완료해주세요.

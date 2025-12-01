@@ -10,7 +10,7 @@ import useMediaQuery from '../../hooks/useMediaQuery'
 export default function RewardsOverview() {
     const location = useLocation()
     const navigate = useNavigate()
-    const {user, activity, sentQuestions, scoreHistory} = useAppState()
+    const {user, scoreHistory} = useAppState()
 
     const [todayQuestion, setTodayQuestion] = useState(null)
     const [isLoadingTodayQuestion, setIsLoadingTodayQuestion] = useState(false)
@@ -77,67 +77,47 @@ export default function RewardsOverview() {
         return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
     }
 
-    // 활동 잔디 데이터 생성 함수
+    // 활동 잔디 데이터 생성 함수 (1월 1일 ~ 12월 31일 기준)
     const generateActivityHeatmap = (activities) => {
-        // 1년치 잔디 생성 (52주)
-        const weeks = 52
-        const totalDays = weeks * 7
         const today = new Date()
-        today.setHours(0, 0, 0, 0)
+        const currentYear = today.getFullYear()
 
-        // 오늘이 속한 주의 시작일(일요일) 계산
-        const todayDayOfWeek = today.getDay() // 0=일요일, 6=토요일
-
-        // 오늘이 마지막 주의 올바른 위치에 오도록 시작 날짜 계산
-        // 52주 전의 일요일을 시작점으로 설정 (오늘이 마지막 주의 해당 요일에 위치)
-        const startDate = new Date(today)
-        startDate.setDate(startDate.getDate() - (totalDays - 1) - todayDayOfWeek)
+        // 올해 1월 1일부터 12월 31일까지
+        const startDate = new Date(currentYear, 0, 1) // 1월 1일
         startDate.setHours(0, 0, 0, 0)
 
-        console.log('[generateActivityHeatmap] Input activities:', activities)
-        console.log('[generateActivityHeatmap] Activities length:', activities?.length)
-        console.log('[generateActivityHeatmap] Start date:', startDate)
-        console.log('[generateActivityHeatmap] Today:', today)
+        const endDate = new Date(currentYear, 11, 31) // 12월 31일
+        endDate.setHours(0, 0, 0, 0)
+
+        // 1월 1일이 무슨 요일인지 확인 (0=일요일)
+        const startDayOfWeek = startDate.getDay()
+
+        // 전체 주 수 계산 (1월 1일 앞의 빈 칸 포함)
+        const totalDays = Math.ceil((endDate - startDate) / (24 * 60 * 60 * 1000)) + 1 // 365 또는 366
+        const weeks = Math.ceil((totalDays + startDayOfWeek) / 7)
 
         if (!activities || activities.length === 0) {
-            console.log('[generateActivityHeatmap] No activities, returning empty heatmap')
-            // 빈 잔디 반환 (1년치, 52주)
             return {
                 data: Array.from({length: weeks}, () => Array(7).fill(0)),
                 scoreMap: new Map(),
                 startDate,
+                startDayOfWeek,
             }
         }
-        
-        // 날짜별 점수 정보를 맵으로 저장 (같은 날짜에 여러 답변이 있으면 최신 점수 사용)
-        // 키는 로컬 날짜 문자열로 통일하여 타임존 이슈 방지
+
+        // 날짜별 점수 정보를 맵으로 저장
         const activityScoreMap = new Map()
-        activities.forEach((act, index) => {
-            // 다양한 필드명 시도 (answered_at, answeredAt, date 등)
-            const answeredAt = act.answered_at || act.answeredAt || act.date || act.created_at || act.createdAt
-            
+        activities.forEach((act) => {
+            const answeredAt = act.answered_at || act.answeredAt || act.date
+
             if (answeredAt) {
                 const date = new Date(answeredAt)
-                
-                // 유효한 날짜인지 확인
-                if (isNaN(date.getTime())) {
-                    console.warn(`[generateActivityHeatmap] Invalid date at index ${index}:`, answeredAt, act)
-                    return
-                }
-                
-                // 날짜를 로컬 시간 기준으로 정규화 (시간 부분 제거)
+                if (isNaN(date.getTime())) return
+
                 date.setHours(0, 0, 0, 0)
-                
                 const dateKey = getLocalDateKey(date)
-                const score = act.score ?? act.points ?? 0
-                
-                console.log(`[generateActivityHeatmap] Activity ${index}:`, {
-                    answeredAt,
-                    parsedDate: date,
-                    dateKey,
-                    score
-                })
-                
+                const score = act.score ?? 0
+
                 const existingScore = activityScoreMap.get(dateKey)
                 if (!existingScore || new Date(answeredAt) > new Date(existingScore.answered_at)) {
                     activityScoreMap.set(dateKey, {
@@ -145,86 +125,40 @@ export default function RewardsOverview() {
                         answered_at: answeredAt,
                     })
                 }
-            } else {
-                console.warn(`[generateActivityHeatmap] No answered_at field at index ${index}:`, act)
             }
         })
-        
-        console.log('[generateActivityHeatmap] Activity score map size:', activityScoreMap.size)
-        console.log('[generateActivityHeatmap] Activity score map all keys:', Array.from(activityScoreMap.keys()))
-        console.log('[generateActivityHeatmap] Activity score map entries:', Array.from(activityScoreMap.entries()))
-        
-        // 날짜 범위 확인
-        const endDate = new Date(today)
-        endDate.setHours(23, 59, 59, 999)
-        console.log('[generateActivityHeatmap] Date range:', {
-            start: startDate.toISOString(),
-            end: endDate.toISOString(),
-            today: today.toISOString(),
-            totalDays
-        })
-        
+
         // 주 단위 배열 생성
         const heatmapData = []
-        let filledCells = 0
-        const matchedDates = []
-        
+
         for (let week = 0; week < weeks; week++) {
             const weekData = []
             for (let day = 0; day < 7; day++) {
-                const dayOffset = week * 7 + day
+                const dayOffset = week * 7 + day - startDayOfWeek
+
+                // 1월 1일 이전이거나 12월 31일 이후면 빈 칸 (-1로 표시)
+                if (dayOffset < 0 || dayOffset >= totalDays) {
+                    weekData.push(-1) // 빈 칸
+                    continue
+                }
+
                 const cellDate = new Date(startDate)
                 cellDate.setDate(cellDate.getDate() + dayOffset)
                 cellDate.setHours(0, 0, 0, 0)
-                
+
                 const dateKey = getLocalDateKey(cellDate)
-                // 해당 날짜에 답변이 있으면 1, 없으면 0
                 const hasActivity = activityScoreMap.has(dateKey)
-                
-                if (hasActivity) {
-                    filledCells++
-                    matchedDates.push(dateKey)
-                }
-                
-                // 디버깅: 첫 번째 주의 첫 번째 날짜와 마지막 날짜만 로그
-                if ((week === 0 && day === 0) || (week === weeks - 1 && day === 6)) {
-                    console.log(`[generateActivityHeatmap] Cell [${week}][${day}]:`, {
-                        cellDate: cellDate.toISOString(),
-                        dateKey,
-                        hasActivity,
-                        inMap: activityScoreMap.has(dateKey)
-                    })
-                }
-                
+
                 weekData.push(hasActivity ? 1 : 0)
             }
             heatmapData.push(weekData)
         }
 
-        console.log('[generateActivityHeatmap] Filled cells count:', filledCells)
-        console.log('[generateActivityHeatmap] Matched dates:', matchedDates)
-        console.log('[generateActivityHeatmap] Activity score map all keys:', Array.from(activityScoreMap.keys()))
-        console.log('[generateActivityHeatmap] Heatmap data sample (first week):', heatmapData[0])
-
-        // 안전장치: 오늘 날짜에 활동이 있다면 해당 칸을 반드시 1로 강제
-        const todayKey = getLocalDateKey(today)
-        if (activityScoreMap.has(todayKey)) {
-            const diffDays = Math.round(
-                (today.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000),
-            )
-            if (diffDays >= 0 && diffDays < totalDays) {
-                const todayWeek = Math.floor(diffDays / 7)
-                const todayDay = diffDays % 7
-                if (heatmapData[todayWeek]) {
-                    heatmapData[todayWeek][todayDay] = 1
-                }
-            }
-        }
-        
         return {
             data: heatmapData,
             scoreMap: activityScoreMap,
             startDate,
+            startDayOfWeek,
         }
     }
 
@@ -262,31 +196,15 @@ export default function RewardsOverview() {
                             (Array.isArray(summaryData) ? summaryData : null)
         }
         
-        if (activitiesArray && Array.isArray(activitiesArray) && activitiesArray.length > 0) {
-            console.log('[RewardsOverview] Using activities array for heatmap, length:', activitiesArray.length)
-            const result = generateActivityHeatmap(activitiesArray)
-            console.log('[RewardsOverview] Generated heatmap result:', {
-                dataLength: result.data.length,
-                scoreMapSize: result.scoreMap.size,
-                startDate: result.startDate,
-                filledCellsCount: result.data.flat().filter(v => v > 0).length
-            })
-            return result
-        }
-        
-        console.log('[RewardsOverview] No valid activities found, falling back to activity from context')
-        console.log('[RewardsOverview] Fallback activity length:', activity?.length)
-        // 기존 activity 형식에 맞춰 변환
-        return {
-            data: activity,
-            scoreMap: new Map(),
-            startDate: null,
-        }
-    }, [summaryData, activity])
+        // activities 배열이 있으면 사용, 없으면 빈 배열로 잔디 생성
+        const result = generateActivityHeatmap(activitiesArray || [])
+        return result
+    }, [summaryData])
     
     const activityHeatmap = activityHeatmapData.data
     const activityScoreMap = activityHeatmapData.scoreMap
     const heatmapStartDate = activityHeatmapData.startDate
+    const heatmapStartDayOfWeek = activityHeatmapData.startDayOfWeek ?? 0
     
     // 오늘의 점수: 오늘의 질문에 처음으로 남긴 답변의 점수 사용
     const todayScore = useMemo(() => {
@@ -374,7 +292,26 @@ export default function RewardsOverview() {
             activityHeatmap.slice(i * chunkSize, i * chunkSize + chunkSize),
         )
         : [activityHeatmap]
-    const [slideIdx, setSlideIdx] = useState(0)
+
+    // 현재 날짜가 포함된 슬라이드 인덱스 계산
+    const getCurrentSlideIndex = () => {
+        if (!isMobile || activityChunks.length === 0) return 0
+
+        const today = new Date()
+        const currentYear = today.getFullYear()
+        const startOfYear = new Date(currentYear, 0, 1)
+        const startDayOfWeek = startOfYear.getDay()
+
+        // 오늘이 몇 번째 주인지 계산
+        const dayOfYear = Math.floor((today - startOfYear) / (24 * 60 * 60 * 1000))
+        const currentWeek = Math.floor((dayOfYear + startDayOfWeek) / 7)
+
+        // 해당 주가 포함된 슬라이드 인덱스
+        const slideIndex = Math.floor(currentWeek / chunkSize)
+        return Math.min(slideIndex, activityChunks.length - 1)
+    }
+
+    const [slideIdx, setSlideIdx] = useState(getCurrentSlideIndex)
     const sliderRef = useRef(null)
 
     const goToSlide = (nextIdx) => {
@@ -386,6 +323,18 @@ export default function RewardsOverview() {
             slider.children[clamped].scrollIntoView({behavior: 'smooth', inline: 'start', block: 'nearest'})
         }
     }
+
+    // 모바일에서 현재 날짜 슬라이드로 초기 스크롤
+    useEffect(() => {
+        if (isMobile && sliderRef.current && activityChunks.length > 0) {
+            const currentIdx = getCurrentSlideIndex()
+            setSlideIdx(currentIdx)
+            const slider = sliderRef.current
+            if (slider && slider.children[currentIdx]) {
+                slider.children[currentIdx].scrollIntoView({behavior: 'instant', inline: 'start', block: 'nearest'})
+            }
+        }
+    }, [isMobile, activityHeatmap.length])
 
     useEffect(() => {
         if (redirectSource) {
@@ -572,7 +521,7 @@ export default function RewardsOverview() {
                 <header>
                     <div>
                         <h2>활동 잔디</h2>
-                        <p>1년 동안의 기록</p>
+                        <p>{new Date().getFullYear()}년의 기록</p>
                     </div>
                     <div className="rewards__streak-chip">
                         <span>연속 학습 {streakEmoji}</span>
@@ -615,6 +564,7 @@ export default function RewardsOverview() {
                                         scoreMap={activityScoreMap}
                                         startDate={heatmapStartDate}
                                         startDateOffset={idx * chunkSize * 7}
+                                        startDayOfWeek={heatmapStartDayOfWeek}
                                     />
                                 </div>
                             ))}
@@ -634,6 +584,7 @@ export default function RewardsOverview() {
                         data={activityHeatmap}
                         scoreMap={activityScoreMap}
                         startDate={heatmapStartDate}
+                        startDayOfWeek={heatmapStartDayOfWeek}
                     />
                 )}
             </section>

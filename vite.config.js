@@ -41,10 +41,31 @@ export default defineConfig({
         ]
       },
       workbox: {
+        // API 요청은 navigate fallback에서 제외 (중요!)
+        // navigate fallback은 페이지 네비게이션에만 적용되고, API 요청은 제외됨
+        navigateFallbackDenylist: [/^\/signup-success/, /^\/auth/, /^\/api\//],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
         globIgnores: ['**/showcase/**'], // showcase 폴더 제외 (큰 이미지 파일들)
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB로 증가
         runtimeCaching: [
+          // 1. 카카오 인증 API: 항상 네트워크만 사용 (캐싱 금지, 보안상 중요)
+          {
+            urlPattern: /^https:\/\/prepair\.wisoft\.dev\/api\/auth\/kakao/i,
+            handler: 'NetworkOnly',
+            options: {
+              cacheName: 'kakao-auth-cache',
+            }
+          },
+          // 2. 로컬 API 경로 (/api/): 개발 환경 프록시를 위해 NetworkOnly
+          // (실제로는 vite dev server의 프록시를 통해 원격 API로 전달됨)
+          {
+            urlPattern: /^\/api\/.*/i,
+            handler: 'NetworkOnly',
+            options: {
+              cacheName: 'local-api-cache',
+            }
+          },
+          // 3. 원격 API: NetworkFirst (오프라인 대비, 캐시 사용)
           {
             urlPattern: /^https:\/\/prepair\.wisoft\.dev\/api\/.*/i,
             handler: 'NetworkFirst',
@@ -59,6 +80,7 @@ export default defineConfig({
               }
             }
           },
+          // 4. 이미지 파일: CacheFirst (오프라인에서도 사용 가능)
           {
             urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/,
             handler: 'CacheFirst',

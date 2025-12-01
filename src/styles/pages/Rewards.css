@@ -87,6 +87,10 @@
     box-shadow: var(--shadow-card);
 }
 
+.rewards__heatmap {
+    overflow: visible;
+}
+
 .rewards__dispatch--main {
     padding: 1.75rem 2rem;
 }

@@ -400,6 +400,64 @@
     transform: translateY(0);
 }
 
+.settings__kakao-auth-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding: 1.5rem;
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.settings__kakao-auth-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.75rem;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: #FEE500;
+    color: #191f28;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-soft);
+    min-width: 200px;
+}
+
+.settings__kakao-auth-button:hover {
+    background: #FDD835;
+    box-shadow: var(--shadow-card);
+    transform: translateY(-1px);
+}
+
+.settings__kakao-auth-button:active {
+    transform: translateY(0);
+}
+
+.settings__kakao-auth-hint {
+    margin: 0;
+    font-size: 0.875rem;
+    color: rgba(20, 31, 64, 0.7);
+    text-align: center;
+    line-height: 1.5;
+}
+
+.settings__kakao-auth-success {
+    margin-top: 1rem;
+    padding: 0.875rem 1rem;
+    background: #d1e7dd;
+    border-radius: var(--radius-md);
+    border: 1px solid #198754;
+    font-size: 0.9rem;
+    color: #0f5132;
+    text-align: center;
+}
+
 @media (max-width: 768px) {
     .settings {
         padding: 2rem clamp(1.5rem, 5vw, 3rem) 3.4rem;
