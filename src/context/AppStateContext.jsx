@@ -381,7 +381,7 @@ function appendToHeatmap(activity) {
 
 export function AppProvider({children}) {
     const [user, setUser] = useState(null)
-    const [scoreHistory, setScoreHistory] = useState([])
+    const [scoreHistory, setScoreHistory] = useState(mockScoreHistory)
     const [activity, setActivity] = useState(defaultActivity)
     const [purchases, setPurchases] = useState(defaultPurchases)
     const [sentQuestions, setSentQuestions] = useState([])
@@ -536,66 +536,42 @@ export function AppProvider({children}) {
                     throw new Error('질문 주기를 선택해주세요.')
                 }
                 
-                // job: 목표 직무 값 사용
-                const job = payload.jobRole?.trim() || ''
+                // job: 사용자가 입력한 목표 직무
+                const job = payload.jobRole ?? ''
                 
                 // schedule_type: cadence.id를 대문자로 변환 (예: "daily" -> "DAILY")
                 const scheduleType = cadence.id.toUpperCase()
                 
-                // notification_type: 카카오톡 선택 시 "BOTH", 아니면 "EMAIL"
+                // notification_type: 카카오 선택 시 'BOTH', 아니면 'EMAIL'
                 const notificationType = payload.notificationKakao ? 'BOTH' : 'EMAIL'
 
                 // 필수 필드 검증
-                if (!job) {
+                if (!job || job.trim() === '') {
                     throw new Error('목표 직무를 입력해주세요.')
                 }
                 if (!scheduleType || scheduleType.trim() === '') {
                     throw new Error('질문 주기를 선택해주세요.')
                 }
 
-                // API 요청 데이터 구성
+                // API 요청 데이터 구성 (백엔드 명세에 맞게)
                 const requestData = {
-                    name: payload.name?.trim() || '',
-                    email: payload.email?.trim() || '',
-                    password: payload.password || '',
+                    name: payload.name,
+                    email: payload.email,
+                    password: payload.password,
                     settings: {
-                        job: job,
+                        job: job.trim(),
                         schedule_type: scheduleType,
                         notification_type: notificationType,
                     },
                 }
 
-                // 최종 검증: 필수 필드 확인
-                if (!requestData.name) {
-                    throw new Error('이름을 입력해주세요.')
-                }
-                if (!requestData.email) {
-                    throw new Error('이메일을 입력해주세요.')
-                }
-                if (!requestData.password) {
-                    throw new Error('비밀번호를 입력해주세요.')
-                }
-                if (!requestData.settings.job) {
-                    throw new Error('목표 직무를 입력해주세요.')
-                }
-                if (!requestData.settings.schedule_type) {
-                    throw new Error('질문 주기를 선택해주세요.')
-                }
-                if (!requestData.settings.notification_type) {
-                    throw new Error('알림 타입을 설정해주세요.')
-                }
-
                 // 디버깅: 요청 데이터 상세 로깅
-                console.log('[Signup] ===== Request Details =====')
-                console.log('[Signup] Request URL: /api/auth/signup')
-                console.log('[Signup] Request Method: POST')
                 console.log('[Signup] Request data:', JSON.stringify(requestData, null, 2))
                 console.log('[Signup] Payload:', payload)
                 console.log('[Signup] Job:', job)
                 console.log('[Signup] Schedule Type:', scheduleType)
                 console.log('[Signup] Notification Kakao:', payload.notificationKakao)
                 console.log('[Signup] Notification Type:', notificationType)
-                console.log('[Signup] ===========================')
 
                 // API 호출
                 const response = await fetch('/api/auth/signup', {
@@ -612,19 +588,13 @@ export function AppProvider({children}) {
                     let errorText = ''
                     try {
                         errorText = await response.text()
-                        console.error('[Signup] Raw Error Response Text:', errorText)
                         if (errorText) {
                             try {
                                 errorData = JSON.parse(errorText)
-                                console.error('[Signup] Parsed Error Data:', errorData)
                             } catch (parseError) {
                                 // JSON 파싱 실패 시 텍스트 그대로 사용
-                                console.error('[Signup] Failed to parse error response as JSON:', parseError)
-                                errorData = { message: errorText || '알 수 없는 오류가 발생했습니다.', raw: errorText }
+                                errorData = { message: errorText || '알 수 없는 오류가 발생했습니다.' }
                             }
-                        } else {
-                            console.error('[Signup] Empty error response body')
-                            errorData = { message: '서버에서 빈 응답을 받았습니다.' }
                         }
                     } catch (e) {
                         console.error('[Signup] Failed to read error response:', e)
@@ -634,30 +604,16 @@ export function AppProvider({children}) {
                     // 디버깅: 에러 응답 상세 로깅
                     console.error('[Signup] ===== Error Response =====')
                     console.error('[Signup] Status:', response.status, response.statusText)
-                    console.error('[Signup] Status Code:', response.status)
-                    console.error('[Signup] Error Text (Raw):', errorText)
-                    console.error('[Signup] Error Data (Parsed):', errorData)
-                    console.error('[Signup] Error Data (Stringified):', JSON.stringify(errorData, null, 2))
+                    console.error('[Signup] Error Text:', errorText)
+                    console.error('[Signup] Error Data:', errorData)
                     console.error('[Signup] Request Data:', JSON.stringify(requestData, null, 2))
                     console.error('[Signup] Request Headers:', {
                         'Content-Type': 'application/json',
                     })
-                    console.error('[Signup] Response Headers:', Object.fromEntries(response.headers.entries()))
                     console.error('[Signup] ===========================')
                     
                     if (response.status === 400) {
-                        // 400 에러의 경우 서버에서 반환한 상세 메시지 표시
-                        const errorMessage = errorData.message || errorData.error || errorData.detail || errorData.raw || errorText || '입력 정보를 확인해주세요.'
-                        console.error('[Signup] 400 Bad Request - Full Details:', {
-                            errorData,
-                            errorText,
-                            requestData,
-                            payload,
-                            responseHeaders: Object.fromEntries(response.headers.entries()),
-                        })
-                        // 에러 메시지를 alert로도 표시하여 사용자가 확인할 수 있도록 함
-                        console.error('[Signup] Error Message to User:', errorMessage)
-                        throw new Error(errorMessage)
+                        throw new Error(errorData.message || errorData.error || '입력 정보를 확인해주세요.')
                     } else if (response.status === 409) {
                         throw new Error(errorData.message || '이미 존재하는 이메일입니다.')
                     } else if (response.status === 500) {
@@ -685,48 +641,52 @@ export function AppProvider({children}) {
                     throw new Error('회원가입 응답에서 user_id를 받을 수 없습니다.')
                 }
 
-                // 모든 경우에 첫 인터뷰 질문 발송 (카카오 알림 선택 여부와 관계없이)
-                // 카카오 알림은 나중에 설정에서 인증할 수 있음
-                try {
-                    const firstInterviewResponse = await fetch('/api/interviews/first', {
-                        method: 'POST',
-                        headers: {
-                            'X-User-ID': userId,
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({}),
-                    })
+                // 카카오 알림을 선택하지 않은 경우에만 첫 인터뷰 질문 발송
+                // 카카오 알림 선택 시에는 카카오 인증 완료 후 /first 요청 필요
+                if (!payload.notificationKakao) {
+                    try {
+                        const firstInterviewResponse = await fetch('/api/interviews/first', {
+                            method: 'POST',
+                            headers: {
+                                'X-User-ID': userId,
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({}),
+                        })
 
-                    if (!firstInterviewResponse.ok) {
-                        let errorText = '';
-                        let errorData = {};
-                        try {
-                            errorText = await firstInterviewResponse.text();
-                            if (errorText) {
-                                try {
-                                    errorData = JSON.parse(errorText);
-                                } catch (e) {
-                                    errorData = { raw: errorText };
+                        if (!firstInterviewResponse.ok) {
+                            let errorText = '';
+                            let errorData = {};
+                            try {
+                                errorText = await firstInterviewResponse.text();
+                                if (errorText) {
+                                    try {
+                                        errorData = JSON.parse(errorText);
+                                    } catch (e) {
+                                        errorData = { raw: errorText };
+                                    }
                                 }
+                            } catch (e) {
+                                console.error('[Signup] Failed to read first API error response:', e);
                             }
-                        } catch (e) {
-                            console.error('[Signup] Failed to read first API error response:', e);
+                            
+                            console.error('[Signup] 첫 인터뷰 질문 요청 실패:', {
+                                status: firstInterviewResponse.status,
+                                statusText: firstInterviewResponse.statusText,
+                                errorData,
+                                errorText,
+                                userId,
+                            });
+                            // 에러가 발생해도 회원가입은 성공한 것으로 처리
+                        } else {
+                            console.log('[Signup] 첫 인터뷰 질문 발송 성공');
                         }
-                        
-                        console.error('[Signup] 첫 인터뷰 질문 요청 실패:', {
-                            status: firstInterviewResponse.status,
-                            statusText: firstInterviewResponse.statusText,
-                            errorData,
-                            errorText,
-                            userId,
-                        });
+                    } catch (error) {
+                        console.error('[Signup] 첫 인터뷰 질문 요청 중 오류:', error);
                         // 에러가 발생해도 회원가입은 성공한 것으로 처리
-                    } else {
-                        console.log('[Signup] 첫 인터뷰 질문 발송 성공');
                     }
-                } catch (error) {
-                    console.error('[Signup] 첫 인터뷰 질문 요청 중 오류:', error);
-                    // 에러가 발생해도 회원가입은 성공한 것으로 처리
+                } else {
+                    console.log('[Signup] 카카오 알림 선택됨 - 첫 인터뷰 질문 발송 건너뜀 (카카오 인증 완료 후 발송 예정)');
                 }
 
                 // 성공 시 로컬 상태 업데이트
@@ -739,13 +699,13 @@ export function AppProvider({children}) {
                     id: userId, // API에서 받은 user_id 사용
                     name: payload.name || 'PrePair 사용자',
                     email: payload.email,
-                    desiredField: job,
-                    jobTrackId: '',
-                    jobTrackLabel: job,
+                    desiredField: job,  // 목표 직무
+                    jobTrackId: 'other',
+                    jobTrackLabel: job,  // 목표 직무
                     jobRoleId: '',
-                    jobRoleLabel: job,
-                    customJobLabel: job,
-                    goal: payload.goal,
+                    jobRoleLabel: job,  // 목표 직무
+                    customJobLabel: job,  // 목표 직무
+                    goal: payload.goal || job,  // 목표
                     focusArea: payload.focusArea || '',
                     questionCadence: cadence.id,
                     questionCadenceLabel: cadence.label,
@@ -859,7 +819,6 @@ export function AppProvider({children}) {
              gaps = [],
              recommendations = [],
              answer = '',
-             historyId = null, // 서버에서 제공하는 실제 historyId
          }) => {
             const submittedAt = new Date().toISOString()
             
@@ -882,8 +841,8 @@ export function AppProvider({children}) {
             }
 
             const isFirstToday = isFirstSubmissionToday()
-            // 오늘의 질문에 최초로 답변해서 얻은 점수 == 획득 포인트
-            const earnedPoints = isFirstToday ? score : 0
+            const bonus = Math.max(40, Math.round(score * 0.6))
+            const earnedPoints = isFirstToday ? bonus : 0
 
             setSentQuestions((prev) => {
                 if (prev.length === 0) return prev
@@ -900,8 +859,7 @@ export function AppProvider({children}) {
 
             setScoreHistory((prev) => [
                 {
-                    id: `session-${Date.now()}`, // 클라이언트 ID (하위 호환성 유지)
-                    historyId: historyId || null, // 서버에서 제공하는 실제 historyId
+                    id: `session-${Date.now()}`,
                     question,
                     score,
                     submittedAt,

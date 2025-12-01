@@ -39,11 +39,39 @@ export default function AuthPage() {
         email: '',
         password: '',
         passwordConfirm: '',
-        jobCategory: '',
+        jobCategory: 'other',  // 목표 직무 자유 입력을 위해 'other'로 설정
         jobRole: '',
+        jobCategoryOther: '',  // jobCategory='other'일 때 사용
         cadence: defaultCadence,
         notificationKakao: false,
+        kakaoAuthCompleted: false,  // 카카오 인증 완료 여부
     })
+
+    // 페이지 로드 시 카카오 인증 완료 여부 확인
+    useEffect(() => {
+        const searchParams = new URLSearchParams(location.search);
+        const kakaoSuccess = searchParams.get('kakao') === 'success';
+        const email = searchParams.get('email');
+        
+        if (kakaoSuccess && email) {
+            console.log('[Auth] 카카오 인증 완료 - 회원가입 폼으로 돌아옴');
+            
+            // localStorage에서 회원가입 정보 복구
+            const saved = localStorage.getItem('pendingSignup');
+            if (saved) {
+                const data = JSON.parse(saved);
+                if (data.email === email) {
+                    setSignupForm({
+                        ...data,
+                        kakaoAuthCompleted: true,
+                        notificationKakao: true
+                    });
+                    setActiveStep(2); // 마지막 단계로 이동
+                    console.log('[Auth] 회원가입 정보 복구 완료');
+                }
+            }
+        }
+    }, [location.search])
 
     // 회원가입 및 질문 전송 로딩 상태
     const [isSigningUp, setIsSigningUp] = useState(false)
@@ -159,21 +187,22 @@ export default function AuthPage() {
         setIsSigningUp(true)
 
         try {
-            const result = await signup(signupForm)
-
-            // 카카오 알림이 설정되어 있고 userId가 있으면 바로 카카오 인증 API 호출
-            if (signupForm.notificationKakao && result?.userId) {
-                console.log('[Auth] 카카오 알림 설정됨, 카카오 인증 API 호출:', {
-                    userId: result.userId,
-                    url: `/api/auth/kakao?user_id=${encodeURIComponent(result.userId)}`
-                })
-
-                // 카카오 인증 페이지로 리다이렉트
-                window.location.href = `/api/auth/kakao?user_id=${encodeURIComponent(result.userId)}`
-                return
+            // 카카오 알림 선택했지만 인증 안 함 → 인증 필요 경고
+            if (signupForm.notificationKakao && !signupForm.kakaoAuthCompleted) {
+                alert('카카오 알림을 사용하려면 먼저 카카오 인증을 완료해주세요.');
+                return;
             }
+            
+            // 회원가입 진행
+            console.log('[Auth] 회원가입 진행 시작');
+            const result = await signup(signupForm)
+            
+            console.log('[Auth] 회원가입 완료 - 결과:', {
+                result,
+                userId: result?.userId
+            })
 
-            // 카카오 알림이 설정되지 않은 경우 회원가입 성공 페이지로 이동
+            // 회원가입 성공 페이지로 이동
             navigate('/signup-success', {
                 replace: true,
                 state: {
@@ -652,7 +681,8 @@ export default function AuthPage() {
                                         value={signupForm.jobRole}
                                         onChange={(event) => setSignupForm((prev) => ({
                                             ...prev,
-                                            jobRole: event.target.value
+                                            jobRole: event.target.value,
+                                            jobCategoryOther: event.target.value  // jobCategory가 'other'이므로 동일한 값 설정
                                         }))}
                                         required
                                     />
@@ -663,8 +693,17 @@ export default function AuthPage() {
                                             onClick={() => setActiveStep(0)}>
                                         이전
                                     </button>
-                                    <button type="button" className="cta-button cta-button--primary"
-                                            onClick={() => setActiveStep(2)}>
+                                    <button 
+                                        type="button" 
+                                        className="cta-button cta-button--primary"
+                                        onClick={() => {
+                                            if (!signupForm.jobRole || !signupForm.jobRole.trim()) {
+                                                alert('목표 직무를 입력해주세요.');
+                                                return;
+                                            }
+                                            setActiveStep(2);
+                                        }}
+                                    >
                                         다음
                                     </button>
                                 </div>
@@ -702,19 +741,65 @@ export default function AuthPage() {
                                             checked={signupForm.notificationKakao}
                                             onChange={(event) => setSignupForm((prev) => ({
                                                 ...prev,
-                                                notificationKakao: event.target.checked
+                                                notificationKakao: event.target.checked,
+                                                kakaoAuthCompleted: event.target.checked ? prev.kakaoAuthCompleted : false
                                             }))}
                                         />
                                         <span style={{ margin: 0, fontWeight: 'normal', fontSize: '15px' }}>
                                             카카오톡으로도 알림 받기 (선택)
                                         </span>
                                     </label>
-                                    {/* 카카오 알림 설정 시 안내 문구 */}
-                                    {signupForm.notificationKakao && (
-                                        <p className="auth__hint auth__hint--info" style={{ marginTop: '8px', fontSize: '13px', color: '#666' }}>
-                                            <span role="img" aria-label="info icon" style={{ marginRight: '4px' }}>ℹ️</span>
-                                            카카오톡 알림을 사용하시려면 회원가입 후 카카오 인증이 필요합니다.
-                                        </p>
+                                    
+                                    {/* 카카오 알림 체크 시: 인증하기 버튼 또는 완료 메시지 */}
+                                    {signupForm.notificationKakao && !signupForm.kakaoAuthCompleted && (
+                                        <>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    // localStorage에 현재 정보 저장
+                                                    localStorage.setItem('pendingSignup', JSON.stringify({
+                                                        name: signupForm.name,
+                                                        email: signupForm.email,
+                                                        password: signupForm.password,
+                                                        jobRole: signupForm.jobRole,
+                                                        jobCategoryOther: signupForm.jobCategoryOther,
+                                                        cadence: signupForm.cadence,
+                                                        notificationKakao: true,
+                                                        timestamp: Date.now()
+                                                    }));
+                                                    
+                                                    console.log('[Auth] 카카오 인증하기 버튼 클릭 - localStorage 저장 완료');
+                                                    console.log('[Auth] 카카오 인증 페이지로 리다이렉트');
+                                                    
+                                                    // 카카오 인증 페이지로 리다이렉트
+                                                    window.location.href = `https://prepair.wisoft.dev/api/auth/kakao?email=${encodeURIComponent(signupForm.email)}`;
+                                                }}
+                                                className="cta-button cta-button--primary"
+                                                style={{ marginTop: '10px', width: '100%', maxWidth: '200px' }}
+                                            >
+                                                🔐 카카오 인증하기
+                                            </button>
+                                            <p className="auth__hint auth__hint--info" style={{ marginTop: '8px', fontSize: '13px', color: '#666' }}>
+                                                <span role="img" aria-label="info icon" style={{ marginRight: '4px' }}>ℹ️</span>
+                                                카카오톡 알림을 사용하려면 먼저 카카오 인증을 완료해주세요.
+                                            </p>
+                                        </>
+                                    )}
+                                    
+                                    {/* 카카오 인증 완료 */}
+                                    {signupForm.kakaoAuthCompleted && (
+                                        <div style={{ 
+                                            marginTop: '10px', 
+                                            padding: '10px', 
+                                            backgroundColor: '#d1e7dd', 
+                                            borderRadius: '6px',
+                                            border: '1px solid #198754',
+                                            fontSize: '14px',
+                                            color: '#0f5132'
+                                        }}>
+                                            <span role="img" aria-label="check" style={{ marginRight: '6px' }}>✅</span>
+                                            카카오 인증이 완료되었습니다!
+                                        </div>
                                     )}
                                 </div>
 
