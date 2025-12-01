@@ -468,11 +468,25 @@
     }
 
     .shell__actions {
-        gap: 0.6rem;
+        display: flex;
+        gap: 0.5rem;
         align-items: center;
         justify-content: flex-end;
         flex: 0 0 auto;
         flex-wrap: nowrap;
+    }
+
+    /* 모바일에서 로그아웃 버튼을 왼쪽, 햄버거 메뉴를 오른쪽에 배치 */
+    .shell__actions .menu-toggle {
+        order: 2;
+        flex-shrink: 0;
+    }
+
+    .shell__actions .cta-button--ghost {
+        order: 1;
+        flex-shrink: 0;
+        font-size: 0.8rem;
+        padding: 0.5rem 0.75rem;
     }
 
     .user-chip {
