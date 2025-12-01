@@ -68,13 +68,18 @@ export default function SettingsPage() {
             
             // notification_type 매핑
             const apiNotificationType = userInfo.notification_type || 'EMAIL'
+            // 카카오 인증 여부 확인 (notification_type이 KAKAO 또는 BOTH인 경우)
+            const isKakaoConnected = apiNotificationType === 'KAKAO' || apiNotificationType === 'BOTH'
             // 백엔드 응답이 있으면 백엔드 데이터 우선 사용
-            const notificationChannels = apiNotificationType === 'KAKAO' ? ['kakao'] : []
+            // 카카오 인증이 완료된 경우 알림 채널에 카카오 포함
+            const notificationChannels = isKakaoConnected ? ['kakao'] : []
 
             console.log('[Settings] 파싱된 데이터:', {
                 jobDescription: nextJobDescription,
                 questionCadence: nextQuestionCadence,
                 notificationChannels: notificationChannels,
+                notification_type: apiNotificationType,
+                isKakaoConnected: isKakaoConnected,
             })
 
             setForm({
@@ -84,9 +89,9 @@ export default function SettingsPage() {
                 questionCadence: nextQuestionCadence,
                 notificationChannels: notificationChannels,
             })
-            
-            // 카카오 인증 완료 여부 설정 (notification_type이 KAKAO이면 인증 완료로 간주)
-            setKakaoAuthCompleted(apiNotificationType === 'KAKAO')
+
+            // 카카오 인증 완료 여부 설정 (kakao_connected 또는 notification_type이 KAKAO이면 인증 완료로 간주)
+            setKakaoAuthCompleted(isKakaoConnected)
             
             // API 호출 성공 표시
             setHasFetchedFromApi(true)
