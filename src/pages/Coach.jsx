@@ -406,10 +406,10 @@ export default function CoachPage() {
                     setTodayQuestion(data)
                     setIsLoadingTodayQuestion(false)
 
-                    // answered_at이 있으면 이미 답변한 것으로 간주하고 답변 필드에 설정
-                    if (data.answered_at && data.status === 'ANSWERED' && data.answer) {
-                        // 이미 답변한 경우, API 응답의 answer를 답변란에 표시
-                        setAnswer(data.answer)
+                    // answered_at이 있으면 이미 답변한 것으로 간주하고 과거 질문으로 이동
+                    if (data.answered_at && data.status === 'ANSWERED') {
+                        // 이미 답변한 경우, 과거 질문 패널로 자동 이동
+                        setActivePanel('history')
                     }
                 })
                 .catch((error) => {
