@@ -1373,3 +1373,58 @@
     padding: 1rem 1.25rem;
   }
 }
+
+/* 초소형 모바일 대응 */
+@media (max-width: 480px) {
+  .coach__composer-body {
+    min-height: 160px;
+  }
+
+  .coach__analyzing {
+    padding: 1rem 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .coach__analyzing--compact {
+    padding: 1rem 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .coach__analyzing--compact .coach__analyzing-robot img {
+    width: 40px;
+    height: 40px;
+  }
+
+  .coach__analyzing--compact .coach__analyzing-orbs span {
+    width: 10px;
+    height: 10px;
+  }
+
+  .coach__analyzing p {
+    font-size: 0.8125rem;
+  }
+
+  .coach__analyzing small {
+    font-size: 0.75rem;
+  }
+}
+
+/* 이미 답변 완료 안내 메시지 */
+.coach__answered-notice {
+  margin: 0;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-md);
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  color: #856404;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .coach__answered-notice {
+    padding: 0.875rem 1rem;
+    font-size: 0.875rem;
+  }
+}

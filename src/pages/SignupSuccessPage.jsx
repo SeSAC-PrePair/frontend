@@ -43,6 +43,27 @@ export default function SignupSuccessPage() {
     // localStorage에서 회원가입 정보 읽기
     const [pendingSignup, setPendingSignup] = useState(null);
 
+    // Settings에서 카카오 인증 후 돌아온 경우 Settings로 리다이렉트
+    useEffect(() => {
+        if (kakaoSuccess) {
+            const pendingKakaoAuth = localStorage.getItem('pendingKakaoAuth');
+            if (pendingKakaoAuth) {
+                try {
+                    const data = JSON.parse(pendingKakaoAuth);
+                    if (data.from === 'settings') {
+                        console.log('[SignupSuccess] Settings에서 카카오 인증 완료 - Settings로 리다이렉트');
+                        localStorage.removeItem('pendingKakaoAuth');
+                        // Settings로 리다이렉트하면서 카카오 인증 완료 상태 전달
+                        navigate(`/settings?kakao=success&email=${encodeURIComponent(data.email || emailFromQuery || '')}`, { replace: true });
+                        return;
+                    }
+                } catch (e) {
+                    console.error('[SignupSuccess] pendingKakaoAuth 파싱 오류:', e);
+                }
+            }
+        }
+    }, [kakaoSuccess, emailFromQuery, navigate]);
+
     useEffect(() => {
         const saved = localStorage.getItem('pendingSignup');
         if (saved) {
