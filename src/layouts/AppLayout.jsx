@@ -3,7 +3,7 @@ import { motion as Motion } from 'framer-motion'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAppState } from '../context/AppStateContext'
 import '../styles/layouts/AppLayout.css'
-import brandLogo from '/src/assets/b01fa81ce7a959934e8f78fc6344081972afd0ae.png' // 1. 로고 파일 import
+import brandLogo from '/src/assets/logo.png' // 1. 로고 파일 import
 
 const navItems = [
     { to: '/rewards', label: 'Home' },
@@ -116,7 +116,7 @@ export default function AppLayout() {
                 </div>
             </header>
 
-            <main className="shell__main">
+            <main className={`shell__main ${isLanding ? 'is-landing' : ''}`}>
                 <Motion.div
                     key={location.pathname}
                     initial={{ opacity: 0, y: 12 }}

@@ -1,106 +1,44 @@
-import { useRef, useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import useMediaQuery from '../hooks/useMediaQuery'
-import robotLogo from '../assets/b01fa81ce7a959934e8f78fc6344081972afd0ae.png'
-import { fetchJobPostings, getEmploymentTypeText } from '../utils/worknetApi'
+import robotLogo from '../assets/logo.png'
 import '../styles/pages/Landing.css'
+import { gsap } from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
-const benefits = [
+const solutions = [
     {
-        icon: '🎯',
-        title: '직무 맞춤 질문',
-        description: '개발, 기획, 마케팅 등 내 직무에 최적화된 AI 생성 면접 질문'
-    },
-    {
-        icon: '🔔',
-        title: '매일 도착하는 알림',
-        description: '메일 또는 카카오톡으로 원하는 시간에 자동 발송'
+        icon: '💬',
+        title: '매일 텍스트 면접',
+        description: '매일 도착하는 맞춤 면접 질문으로 꾸준한 연습'
     },
     {
         icon: '🤖',
-        title: 'AI 실시간 피드백',
-        description: 'Ollama LLM 기반 즉시 분석 및 개선점 제시'
+        title: 'AI 피드백',
+        description: 'AI 기반의 면접 분석 및 개선점 제시'
     },
     {
         icon: '🎁',
-        title: '리워드 시스템',
-        description: '꾸준한 연습으로 포인트를 모아 실제 혜택으로 교환'
-    },
-]
-
-const howItWorks = [
-    {
-        step: '01',
-        title: '회원가입 및 직무 설정',
-        description: '이메일로 간편하게 가입하고, 내 직무와 알림 방식을 선택하세요.',
-        icon: '📨'
+        title: '리워드 상점',
+        description: '포인트를 모아 실제 혜택으로 교환'
     },
     {
-        step: '02',
-        title: '매일 면접 질문 수신',
-        description: '설정한 시간에 AI가 생성한 면접 질문이 메일이나 카톡으로 도착합니다.',
-        icon: '📬'
+        icon: '🎥',
+        title: '3D 화상 면접',
+        description: '면접을 위한 가상공간에서 실전 연습'
     },
-    {
-        step: '03',
-        title: '답변 작성 및 제출',
-        description: '받은 질문에 대한 답변을 작성하고 제출하세요.',
-        icon: '✍️'
-    },
-    {
-        step: '04',
-        title: 'AI 피드백 & 리워드',
-        description: 'AI가 즉시 분석한 피드백과 점수를 확인하고, 포인트를 받으세요.',
-        icon: '🤖'
-    },
-]
-
-const testimonials = [
-    {
-        name: '김개발',
-        role: '프론트엔드 개발자',
-        company: '스타트업',
-        text: '매일 꾸준히 면접 질문을 받으니 실전 감각이 늘었어요. AI 피드백도 구체적이고 도움이 됩니다!',
-        rating: 5
-    },
-    {
-        name: '박기획',
-        role: 'PM',
-        company: 'IT 기업',
-        text: '카톡으로 받아서 부담 없이 답변하고, 포인트까지 쌓여서 동기부여가 확실해요.',
-        rating: 5
-    },
-    {
-        name: '이마케팅',
-        role: '마케터',
-        company: '광고 에이전시',
-        text: 'Ollama LLM 피드백이 정말 날카로워요. 면접 준비하면서 논리력도 많이 늘었습니다.',
-        rating: 5
-    },
-]
-
-// 기본 채용정보 (API 호출 실패 시 사용)
-const defaultJobPostings = [
-    { company: '하이퍼레일', position: '프론트엔드 개발자', type: '정규직' },
-    { company: '골든치즈', position: 'PM/기획자', type: '정규직' },
-    { company: '체스테크', position: '백엔드 개발자', type: '정규직' },
-    { company: '플러피랩', position: 'UX 디자이너', type: '정규직' },
-    { company: '버거테크', position: '데이터 분석가', type: '정규직' },
-    { company: '카모빌', position: 'iOS 개발자', type: '정규직' },
-    { company: '프레시캐롯', position: 'Android 개발자', type: '정규직' },
-    { company: '타겟랩', position: '마케터', type: '정규직' },
 ]
 
 export default function LandingPage() {
     const navigate = useNavigate()
     const [searchParams] = useSearchParams()
-    const isMobile = useMediaQuery('(max-width: 768px)')
-    const benefitsRef = useRef(null)
-    const howStepsRef = useRef(null)
-    const [benefitIndex, setBenefitIndex] = useState(0)
-    const [howIndex, setHowIndex] = useState(0)
-    const [jobPostings, setJobPostings] = useState(defaultJobPostings)
-    const [isLoadingJobs, setIsLoadingJobs] = useState(true)
+    const [logoUrl, setLogoUrl] = useState(`${robotLogo}?v=${Date.now()}`)
+    useEffect(() => {
+        const img = new Image()
+        img.onload = () => {
+            setLogoUrl(`${robotLogo}?v=${Date.now()}`)
+        }
+        img.src = robotLogo
+    }, [])
 
     // 카카오 인증 완료 후 Settings로 리다이렉트
     useEffect(() => {
@@ -126,281 +64,460 @@ export default function LandingPage() {
         }
     }, [searchParams, navigate])
 
-    const handleScroll = (ref, setIndex, itemCount) => {
-        if (!ref.current) return
-        const scrollLeft = ref.current.scrollLeft
-        const itemWidth = ref.current.scrollWidth / itemCount
-        const newIndex = Math.round(scrollLeft / itemWidth)
-        setIndex(newIndex)
-    }
-
-    // 워크넷 API에서 채용정보 가져오기
     useEffect(() => {
-        const loadJobPostings = async () => {
-            try {
-                setIsLoadingJobs(true)
-                const jobs = await fetchJobPostings({
-                    display: 20, // 더 많은 채용정보를 가져와서 무한 스크롤 효과를 위해
-                })
-                
-                // API 데이터를 컴포넌트에서 사용할 형식으로 변환
-                const formattedJobs = jobs.map((job) => ({
-                    company: job.company || job.empBusiNm || '공채기업',
-                    position: job.title || job.empWantedTitle || '채용공고',
-                    type: job.type || job.empWantedTypeNm || '정규직',
-                    region: job.region || job.coClcdNm || '',
-                    salary: job.sal || '',
-                    wantedInfoUrl: job.wantedInfoUrl || job.empWantedHomepgDetail || job.empWantedMobileUrl || '#',
-                }))
-                
-                if (formattedJobs.length > 0) {
-                    setJobPostings(formattedJobs)
-                }
-            } catch (error) {
-                console.error('채용정보 로딩 실패:', error)
-                // 에러 발생 시 기본 데이터 사용 (이미 defaultJobPostings로 설정됨)
-            } finally {
-                setIsLoadingJobs(false)
+        gsap.registerPlugin(ScrollTrigger)
+        
+        // 초기 상태 설정 (GSAP가 제어)
+        gsap.set('.robot-image', { opacity: 0, scale: 0.8 })
+        gsap.set('.hero-title-main, .hero-title-sub', { opacity: 0, y: 30 })
+        gsap.set('.problem-title, .stat-label, .stat-number, .problem-description', { opacity: 0, y: 30 })
+        gsap.set('.solution-card', { opacity: 0, y: 40 })
+        gsap.set('.cta-title, .cta-description, .cta-button', { opacity: 0, y: 30 })
+        
+        // DOM이 완전히 렌더링될 때까지 대기
+        const timer = setTimeout(() => {
+          // Hero 섹션: 페이지 로드 시 즉시 애니메이션
+          const heroTl = gsap.timeline({ defaults: { ease: "power2.out" } })
+          heroTl.to('.robot-image', {
+            opacity: 1,
+            scale: 1,
+            duration: 1
+          })
+          .to('.hero-title-main', {
+            opacity: 1,
+            y: 0,
+            duration: 0.8
+          }, "-=0.6")
+          .to('.hero-title-sub', {
+            opacity: 1,
+            y: 0,
+            duration: 0.8
+          }, "-=0.6")
+        }, 50)
+
+        // Problem 섹션 애니메이션
+        gsap.to('.problem-title', {
+          opacity: 1,
+          y: 0,
+          duration: 0.8,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: '.problem-section',
+            start: 'top 80%',
+            once: true
+          }
+        })
+
+        gsap.to('.stat-label', {
+          opacity: 1,
+          y: 0,
+          duration: 0.8,
+          ease: "power2.out",
+          delay: 0.2,
+          scrollTrigger: {
+            trigger: '.problem-section',
+            start: 'top 80%',
+            once: true
+          }
+        })
+
+        // 숫자 카운팅 애니메이션
+        const statNumberEl = document.querySelector('.stat-number')
+        if (statNumberEl) {
+          gsap.to('.stat-number', {
+            opacity: 1,
+            y: 0,
+            duration: 0.8,
+            ease: "power2.out",
+            delay: 0.2,
+            scrollTrigger: {
+              trigger: '.problem-section',
+              start: 'top 80%',
+              once: true
             }
+          })
+          
+          // 숫자 카운팅 애니메이션
+          gsap.fromTo({ value: 0 }, 
+            { value: 0 },
+            {
+              value: 71.9,
+              duration: 1,
+              ease: "power1.out",
+              snap: { value: 0.1 },
+              delay: 0.2,
+              scrollTrigger: {
+                trigger: '.problem-section',
+                start: 'top 80%',
+                once: true
+              },
+              onUpdate: function() {
+                if (statNumberEl) {
+                  statNumberEl.textContent = this.targets()[0].value.toFixed(1) + '%'
+                }
+              }
+            }
+          )
+        }
+
+        gsap.to('.problem-description', {
+          opacity: 1,
+          y: 0,
+          duration: 0.8,
+          ease: "power2.out",
+          delay: 0.4,
+          scrollTrigger: {
+            trigger: '.problem-section',
+            start: 'top 80%',
+            once: true
+          }
+        })
+
+        // Solution 섹션 애니메이션
+        gsap.set('.solution-robot-image', { opacity: 0, scale: 0.8, x: 50 })
+        
+        // 로봇 애니메이션 (오른쪽)
+        gsap.to('.solution-robot-image', {
+          opacity: 1,
+          scale: 1,
+          x: 0,
+          duration: 0.8,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: '.solution-section',
+            start: 'top 80%',
+            once: true
+          }
+        })
+
+        // 카드 애니메이션
+        gsap.to('.solution-card', {
+          opacity: 1,
+          y: 0,
+          duration: 0.6,
+          ease: "power2.out",
+          stagger: 0.15,
+          scrollTrigger: {
+            trigger: '.solution-section',
+            start: 'top 80%',
+            once: true
+          }
+        })
+
+        // 로봇 설명 애니메이션 
+        let robotExplainTl = null
+        let isHovering = false
+        const cardHandlers = [] 
+        
+        const createRobotAnimation = () => {
+          const robotEl = document.querySelector('.solution-robot-image')
+          if (!robotEl) return null
+          
+          return gsap.timeline({ 
+            repeat: -1,
+            repeatDelay: 3,
+            paused: false,
+            scrollTrigger: {
+              trigger: '.solution-section',
+              start: 'top 50%',
+              end: 'bottom top',
+              toggleActions: 'play pause resume pause'
+            }
+          })
+          .to('.solution-robot-image', {
+            y: -15,
+            duration: 0.8,
+            ease: "power2.inOut"
+          })
+          .to('.solution-robot-image', {
+            rotation: 8,
+            duration: 0.4,
+            ease: "power2.inOut"
+          })
+          .to('.solution-robot-image', {
+            rotation: -8,
+            duration: 0.4,
+            ease: "power2.inOut"
+          })
+          .to('.solution-robot-image', {
+            rotation: 0,
+            y: 0,
+            duration: 0.8,
+            ease: "power2.inOut"
+          })
+        }
+
+        
+        const initRobotAnimation = () => {
+          robotExplainTl = createRobotAnimation()
         }
         
-        loadJobPostings()
-    }, [])
+        setTimeout(initRobotAnimation, 500)
+
+        
+        const initCardHoverHandlers = () => {
+          const solutionCards = document.querySelectorAll('.solution-card')
+          const robotEl = document.querySelector('.solution-robot-image')
+          
+          if (!robotEl || solutionCards.length === 0) {
+            setTimeout(initCardHoverHandlers, 100)
+            return
+          }
+          
+          const cardHandlers = []
+          
+          solutionCards.forEach((card, idx) => {
+
+            const isTopRow = idx < 2 
+            
+            const handleMouseEnter = () => {
+              if (robotEl && !isHovering) {
+                isHovering = true
+                
+                if (robotExplainTl) {
+                  robotExplainTl.pause()
+                }
+                
+                const currentTransform = gsap.getProperty(robotEl, "y") || 0
+                
+
+                const rotation = isTopRow ? 15 : -20
+
+                gsap.to(robotEl, {
+                  rotation: rotation,
+                  scale: 1.05,
+                  y: currentTransform,
+                  duration: 0.4,
+                  ease: "power2.out"
+                })
+              }
+            }
+            
+            const handleMouseLeave = () => {
+              if (robotEl && isHovering) {
+                isHovering = false
+                
+                const currentY = gsap.getProperty(robotEl, "y") || 0
+                
+                // 원래 위치로 복귀
+                gsap.to(robotEl, {
+                  rotation: 0,
+                  scale: 1,
+                  y: currentY,
+                  duration: 0.4,
+                  ease: "power2.out",
+                  onComplete: () => {
+                    if (robotExplainTl && !isHovering) {
+                      robotExplainTl.restart()
+                    }
+                  }
+                })
+              }
+            }
+            
+            card.addEventListener('mouseenter', handleMouseEnter)
+            card.addEventListener('mouseleave', handleMouseLeave)
+            
+            cardHandlers.push({ card, handleMouseEnter, handleMouseLeave })
+          })
+          
+          return cardHandlers
+        }
+        
+        setTimeout(() => {
+          const handlers = initCardHoverHandlers()
+          if (handlers && handlers.length > 0) {
+            cardHandlers.length = 0 
+            cardHandlers.push(...handlers)
+          }
+        }, 600)
+
+        gsap.to('.cta-title', {
+          opacity: 1,
+          y: 0,
+          duration: 0.8,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: '.cta-section',
+            start: 'top 80%',
+            once: true
+          }
+        })
+
+        gsap.to('.cta-description', {
+          opacity: 1,
+          y: 0,
+          duration: 0.8,
+          ease: "power2.out",
+          delay: 0.2,
+          scrollTrigger: {
+            trigger: '.cta-section',
+            start: 'top 80%',
+            once: true
+          }
+        })
+
+        gsap.to('.cta-button', {
+          opacity: 1,
+          y: 0,
+          duration: 0.6,
+          ease: "power2.out",
+          stagger: 0.1,
+          delay: 0.4,
+          scrollTrigger: {
+            trigger: '.cta-section',
+            start: 'top 80%',
+            once: true
+          }
+        })
+
+        // 스크롤 스냅
+        const sections = gsap.utils.toArray('.hero-section, .problem-section, .solution-section, .cta-section')
+        let currentSection = 0
+        let isScrolling = false
+
+        const goToSection = (index) => {
+          if (isScrolling || !sections[index]) return
+          isScrolling = true
+
+          const targetY = sections[index].offsetTop
+          
+          gsap.to({ scrollY: window.scrollY }, {
+            scrollY: targetY,
+            duration: 1.2,
+            ease: "power2.inOut",
+            onUpdate: function() {
+              window.scrollTo(0, this.targets()[0].scrollY)
+            },
+            onComplete: () => {
+              isScrolling = false
+            }
+          })
+        }
+
+        const handleWheel = (e) => {
+          if (isScrolling) {
+            e.preventDefault()
+            return
+          }
+
+          const delta = e.deltaY
+          
+          if (delta > 0 && currentSection < sections.length - 1) {
+
+            currentSection++
+            goToSection(currentSection)
+            e.preventDefault()
+          } else if (delta < 0 && currentSection > 0) {
+            
+            currentSection--
+            goToSection(currentSection)
+            e.preventDefault()
+          }
+        }
+
+        
+        window.addEventListener('wheel', handleWheel, { passive: false })
+
+        
+        const updateCurrentSection = () => {
+          const scrollY = window.scrollY
+          const windowHeight = window.innerHeight
+          currentSection = Math.round(scrollY / windowHeight)
+        }
+        updateCurrentSection()
+
+        
+        let scrollTimeout
+        const handleScroll = () => {
+          clearTimeout(scrollTimeout)
+          scrollTimeout = setTimeout(() => {
+            if (!isScrolling) {
+              updateCurrentSection()
+            }
+          }, 100)
+        }
+        window.addEventListener('scroll', handleScroll)
+        
+        return () => {
+          clearTimeout(timer)
+          ScrollTrigger.getAll().forEach(trigger => trigger.kill())
+          window.removeEventListener('wheel', handleWheel)
+          window.removeEventListener('scroll', handleScroll)
+          
+          if (robotExplainTl) {
+            robotExplainTl.kill()
+          }
+          
+          cardHandlers.forEach(({ card, handleMouseEnter, handleMouseLeave }) => {
+            card.removeEventListener('mouseenter', handleMouseEnter)
+            card.removeEventListener('mouseleave', handleMouseLeave)
+          })
+        }
+      }, [])
+
 
     return (
         <div className="landing-new">
-            {/* Hero Section */}
-            <section className="hero-section">
-                <div className="hero-content">
+            {/* Section 1: Hero - 캐릭터와 서비스 이름 */}
+            <section className="hero-section" data-section="hero">
+                <div className="hero-container">
+                    <div className="hero-robot">
+                        <img src={logoUrl} alt="PrePair AI" className="robot-image" key={logoUrl} />
+                    </div>
                     <h1 className="hero-title">
-                        <span className="hero-title__line">완벽한 면접 준비를 위한 AI 파트너,</span>
-                        <span className="highlight">PrePair</span>
+                        <span className="hero-title-main">PrePair</span>
+                        <span className="hero-title-sub">완벽한 면접 준비, AI 파트너</span>
                     </h1>
-                    <p className="hero-description">
-                        AI가 생성한 맞춤 면접 질문을 매일 받아보고,<br />
-                        실시간 피드백으로 면접 실력을 키워보세요.
-                    </p>
-                    <div className="hero-stats">
-                        <div className="stat-item">
-                            <strong>1,000+</strong>
-                            <span>활성 사용자</span>
-                        </div>
-                        <div className="stat-item">
-                            <strong>10,000+</strong>
-                            <span>생성된 질문</span>
-                        </div>
-                        <div className="stat-item">
-                            <strong>95%</strong>
-                            <span>만족도</span>
-                        </div>
-                    </div>
-                    <div className="hero-cta">
-                        <Link to="/auth?mode=signup" className="btn btn--primary btn--large">
-                            무료로 시작하기
-                        </Link>
-                        <Link to="/auth?mode=login" className="btn btn--secondary btn--large">
-                            로그인
-                        </Link>
-                    </div>
                 </div>
-                <div className="hero-visual">
-                    <div className="hero-showcase">
-                        {/* 메시 그라데이션 배경 */}
-                        <div className="showcase-mesh"></div>
+            </section>
 
-                        {/* 오비탈 링 */}
-                        <div className="showcase-orbit showcase-orbit--1">
-                            <div className="orbit-dot"></div>
-                        </div>
-                        <div className="showcase-orbit showcase-orbit--2">
-                            <div className="orbit-dot"></div>
-                        </div>
-                        <div className="showcase-orbit showcase-orbit--3">
-                            <div className="orbit-dot"></div>
-                        </div>
-
-                        {/* 플로팅 글래스 카드들 */}
-                        <div className="floating-card floating-card--question">
-                            <div className="floating-card__icon">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                                </svg>
-                            </div>
-                            <div className="floating-card__content">
-                                <span className="floating-card__label">오늘의 질문</span>
-                                <span className="floating-card__text">협업 경험을 알려주세요</span>
-                            </div>
-                        </div>
-
-                        <div className="floating-card floating-card--score">
-                            <div className="floating-card__icon">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                                </svg>
-                            </div>
-                            <div className="floating-card__content">
-                                <span className="floating-card__label">AI 평가</span>
-                                <span className="floating-card__value">92<small>점</small></span>
-                            </div>
-                        </div>
-
-                        <div className="floating-card floating-card--feedback">
-                            <div className="floating-card__icon">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="20 6 9 17 4 12"/>
-                                </svg>
-                            </div>
-                            <div className="floating-card__content">
-                                <span className="floating-card__label">피드백</span>
-                                <span className="floating-card__text">구체적인 예시 Good!</span>
-                            </div>
-                        </div>
-
-                        <div className="floating-card floating-card--reward">
-                            <div className="floating-card__icon">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="12" cy="8" r="6"/>
-                                    <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>
-                                </svg>
-                            </div>
-                            <div className="floating-card__content">
-                                <span className="floating-card__label">리워드</span>
-                                <span className="floating-card__text">치킨 교환권 🍗</span>
-                            </div>
-                        </div>
-
-                        {/* 중앙 로봇 */}
-                        <div className="showcase-robot">
-                            <div className="robot-platform"></div>
-                            <div className="robot-glow"></div>
-                            <img src={robotLogo} alt="PrePair AI" />
-                            <div className="robot-shadow"></div>
-                        </div>
-
-                        {/* 스파클 효과 */}
-                        <div className="sparkle sparkle--1"></div>
-                        <div className="sparkle sparkle--2"></div>
-                        <div className="sparkle sparkle--3"></div>
+            {/* Section 2: Problem - 문제 상황 */}
+            <section className="problem-section" data-section="problem">
+                <div className="problem-container">
+                    <h2 className="problem-title">막막한 면접, 언제까지?</h2>
+                    <div className="problem-stat">
+                        <span className="stat-label">취업 준비 과정에서 면접이 가장 어렵다</span>
+                        <span className="stat-number">71.9%</span>
+                        
+                        <p className="problem-description">안잡핏 면접 실태 조사, 2025</p>
                     </div>
                 </div>
             </section>
 
-            {/* Benefits Section */}
-            <section className="benefits-section">
-                <div className="section-header">
-                    <h2>PrePair만의 특별한 장점</h2>
-                    <p>AI 기반 맞춤 코칭으로 면접 준비를 더 효과적으로</p>
-                </div>
-                <div
-                    className="benefits-grid"
-                    ref={benefitsRef}
-                    onScroll={() => handleScroll(benefitsRef, setBenefitIndex, benefits.length)}
-                >
-                    {benefits.map((benefit, idx) => (
-                        <div key={idx} className="benefit-card">
-                            <div className="benefit-icon">{benefit.icon}</div>
-                            <h3>{benefit.title}</h3>
-                            <p>{benefit.description}</p>
-                        </div>
-                    ))}
-                </div>
-                {isMobile && (
-                    <div className="carousel-dots">
-                        {benefits.map((_, idx) => (
-                            <span
-                                key={idx}
-                                className={`carousel-dot ${idx === benefitIndex ? 'is-active' : ''}`}
-                            />
-                        ))}
-                    </div>
-                )}
-            </section>
-
-            {/* How It Works Section */}
-            <section className="how-section">
-                <div className="section-header">
-                    <h2>PrePair 사용 방법</h2>
-                    <p>간단한 4단계로 시작하는 면접 준비</p>
-                </div>
-                <div
-                    className="how-steps"
-                    ref={howStepsRef}
-                    onScroll={() => handleScroll(howStepsRef, setHowIndex, howItWorks.length)}
-                >
-                    {howItWorks.map((item, idx) => (
-                        <div key={idx} className="how-step">
-                            <div className="step-number">{item.step}</div>
-                            <div className="step-icon">{item.icon}</div>
-                            <h3>{item.title}</h3>
-                            <p>{item.description}</p>
-                        </div>
-                    ))}
-                </div>
-                {isMobile && (
-                    <div className="carousel-dots">
-                        {howItWorks.map((_, idx) => (
-                            <span
-                                key={idx}
-                                className={`carousel-dot ${idx === howIndex ? 'is-active' : ''}`}
-                            />
-                        ))}
-                    </div>
-                )}
-            </section>
-
-            {/* Testimonials Section */}
-            <section className="testimonial-section">
-                <div className="section-header">
-                    <h2>사용자 후기</h2>
-                    <p>PrePair와 함께 면접을 준비한 사용자들의 이야기</p>
-                </div>
-                <div className="testimonial-slider">
-                    <div className="testimonial-track">
-                        {[...testimonials, ...testimonials].map((testimonial, idx) => (
-                            <div key={idx} className="testimonial-card">
-                                <div className="testimonial-rating">
-                                    {'⭐'.repeat(testimonial.rating)}
+            {/* Section 3: Solution - 솔루션 카드 */}
+            <section className="solution-section" data-section="solution">
+                <div className="solution-container">
+                    <div className="solution-content">
+                        <div className="solution-grid">
+                            {solutions.map((solution, idx) => (
+                                <div key={idx} className="solution-card" data-card-index={idx}>
+                                    <div className="solution-card-icon">{solution.icon}</div>
+                                    <h3 className="solution-card-title">{solution.title}</h3>
+                                    <p className="solution-card-description">{solution.description}</p>
                                 </div>
-                                <p className="testimonial-text">"{testimonial.text}"</p>
-                                <div className="testimonial-author">
-                                    <strong>{testimonial.name}</strong>
-                                    <span>{testimonial.role} · {testimonial.company}</span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* Job Postings Banner */}
-            <section className="job-banner-section">
-                <div className="section-header">
-                    <h2>지금 채용 중인 기업들</h2>
-                    <p>PrePair와 함께 면접 준비하고 꿈의 기업에 도전하세요</p>
-                </div>
-                <div className="job-banner">
-                    {isLoadingJobs ? (
-                        <div className="job-loading">채용정보를 불러오는 중...</div>
-                    ) : (
-                        <div className="job-banner__track">
-                            {[...jobPostings, ...jobPostings].map((job, idx) => (
-                                <a
-                                    key={`${job.company}-${idx}`}
-                                    href={job.wantedInfoUrl || '#'}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="job-card"
-                                >
-                                    <div className="job-card__info">
-                                        <strong>{job.company}</strong>
-                                        <span>{job.position}</span>
-                                        {job.region && <span className="job-card__region">{job.region}</span>}
-                                    </div>
-                                    <span className="job-card__type">{job.type}</span>
-                                </a>
                             ))}
                         </div>
-                    )}
+                        <div className="solution-robot">
+                            <img src={logoUrl} alt="PrePair AI Robot" className="solution-robot-image" />
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Section 4: CTA - Call to Action */}
+            <section className="cta-section" data-section="cta">
+                <div className="cta-container">
+                    <h2 className="cta-title">면접 준비를 습관으로!</h2>
+                    <p className="cta-description">지금 바로 시작해보세요</p>
+                    <div className="cta-buttons">
+                        <Link to="/auth?mode=signup" className="cta-button cta-button--primary">
+                            지금 시작하기
+                        </Link>
+                        <Link to="/auth?mode=signup" className="cta-button cta-button--secondary">
+                            플랜 구독하기
+                        </Link>
+                    </div>
                 </div>
             </section>
         </div>

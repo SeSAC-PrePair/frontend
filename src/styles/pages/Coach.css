@@ -266,61 +266,25 @@
 
 .coach__analyzing {
     position: absolute;
-    inset: 0;
+    inset: 0.6rem;
     border-radius: var(--radius-md);
-    background: rgba(242, 228, 236, 0.96);
+    background: rgba(242, 228, 236, 0.92);
     border: 1px solid rgba(174, 197, 242, 0.5);
-    backdrop-filter: blur(4px);
-    z-index: 10;
-
+    
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.6rem;
     text-align: center;
-    padding: 1.5rem 1rem;
-}
-
-/* 재피드백 로딩용 컴팩트 버전 */
-.coach__analyzing--compact {
-    padding: 1.25rem 1rem;
-    gap: 0.6rem;
-}
-
-.coach__analyzing--compact .coach__analyzing-visual {
-    gap: 0.6rem;
-}
-
-.coach__analyzing--compact .coach__analyzing-robot img {
-    width: 48px;
-    height: 48px;
-}
-
-.coach__analyzing--compact .coach__analyzing-orbs span {
-    width: 12px;
-    height: 12px;
+    padding: 1.2rem;
 }
 
 @media (min-width: 768px) {
     .coach__analyzing {
+        inset: 1rem;
         gap: 1rem;
         padding: 2rem 1.5rem;
-    }
-
-    .coach__analyzing--compact {
-        padding: 1.5rem;
-        gap: 0.75rem;
-    }
-
-    .coach__analyzing--compact .coach__analyzing-robot img {
-        width: 64px;
-        height: 64px;
-    }
-
-    .coach__analyzing--compact .coach__analyzing-orbs span {
-        width: 14px;
-        height: 14px;
     }
 }
 
@@ -605,15 +569,6 @@
   line-height: 1.6;
   white-space: pre-wrap;
 }
-
-.coach__feedback-section {
-  border-left: 3px solid rgba(63, 123, 255, 0.3);
-  background: rgba(63, 123, 255, 0.02);
-}
-
-.coach__feedback-section strong {
-  color: rgba(63, 123, 255, 0.9);
-}
 .coach__insight-meta {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -852,23 +807,17 @@
   padding: 0.625rem 1rem;
   font-size: 0.875rem;
   color: var(--text-secondary);
-  background: rgba(255, 255, 255, 0.6);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  background: transparent;
   text-decoration: none;
   justify-content: flex-start;
   font-weight: 500;
   transition: all 0.2s ease;
-  box-shadow: var(--shadow-soft);
 }
 
 .history-card__view-feedback:hover,
 .history-card__view-feedback:focus-visible {
   color: var(--accent-primary);
-  background: rgba(49, 130, 246, 0.08);
-  border-color: rgba(49, 130, 246, 0.3);
-  box-shadow: var(--shadow-card);
-  transform: translateY(-1px);
+  background: rgba(49, 130, 246, 0.06);
 }
 
 .history-card__repractice {
@@ -1422,40 +1371,5 @@
   .coach__suggestion-answer-content {
     max-height: 300px;
     padding: 1rem 1.25rem;
-  }
-}
-
-/* 초소형 모바일 대응 */
-@media (max-width: 480px) {
-  .coach__composer-body {
-    min-height: 160px;
-  }
-
-  .coach__analyzing {
-    padding: 1rem 0.75rem;
-    gap: 0.5rem;
-  }
-
-  .coach__analyzing--compact {
-    padding: 1rem 0.75rem;
-    gap: 0.5rem;
-  }
-
-  .coach__analyzing--compact .coach__analyzing-robot img {
-    width: 40px;
-    height: 40px;
-  }
-
-  .coach__analyzing--compact .coach__analyzing-orbs span {
-    width: 10px;
-    height: 10px;
-  }
-
-  .coach__analyzing p {
-    font-size: 0.8125rem;
-  }
-
-  .coach__analyzing small {
-    font-size: 0.75rem;
   }
 }

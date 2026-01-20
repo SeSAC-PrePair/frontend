@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAppState } from '../context/AppStateContext'
 import { findPassword } from '../utils/authApi'
 import ErrorModal from '../components/ErrorModal'
-import robotLogo from '../assets/b01fa81ce7a959934e8f78fc6344081972afd0ae.png'
+import robotLogo from '../assets/logo.png'
 import '../styles/pages/Auth.css'
 
 const steps = [

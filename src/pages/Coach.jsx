@@ -7,7 +7,7 @@ import PointsRewardModal from '../components/PointsRewardModal'
 import useMediaQuery from '../hooks/useMediaQuery'
 import {generateFeedback, getSuggestedAnswer, getSummaryFeedback, getTodayQuestion, getInterviewHistories, getInterviewHistoryDetail} from '../utils/feedbackApi'
 import {getUserSummary} from '../utils/authApi'
-import robotLogo from '../assets/b01fa81ce7a959934e8f78fc6344081972afd0ae.png'
+import robotLogo from '../assets/logo.png'
 import '../styles/pages/Coach.css'
 
 // 하드코딩된 풀 제거 - API 응답에서 직접 사용

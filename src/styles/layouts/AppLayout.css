@@ -90,6 +90,12 @@
 
 .shell__header.is-transparent {
     background: rgba(255, 255, 255, 0.86);
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    border-bottom: none;
+    box-shadow: none;
 }
 
 .shell__brand {
@@ -270,6 +276,10 @@
     padding-bottom: 4rem;
 }
 
+.shell__main.is-landing {
+    padding-bottom: 0;
+}
+
 .shell__page {
     width: 100%;
     max-width: 100%;
@@ -294,6 +304,10 @@
     font-size: 0.875rem;
     position: relative;
     z-index: 1;
+}
+
+.shell__main.is-landing + .shell__footer {
+    margin-top: 0;
 }
 
 .footer__column {
